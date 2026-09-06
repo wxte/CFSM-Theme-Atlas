@@ -1,368 +1,124 @@
-import createGlobe from 'https://esm.sh/cobe@2.0.1';
-
-const $ = (s, root = document) => root.querySelector(s);
-const $$ = (s, root = document) => [...root.querySelectorAll(s)];
-
-const COUNTRY = {
-  US: { name: 'United States', flag: '🇺🇸', coord: [37.1, -95.7] },
-  GB: { name: 'United Kingdom', flag: '🇬🇧', coord: [54.2, -2.8] },
-  UK: { name: 'United Kingdom', flag: '🇬🇧', coord: [54.2, -2.8] },
-  DE: { name: 'Germany', flag: '🇩🇪', coord: [51.1, 10.4] },
-  SG: { name: 'Singapore', flag: '🇸🇬', coord: [1.35, 103.82] },
-  HK: { name: 'Hong Kong', flag: '🇭🇰', coord: [22.32, 114.17] },
-  JP: { name: 'Japan', flag: '🇯🇵', coord: [36.2, 138.25] },
-  KR: { name: 'South Korea', flag: '🇰🇷', coord: [36.5, 127.9] },
-  CN: { name: 'China', flag: '🇨🇳', coord: [35.9, 104.2] },
-  TW: { name: 'Taiwan', flag: '🇹🇼', coord: [23.7, 121.0] },
-  NL: { name: 'Netherlands', flag: '🇳🇱', coord: [52.1, 5.3] },
-  FR: { name: 'France', flag: '🇫🇷', coord: [46.2, 2.2] },
-  CA: { name: 'Canada', flag: '🇨🇦', coord: [56.1, -106.3] },
-  AU: { name: 'Australia', flag: '🇦🇺', coord: [-25.3, 133.8] },
-  FI: { name: 'Finland', flag: '🇫🇮', coord: [61.9, 25.7] },
-  SE: { name: 'Sweden', flag: '🇸🇪', coord: [60.1, 18.6] },
-  PL: { name: 'Poland', flag: '🇵🇱', coord: [51.9, 19.1] },
-  CH: { name: 'Switzerland', flag: '🇨🇭', coord: [46.8, 8.2] },
-  RU: { name: 'Russia', flag: '🇷🇺', coord: [61.5, 105.3] }
-};
-
-const state = {
-  config: {},
-  servers: new Map(),
-  stats: {},
-  regionStats: {},
-  ws: null,
-  wsTimer: null,
-  reconnectAttempt: 0,
-  sort: 'default',
-  globe: null,
-  globeMarkers: [],
-};
-
-function num(v, fallback = 0) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js';
+import {NodeMap} from './globe.js';
+const $ = s => document.querySelector(s);
+const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
+const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',sort:'default',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
+const map=new NodeMap(selectRegion);
+const carriers=['cu','ct','cm'];
+const names={cu:'联通',ct:'电信',cm:'移动',bd:'BGP'};
+const label=key=>state.sys[`custom_${key}_name`]||names[key];
+const allowed=key=>state.sys[key]!==false&&state.sys[key]!=='false';
+const all=()=>[...state.servers.values()];
+function visible(){return all().filter(s=>(!state.selected||region(s.region).code===state.selected)&&(!state.search||`${s.name} ${region(s.region).name} ${s.region} ${s.server_group||''}`.toLowerCase().includes(state.search)));}
+function sorted(){return visible().sort((a,b)=>state.sort==='cpu'?n(b.cpu)-n(a.cpu):state.sort==='traffic'?n(month(b))-n(month(a)):state.sort==='name'?String(a.name).localeCompare(String(b.name)):n(a.sort_order)-n(b.sort_order)||String(a.id).localeCompare(String(b.id)));}
+function connection(text,live=false){set($('#connection'),text);$('#connection').classList.toggle('live',live);}
+function notice(text=''){set($('#notice'),text);$('#notice').hidden=!text;}
+function chartSetup(){
+  for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><small>—</small>';div.dataset.carrier=key;$('#carrier-summary').append(div);}
+  for(const key of carriers){const card=document.createElement('article');card.className='analysis-card';card.dataset.chart=key;card.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 66" preserveAspectRatio="none" role="img"><path class="baseline" d="M0 60H360"/><path class="series"/></svg><div class="chart-note"><span>等待采样</span><span>丢包 —</span></div>';$('#network-grid').append(card);}
+  for(const [key,title] of [['cpu','CPU / 平均占用'],['ram','MEMORY / 内存'],['disk','STORAGE / 磁盘'],['connections','CONNECTIONS / 连接']]){const card=document.createElement('article');card.className='resource-card';card.dataset.resource=key;card.innerHTML='<span class="eyebrow"></span><strong>—</strong><div class="resource-track"><b></b></div><small>等待数据</small>';set(card.firstElementChild,title);$('#resource-overview').append(card);}
 }
-
-function clamp(n, min = 0, max = 100) { return Math.min(max, Math.max(min, n)); }
-function pct(used, total) { return total > 0 ? clamp((used / total) * 100) : 0; }
-
-function fmtBytes(bytes, speed = false) {
-  let n = Math.max(0, num(bytes));
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-  let i = 0;
-  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-  const digits = n >= 100 ? 0 : n >= 10 ? 1 : 2;
-  return `${n.toFixed(digits)} ${units[i]}${speed ? '/s' : ''}`;
+function renderSummary(){
+  const list=all(),live=list.filter(s=>online(s));
+  set($('#stat-nodes'),String(list.length).padStart(2,'0'));set($('#stat-online'),`${live.length} 在线 / ${list.length-live.length} 离线`);
+  set($('#stat-regions'),String(new Set(list.map(s=>region(s.region).code).filter(c=>c!=='XX')).size).padStart(2,'0'));
+  set($('#stat-in'),`↓ ${bytes(live.length?total(live,'net_in_speed'):0,true)}`);set($('#stat-out'),`↑ ${bytes(live.length?total(live,'net_out_speed'):0,true)}`);
+  const monthly=list.map(month).filter(numeric);set($('#stat-month'),allowed('show_tf')?bytes(monthly.length?monthly.reduce((a,v)=>a+v,0):null):'未公开');
+  const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');set($('#cost-note'),cost.missing?`${cost.missing} 台未配置账单 · 原币种 / 月`:'按原币种折算月费');
+  const shown=visible().filter(s=>online(s));set($('#map-online'),shown.length);const values=shown.flatMap(s=>carriers.map(k=>s[`ping_${k}`])).filter(v=>numeric(v)&&n(v)>=0);set($('#map-latency'),`${values.length?Math.round(values.reduce((a,v)=>a+n(v),0)/values.length)+' ms':'—'} AVG`);
 }
-
-function fmtPct(v) { return `${clamp(num(v)).toFixed(num(v) < 10 ? 1 : 0)}%`; }
-function fmtPing(v) { return v === false || v == null || !Number.isFinite(Number(v)) ? '—' : `${Math.round(Number(v))} ms`; }
-function fmtLoss(v) { return v === false || v == null || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toFixed(Number(v) < 1 ? 1 : 0)}% loss`; }
-function fmtUptime(msOrSec) {
-  let sec = num(msOrSec);
-  if (sec > 1e11) sec = Math.max(0, (Date.now() - sec) / 1000);
-  else if (sec > 1e9) sec = Math.max(0, (Date.now() / 1000) - sec);
-  const d = Math.floor(sec / 86400); sec %= 86400;
-  const h = Math.floor(sec / 3600); sec %= 3600;
-  const m = Math.floor(sec / 60);
-  if (d) return `${d}d ${h}h`;
-  if (h) return `${h}h ${m}m`;
-  return `${m}m`;
+function renderRegions(){
+  const counts=new Map();for(const s of all()){const code=region(s.region).code;const item=counts.get(code)||{count:0,live:0};item.count++;if(online(s))item.live++;counts.set(code,item);}
+  set($('#region-count'),String(counts.size).padStart(2,'0'));set($('#all-count'),state.servers.size);$('#all-regions').classList.toggle('active',!state.selected);$('#all-regions').setAttribute('aria-pressed',String(!state.selected));
+  for(const [code,count] of [...counts].sort((a,b)=>b[1].count-a[1].count)){
+    let button=state.regions.get(code);if(!button){button=document.createElement('button');button.className='region';button.append(document.createElement('span'),document.createElement('b'));button.addEventListener('click',()=>selectRegion(code));state.regions.set(code,button);$('#region-list').append(button);}
+    set(button.firstElementChild,`${code} · ${region(code).name}`);set(button.lastElementChild,`${count.live}/${count.count}`);button.classList.toggle('active',state.selected===code);button.setAttribute('aria-pressed',String(state.selected===code));button.title=`${count.live} 在线 / ${count.count} 台`;
+  }
+  for(const [code,el] of state.regions)if(!counts.has(code)){el.remove();state.regions.delete(code);}
 }
-
-function serverUptime(s) {
-  if (s.boot_time) return fmtUptime(num(s.boot_time));
-  return '—';
+function selectRegion(code){state.selected=code;renderRegions();renderRows();renderAggregates();map.focus(code);}
+function updateRow(s){
+  const row=state.rows.get(s.id);if(!row)return;const live=online(s),r=region(s.region);row.classList.toggle('offline',!live);
+  const f=(key,value)=>set(row.fields[key],value);
+  f('name',s.name||'未命名节点');f('status',live?'ONLINE':'OFFLINE');f('meta',`${r.code} · ${s.arch||'—'} · ${s.cpu_cores||'—'}C · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
+  f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
+  f('price',allowed('show_price')?(numeric(s.price)?`${s.currency||''}${Math.max(0,n(s.price))} / ${cycles[s.billing_cycle]||'?'} 个月`:'未配置'):'未公开');f('expire',allowed('show_expire')?(s.expire_date||'未配置'):'未公开');
+  for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;bar.classList.toggle('hot',n(value)>85);}
+  f('download',`↓ ${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`↑ ${live?bytes(s.net_out_speed,true):'—'}`);f('net-note',live?'实时速率':'离线 · 保留最后上报');
+  f('month',allowed('show_tf')?bytes(month(s)):'未公开');f('uptime',`在线 ${uptime(s)}`);f('traffic-limit',allowed('show_tf')?(s.traffic_limit?`配额 ${s.traffic_limit}`:'未配置流量配额'):'');
+  for(const k of carriers)f(k,`${label(k)} ${ping(s[`ping_${k}`])} / ${loss(s[`loss_${k}`])}`);
 }
-
-function regionInfo(code) {
-  const key = String(code || 'XX').toUpperCase();
-  return { code: key, ...(COUNTRY[key] || { name: key, flag: '◌', coord: null }) };
+function renderRows(){
+  const list=sorted(),ids=new Set(all().map(s=>s.id));
+  for(const [id,row] of state.rows)if(!ids.has(id)){row.remove();state.rows.delete(id);state.history.delete(id);}
+  for(const s of all())if(!state.rows.has(s.id)){const row=$('#node-template').content.firstElementChild.cloneNode(true);row.dataset.id=s.id;row.fields=Object.fromEntries([...row.querySelectorAll('[data-field]')].map(e=>[e.dataset.field,e]));row.bars=Object.fromEntries([...row.querySelectorAll('[data-bar]')].map(e=>[e.dataset.bar,e]));state.rows.set(s.id,row);$('#node-list').append(row);}
+  const shown=new Set(list.map(s=>s.id));for(const [id,row] of state.rows)row.hidden=!shown.has(id);
+  let cursor=$('#node-list').firstElementChild;
+  for(const s of list){const row=state.rows.get(s.id);if(row!==cursor)$('#node-list').insertBefore(row,cursor);cursor=row.nextElementSibling;updateRow(s);}
+  set($('#node-count'),`${list.length} / ${state.servers.size}`);$('#empty').hidden=list.length>0;set($('#empty'),state.servers.size?'没有符合筛选条件的节点。':'暂无服务器，请在 CFSM 后台添加节点。');
 }
-
-async function fetchJson(url) {
-  const r = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-  return r.json();
+function record(s,ts){
+  let samples=state.history.get(s.id)||[];
+  const sample={ts,...Object.fromEntries(carriers.map(k=>[k,s[`ping_${k}`]]))};
+  if(numeric(ts)&&!samples.some(p=>p.ts===ts))samples.push(sample);
+  samples=samples.filter(p=>p.ts>Date.now()-7200000).sort((a,b)=>a.ts-b.ts).slice(-240);state.history.set(s.id,samples);
 }
-
-async function bootstrap() {
-  try {
-    const [config, payload] = await Promise.all([fetchJson('/api/config'), fetchJson('/api/servers')]);
-    state.config = config || {};
-    state.stats = payload.stats || {};
-    state.regionStats = payload.regionStats || {};
-    for (const s of payload.servers || []) state.servers.set(s.id, { ...s });
-    applyConfig();
-    renderAll();
-    initGlobe();
-    connectWs();
-  } catch (err) {
-    console.error(err);
-    $('#node-grid').innerHTML = `<div class="empty-state">无法读取 CFSM API：${escapeHtml(err.message)}</div>`;
-    setWsState('连接失败', false);
+function renderNetwork(){
+  const list=visible(),live=list.filter(s=>online(s));
+  for(const key of [...carriers,'bd']){const el=$(`[data-carrier="${key}"]`);set(el.children[0],label(key));set(el.children[1],ping(avg(live,`ping_${key}`)));set(el.children[2],`${loss(avg(live,`loss_${key}`))} loss`);}
+  for(const key of carriers){
+    const card=$(`[data-chart="${key}"]`);set(card.querySelector('.analysis-top span'),label(key));set(card.querySelector('.analysis-top strong'),ping(avg(live,`ping_${key}`)));
+    // Each node retains its own timestamps: no invented aligned or filled samples.
+    const series=list.map(s=>(state.history.get(s.id)||[]).filter(p=>p.ts>Date.now()-7200000&&numeric(p[key])&&n(p[key])>=0));
+    const points=series.flat(),max=Math.max(1,...points.map(p=>n(p[key]))),now=Date.now();
+    const paths=series.map(points=>points.map((p,i)=>`${i?'L':'M'}${Math.max(0,(p.ts-(now-7200000))/7200000*360).toFixed(1)},${(59-n(p[key])/max*50).toFixed(1)}`).join(' ')).join(' ');
+    const path=card.querySelector('.series');if(path.getAttribute('d')!==paths)path.setAttribute('d',paths);
+    card.querySelector('svg').setAttribute('aria-label',`${label(key)}延迟，${points.length} 个真实采样点`);
+    set(card.querySelector('.chart-note span'),points.length>1?`${points.length} 个采样 · ${list.length} 台节点`:'等待更多真实采样');set(card.querySelector('.chart-note span:last-child'),`丢包 ${loss(avg(live,`loss_${key}`))}`);
   }
 }
-
-function applyConfig() {
-  const title = state.config.site_title || 'WXT NODE GRID';
-  $('#site-title').textContent = title;
-  $('#brand-title').textContent = title.toUpperCase();
+function renderResources(){
+  const list=visible().filter(s=>online(s));
+  const values={cpu:[avg(list,'cpu'),`${n(total(list,'cpu_cores'))} 核 · ${list.length} 台在线`],ram:[percent(total(list,'ram_used'),total(list,'ram_total')),`${bytes(numeric(total(list,'ram_used'))?total(list,'ram_used')*1048576:null)} / ${bytes(numeric(total(list,'ram_total'))?total(list,'ram_total')*1048576:null)}`],disk:[percent(total(list,'disk_used'),total(list,'disk_total')),`${bytes(numeric(total(list,'disk_used'))?total(list,'disk_used')*1048576:null)} / ${bytes(numeric(total(list,'disk_total'))?total(list,'disk_total')*1048576:null)}`],connections:[null,`TCP ${total(list,'tcp_conn')??'—'} / UDP ${total(list,'udp_conn')??'—'}`]};
+  for(const [key,[value,note]] of Object.entries(values)){const card=$(`[data-resource="${key}"]`);set(card.querySelector('strong'),key==='connections'?(list.length?String(n(total(list,'tcp_conn'))+n(total(list,'udp_conn'))):'—'):fmtPct(value));set(card.querySelector('small'),note);const track=card.querySelector('.resource-track');track.hidden=key==='connections';track.firstElementChild.style.width=`${n(value)}%`;}
 }
-
-function renderAll() {
-  renderSummary();
-  renderRegions();
-  renderNetwork();
-  renderNodes();
-  refreshGlobeData();
+function renderAggregates(){renderSummary();renderNetwork();renderResources();map.update(visible(),state.config.theme_options||{},state.selected);}
+async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
+async function refresh(){
+  if(state.loading)return;state.loading=true;$('#refresh').disabled=true;
+  try{
+    const payload=await json('/api/servers');if(!Array.isArray(payload.servers))throw Error('服务器列表格式不正确');state.sys=payload.sysConfig||{};
+    const next=new Map();for(const s of payload.servers){if(!s.id)continue;const id=String(s.id),old=state.servers.get(id);next.set(id,old&&n(old.last_updated)>n(s.last_updated)?{...s,...old}:{...s,id});const samples=Array.isArray(s.ping)?s.ping:[];if(samples.length)state.history.set(id,[...(state.history.get(id)||[]),...samples].filter((p,i,a)=>numeric(p.ts)&&a.findIndex(x=>x.ts===p.ts)===i).sort((a,b)=>a.ts-b.ts).slice(-240));}
+    state.servers=next;if(state.selected&&!all().some(s=>region(s.region).code===state.selected))state.selected='';
+    renderRegions();renderRows();renderAggregates();notice();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);set($('#footer-status'),`${all().length} 个节点 · CFSM`);
+    if(state.ws?.readyState===WebSocket.OPEN){subscribe();connection('LIVE · 实时',true);}else if(!state.ws&&!state.retry)connect();
+  }catch(e){notice(`${e.message}。${state.servers.size?'保留上次数据，可点击刷新重试。':'可点击刷新重试。'}`);if(!state.servers.size)set($('#empty'),'暂时无法读取节点');connection('数据暂不可用');}
+  finally{state.loading=false;$('#refresh').disabled=false;}
 }
-
-function onlineServers() { return [...state.servers.values()].filter(s => s.is_online !== false); }
-
-function renderSummary() {
-  const servers = [...state.servers.values()];
-  const online = servers.filter(s => s.is_online !== false).length;
-  const liveIn = servers.reduce((a, s) => a + num(s.net_in_speed), 0);
-  const liveOut = servers.reduce((a, s) => a + num(s.net_out_speed), 0);
-  const month = servers.reduce((a, s) => a + num(s.net_rx_monthly) + num(s.net_tx_monthly), 0);
-  $('#stat-nodes').textContent = String(servers.length);
-  $('#stat-online').textContent = String(online);
-  $('#stat-in').textContent = fmtBytes(liveIn, true);
-  $('#stat-out').textContent = fmtBytes(liveOut, true);
-  $('#stat-month').textContent = fmtBytes(month);
-  $('#globe-online').textContent = String(online);
-  const regions = new Set(servers.map(s => String(s.region || 'XX').toUpperCase()));
-  $('#globe-regions').textContent = String(regions.size);
-  const pings = servers.flatMap(s => [s.ping_cu, s.ping_ct, s.ping_cm].filter(v => v !== false && Number.isFinite(Number(v))).map(Number));
-  $('#globe-latency').textContent = pings.length ? `${Math.round(pings.reduce((a,b)=>a+b,0) / pings.length)}ms` : '—';
-}
-
-function renderRegions() {
-  const count = new Map();
-  for (const s of state.servers.values()) {
-    const code = String(s.region || 'XX').toUpperCase();
-    count.set(code, (count.get(code) || 0) + 1);
-  }
-  const list = [...count.entries()].sort((a,b) => b[1] - a[1]);
-  $('#region-list').innerHTML = list.length ? list.map(([code, n]) => {
-    const r = regionInfo(code);
-    return `<div class="region-item"><strong>${r.flag} ${escapeHtml(r.name)}</strong><span>${n} node${n > 1 ? 's' : ''}</span></div>`;
-  }).join('') : '<div class="empty-state">暂无节点</div>';
-}
-
-function avgField(field) {
-  const vals = onlineServers().map(s => s[field]).filter(v => v !== false && v != null && Number.isFinite(Number(v))).map(Number);
-  return vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
-}
-
-function renderNetwork() {
-  for (const key of ['cu','ct','cm','bd']) {
-    $(`#ping-${key}`).textContent = fmtPing(avgField(`ping_${key}`));
-    $(`#loss-${key}`).textContent = fmtLoss(avgField(`loss_${key}`));
-  }
-}
-
-function sortedServers() {
-  const list = [...state.servers.values()];
-  if (state.sort === 'cpu') list.sort((a,b) => num(b.cpu) - num(a.cpu));
-  else if (state.sort === 'traffic') list.sort((a,b) => (num(b.net_rx_monthly)+num(b.net_tx_monthly)) - (num(a.net_rx_monthly)+num(a.net_tx_monthly)));
-  else list.sort((a,b) => num(a.sort_order) - num(b.sort_order));
-  return list;
-}
-
-function renderNodes() {
-  const grid = $('#node-grid');
-  const list = sortedServers();
-  if (!list.length) {
-    grid.innerHTML = '<div class="empty-state">还没有服务器。先在 CFSM 后台添加节点并安装 Agent。</div>';
-    return;
-  }
-  const existing = new Map($$('.node-card', grid).map(el => [el.dataset.id, el]));
-  const frag = document.createDocumentFragment();
-  for (const s of list) {
-    let card = existing.get(s.id);
-    if (!card) {
-      card = $('#node-template').content.firstElementChild.cloneNode(true);
-      card.dataset.id = s.id;
-    }
-    updateCard(card, s);
-    frag.appendChild(card);
-    existing.delete(s.id);
-  }
-  grid.replaceChildren(frag);
-}
-
-function updateCard(card, s) {
-  const online = s.is_online !== false && (Date.now() - num(s.last_updated, Date.now()) < 300000);
-  card.classList.toggle('offline', !online);
-  const r = regionInfo(s.region);
-  $('.node-name', card).textContent = s.name || 'Unnamed';
-  $('.node-meta', card).textContent = `${r.flag} ${r.code} · ${s.arch || '—'} · ${s.cpu_cores || '—'}C`;
-  $('.node-state', card).textContent = online ? 'ONLINE' : 'OFFLINE';
-  $('.speed-in', card).textContent = fmtBytes(s.net_in_speed, true);
-  $('.speed-out', card).textContent = fmtBytes(s.net_out_speed, true);
-  $('.cpu-text', card).textContent = fmtPct(s.cpu);
-  $('.cpu-bar', card).style.width = `${clamp(num(s.cpu))}%`;
-  const ram = pct(num(s.ram_used), num(s.ram_total));
-  $('.ram-text', card).textContent = fmtPct(ram);
-  $('.ram-bar', card).style.width = `${ram}%`;
-  const disk = pct(num(s.disk_used), num(s.disk_total));
-  $('.disk-text', card).textContent = fmtPct(disk);
-  $('.disk-bar', card).style.width = `${disk}%`;
-  $('.month-traffic', card).textContent = fmtBytes(num(s.net_rx_monthly)+num(s.net_tx_monthly));
-  $('.uptime', card).textContent = serverUptime(s);
-  $('.load', card).textContent = String(s.load_avg || '—').split(/\s+/).slice(0,3).join(' / ');
-  $('.connections', card).textContent = `${num(s.tcp_conn)} / ${num(s.udp_conn)}`;
-  $('.ping', card).textContent = fmtPing(s.ping_cu);
-  $('.os', card).textContent = s.os || '—';
-}
-
-function mergeServer(id, patch, ts) {
-  const current = state.servers.get(id);
-  if (!current) return;
-  Object.assign(current, patch || {});
-  if (ts) current.last_updated = ts;
-  current.is_online = true;
-  state.servers.set(id, current);
-}
-
-function patchDomFor(id) {
-  const s = state.servers.get(id);
-  const card = document.querySelector(`.node-card[data-id="${CSS.escape(id)}"]`);
-  if (s && card) updateCard(card, s);
-}
-
-function wsUrl() {
-  const p = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${p}//${location.host}/api/ws?subscribe=all`;
-}
-
-function connectWs() {
-  if (state.ws) try { state.ws.close(); } catch {}
-  setWsState('连接中', false);
-  const ws = new WebSocket(wsUrl());
-  state.ws = ws;
-  ws.onopen = () => {
-    state.reconnectAttempt = 0;
-    setWsState('实时', true);
-    const ids = [...state.servers.keys()];
-    ws.send(JSON.stringify({ type: 'subscribe', scope: 'all', ids }));
-    clearInterval(state.wsTimer);
-    state.wsTimer = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }));
-    }, 25000);
+function subscribe(){const ids=[...state.servers.keys()].filter(id=>/^[a-zA-Z0-9._:-]{1,64}$/.test(id)).slice(0,500);state.ws.send(JSON.stringify({type:'subscribe',scope:'all',ids}));if(state.servers.size>500)notice('超过 500 台的节点通过定时刷新更新。');}
+function connect(){
+  if(state.stopped||state.ws)return;connection('连接中');let ws;
+  try{ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/ws?subscribe=all`);}catch{reconnect();return;}
+  state.ws=ws;const timeout=setTimeout(()=>{if(ws.readyState===WebSocket.CONNECTING)ws.close();},15000);
+  ws.onopen=()=>{clearTimeout(timeout);state.attempt=0;state.lastMessage=Date.now();connection('LIVE · 实时',true);subscribe();state.heartbeat=setInterval(()=>{if(Date.now()-state.lastMessage>65000){ws.close();return;}if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},25000);};
+  ws.onmessage=event=>{state.lastMessage=Date.now();let msg;try{msg=JSON.parse(event.data);}catch{return;}if(msg.type!=='batchUpdate'||!Array.isArray(msg.updates))return;const touched=new Set();
+    for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload,sample.ts)){touched.add(s.id);record(s,n(sample.ts));}}
+    for(const id of touched)updateRow(state.servers.get(id));if(touched.size){if(state.sort!=='default')renderRows();renderRegions();renderAggregates();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);}
   };
-  ws.onmessage = (ev) => {
-    let msg;
-    try { msg = JSON.parse(ev.data); } catch { return; }
-    if (msg.type !== 'batchUpdate') return;
-    const touched = new Set();
-    for (const u of msg.updates || []) {
-      for (const sample of u.samples || []) mergeServer(u.serverId, sample.data, sample.ts);
-      touched.add(u.serverId);
-    }
-    for (const id of touched) patchDomFor(id);
-    renderSummary();
-    renderNetwork();
-    refreshGlobeData();
-    $('#last-update').textContent = `更新于 ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}`;
-  };
-  ws.onclose = () => scheduleReconnect();
-  ws.onerror = () => ws.close();
+  ws.onclose=()=>{clearTimeout(timeout);clearInterval(state.heartbeat);if(state.ws===ws)state.ws=null;reconnect();};ws.onerror=()=>ws.close();
 }
-
-function scheduleReconnect() {
-  clearInterval(state.wsTimer);
-  setWsState('重连中', false);
-  const delay = Math.min(15000, 1000 * 2 ** Math.min(state.reconnectAttempt++, 4));
-  setTimeout(connectWs, delay);
-}
-
-function setWsState(text, connected) {
-  $('#ws-state').textContent = text;
-  $('.live-dot').classList.toggle('connected', connected);
-}
-
-function refreshGlobeData() {
-  state.globeMarkers = [...state.servers.values()].map((s, idx) => {
-    const r = regionInfo(s.region);
-    if (!r.coord) return null;
-    const online = s.is_online !== false;
-    return { location: r.coord, size: online ? 0.055 : 0.035, id: `n${idx}`, color: online ? [0.39, 0.62, 0.45] : [0.55, 0.35, 0.35] };
-  }).filter(Boolean);
-}
-
-function themeColors() {
-  const dark = document.documentElement.dataset.theme === 'dark';
-  return dark ? {
-    dark: 1, baseColor: [0.10,0.12,0.10], markerColor: [0.55,0.72,0.59], glowColor: [0.18,0.24,0.20], mapBrightness: 4
-  } : {
-    dark: 0, baseColor: [0.86,0.89,0.86], markerColor: [0.37,0.50,0.40], glowColor: [0.96,0.98,0.96], mapBrightness: 4.8
-  };
-}
-
-function initGlobe() {
-  const canvas = $('#globe');
-  let phi = 0.25;
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const dpr = Math.min(devicePixelRatio || 1, innerWidth < 640 ? 1.2 : 1.6);
-  const create = () => {
-    if (state.globe) state.globe.destroy();
-    const size = Math.max(320, Math.round(canvas.getBoundingClientRect().width * dpr));
-    const tc = themeColors();
-    state.globe = createGlobe(canvas, {
-      devicePixelRatio: dpr,
-      width: size,
-      height: size,
-      phi,
-      theta: 0.18,
-      dark: tc.dark,
-      diffuse: 1.05,
-      scale: 1,
-      mapSamples: innerWidth < 640 ? 7000 : 11000,
-      mapBrightness: tc.mapBrightness,
-      baseColor: tc.baseColor,
-      markerColor: tc.markerColor,
-      glowColor: tc.glowColor,
-      markers: state.globeMarkers,
-      arcs: [],
-      markerElevation: 0.03,
-      onRender: obj => {
-        obj.phi = phi;
-        obj.markers = state.globeMarkers;
-        if (!reduce && !document.hidden) phi += 0.0016;
-      }
-    });
-  };
-  create();
-  let resizeTimer;
-  addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(create, 180); }, { passive: true });
-  window.__rebuildGlobe = create;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-}
-
-function initUi() {
-  const saved = localStorage.getItem('cfsm-line-grid-theme');
-  const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  $('#theme-toggle').addEventListener('click', () => {
-    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem('cfsm-line-grid-theme', next);
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'dark' ? '#0b0e0c' : '#ffffff');
-    setTimeout(() => window.__rebuildGlobe?.(), 30);
-  });
-  $$('[data-scroll]').forEach(btn => btn.addEventListener('click', () => $(btn.dataset.scroll)?.scrollIntoView({behavior:'smooth'})));
-  $$('[data-sort]').forEach(btn => btn.addEventListener('click', () => {
-    state.sort = btn.dataset.sort;
-    $$('[data-sort]').forEach(x => x.classList.toggle('active', x === btn));
-    renderNodes();
-  }));
-}
-
-initUi();
-bootstrap();
+function reconnect(){if(state.stopped||state.retry)return;connection('重连中 · 定时刷新');state.retry=setTimeout(()=>{state.retry=null;connect();},Math.min(30000,1000*2**Math.min(state.attempt++,5)));}
+function applyTheme(theme){document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#111512':'#ffffff';$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');map.requestDraw();}
+let saved;try{saved=localStorage.getItem('cfsm-line-grid-theme');}catch{}applyTheme(saved|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+$('#theme').addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';applyTheme(theme);try{localStorage.setItem('cfsm-line-grid-theme',theme);}catch{}});
+$('#refresh').addEventListener('click',refresh);$('#all-regions').addEventListener('click',()=>selectRegion(''));
+$('#search').addEventListener('input',e=>{state.search=e.target.value.trim().toLowerCase();renderRows();renderAggregates();});$('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderRows();});
+document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',()=>document.querySelectorAll('nav a').forEach(b=>b.classList.toggle('active',a===b))));
+chartSetup();
+json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'WXT · 节点状态';set($('#site-title'),title);document.title=`${title} · line-grid`;renderAggregates();}).catch(()=>{});
+refresh().then(()=>{if(all().length)map.focus(region(all()[0].region).code);map.init();});
+const poll=setInterval(()=>{if(!document.hidden)refresh();},30000);
+const age=setInterval(()=>{if(document.hidden)return;for(const s of all())updateRow(s);renderRegions();renderAggregates();},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();if(!state.ws&&!state.retry)connect();}});
+addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInterval(age);clearInterval(state.heartbeat);clearTimeout(state.retry);state.ws?.close();});
+addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
