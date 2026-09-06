@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Node Grid</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>
+          <strong id="brand-title">WXT NODE GRID</strong>
+          <small>CFSM realtime network</small>
+        </span>
+      </a>
+      <nav class="top-actions" aria-label="页面操作">
+        <button class="ghost-btn" data-scroll="#nodes">节点</button>
+        <a class="ghost-btn" href="/admin">后台</a>
+        <button class="icon-btn" id="theme-toggle" aria-label="切换明暗主题" title="切换明暗主题">◐</button>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="summary-grid" aria-label="总览">
+        <article class="summary-card">
+          <span class="eyebrow">NODES</span>
+          <strong id="stat-nodes">—</strong>
+          <small><span id="stat-online">—</span> online</small>
+        </article>
+        <article class="summary-card">
+          <span class="eyebrow">LIVE IN</span>
+          <strong id="stat-in">—</strong>
+          <small>aggregate download</small>
+        </article>
+        <article class="summary-card">
+          <span class="eyebrow">LIVE OUT</span>
+          <strong id="stat-out">—</strong>
+          <small>aggregate upload</small>
+        </article>
+        <article class="summary-card">
+          <span class="eyebrow">MONTH</span>
+          <strong id="stat-month">—</strong>
+          <small>reported traffic</small>
+        </article>
+      </section>
+
+      <section class="hero-grid">
+        <aside class="panel region-panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">REGIONS</span>
+              <h2>节点分布</h2>
+            </div>
+            <span class="live-dot"><i></i><span id="ws-state">连接中</span></span>
+          </div>
+          <div id="region-list" class="region-list"></div>
+        </aside>
+
+        <section class="panel globe-panel" aria-label="全球节点地球">
+          <div class="globe-copy">
+            <span class="eyebrow">GLOBAL MESH</span>
+            <h1 id="site-title">服务器状态</h1>
+            <p>Cloudflare 边缘上的轻量实时探针视图。</p>
+          </div>
+          <div class="globe-wrap">
+            <canvas id="globe" width="900" height="900" aria-label="服务器分布地球"></canvas>
+            <div id="globe-labels" class="globe-labels"></div>
+          </div>
+          <div class="globe-foot">
+            <span><b id="globe-online">0</b> ONLINE</span>
+            <span><b id="globe-regions">0</b> REGIONS</span>
+            <span><b id="globe-latency">—</b> AVG PING</span>
+          </div>
+        </section>
+
+        <aside class="panel network-panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">NETWORK</span>
+              <h2>实时状态</h2>
+            </div>
+          </div>
+          <div class="network-stack">
+            <div class="network-line">
+              <span>联通</span><strong id="ping-cu">—</strong><small id="loss-cu">—</small>
+            </div>
+            <div class="network-line">
+              <span>电信</span><strong id="ping-ct">—</strong><small id="loss-ct">—</small>
+            </div>
+            <div class="network-line">
+              <span>移动</span><strong id="ping-cm">—</strong><small id="loss-cm">—</small>
+            </div>
+            <div class="network-line">
+              <span>BGP</span><strong id="ping-bd">—</strong><small id="loss-bd">—</small>
+            </div>
+          </div>
+          <div class="network-note">
+            <span>WS</span>
+            <strong id="last-update">等待实时数据</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section id="nodes" class="nodes-section">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">SERVERS</span>
+            <h2>节点资源</h2>
+          </div>
+          <div class="section-tools">
+            <button class="segmented active" data-sort="default">默认</button>
+            <button class="segmented" data-sort="cpu">CPU</button>
+            <button class="segmented" data-sort="traffic">流量</button>
+          </div>
+        </div>
+        <div id="node-grid" class="node-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>CFSM Line Grid · v0.1</span>
+      <span>Vanilla JS · COBE · WebSocket</span>
+    </footer>
+  </div>
+
+  <template id="node-template">
+    <article class="node-card">
+      <header class="node-head">
+        <div class="node-name-wrap">
+          <span class="status-orb"></span>
+          <div>
+            <h3 class="node-name"></h3>
+            <p class="node-meta"></p>
+          </div>
+        </div>
+        <span class="node-state"></span>
+      </header>
+      <div class="speed-row">
+        <div><span>↓ DOWN</span><strong class="speed-in"></strong></div>
+        <div><span>↑ UP</span><strong class="speed-out"></strong></div>
+      </div>
+      <div class="resource-grid">
+        <div class="resource-item">
+          <div><span>CPU</span><strong class="cpu-text"></strong></div>
+          <i><b class="cpu-bar"></b></i>
+        </div>
+        <div class="resource-item">
+          <div><span>RAM</span><strong class="ram-text"></strong></div>
+          <i><b class="ram-bar"></b></i>
+        </div>
+        <div class="resource-item">
+          <div><span>DISK</span><strong class="disk-text"></strong></div>
+          <i><b class="disk-bar"></b></i>
+        </div>
+      </div>
+      <dl class="node-detail">
+        <div><dt>月流量</dt><dd class="month-traffic"></dd></div>
+        <div><dt>Uptime</dt><dd class="uptime"></dd></div>
+        <div><dt>Load</dt><dd class="load"></dd></div>
+        <div><dt>TCP / UDP</dt><dd class="connections"></dd></div>
+        <div><dt>Ping CU</dt><dd class="ping"></dd></div>
+        <div><dt>系统</dt><dd class="os"></dd></div>
+      </dl>
+    </article>
+  </template>
+
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
