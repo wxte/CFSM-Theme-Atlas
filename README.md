@@ -2,7 +2,11 @@
 
 **Cloudflare Server Monitor** — 原生 JavaScript / CSS 监控主题。
 
-WXT Atlas v0.2.1 将概览、节点、网络、资源、活动和显示设置组织为独立视图。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts 或外部 CDN。
+WXT Atlas v0.2.2 将概览、节点、网络、资源、活动和显示设置组织为独立视图。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts 或外部 CDN。
+
+## v0.2.2
+
+修正地球重复像素放大、离屏渲染、标签布局测量及表格无障碍结构，提升浅色文字对比度。详见 [性能修复与验证](PERFORMANCE.md)。
 
 ## v0.2.1
 
