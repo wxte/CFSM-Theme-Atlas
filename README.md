@@ -1,6 +1,10 @@
-# CFSM Line Grid · v0.2
+# CFSM Line Grid · v0.2.1
 
 面向 CF-Server-Monitor 的原生 JS / CSS 主题。延续 line-grid 的紧凑布局：顶部标题与导航、五项 KPI、Regions / Globe / Network 三栏、全宽节点清单、网络状况、资源概况。日间纯白，夜间黑灰绿。
+
+## v0.2.1
+
+修复静止地球在纹理加载后未重新绘制的问题。COBE 纹理改为同源 PNG，兼容不允许 data: 图片的 CSP；加载失败时降级平面地图。压缩顶部与三栏间距，采用青色下行、绿色上行、紫色内存与三网曲线分色，后台标签页暂停实时 DOM 绘制。
 
 ## 安装
 
@@ -51,7 +55,7 @@ Node.js 22+：`npm test` 检查数据逻辑；`npm run check` 检查 JavaScript 
 ## 参考与归属
 
 - [line-grid](https://github.com/selkk-lab/mmwx-theme-line-grid)：布局和信息密度参考；本版本前端为独立实现。
-- [COBE](https://cobe.vercel.app/) / [shuding/cobe](https://github.com/shuding/cobe)：本地使用 COBE 2.0.1，MIT 许可见 `assets/vendor/COBE-LICENSE.txt`。
+- [COBE](https://cobe.vercel.app/) / [shuding/cobe](https://github.com/shuding/cobe)：本地使用 COBE 2.0.1（修改纹理加载、加载后重绘及失败回调），MIT 许可见 `assets/vendor/COBE-LICENSE.txt`。
 - [Crucix](https://www.crucix.live/)：地图切换、局部状态层与轻量模式的交互参考，未复用其实现。
 - [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/)：平面地图基于公开领域 1:110m land 数据。
 - [CFSM API 文档](https://github.com/huilang-me/CF-Server-Monitor/blob/main/API.md)：原生数据协议。

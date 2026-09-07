@@ -20,7 +20,7 @@ export class NodeMap {
       const {default:createGlobe} = await import('./vendor/cobe.js');
       const canvas = $('#globe');
       if (!canvas.getContext('webgl2', {alpha:true,antialias:true}) && !canvas.getContext('webgl', {alpha:true,antialias:true})) throw Error('WebGL unavailable');
-      this.globe = createGlobe(canvas,{width:420,height:420,devicePixelRatio:1.5,phi:this.phi,theta:this.theta,dark:0,diffuse:1.2,mapSamples:14000,mapBrightness:6,mapBaseBrightness:0,baseColor:[1,1,1],markerColor:[.2,.6,.35],glowColor:[1,1,1],scale:1,markers:[],arcs:[]});
+      this.globe = createGlobe(canvas,{width:420,height:420,devicePixelRatio:1.5,phi:this.phi,theta:this.theta,dark:0,diffuse:1.2,mapSamples:14000,mapBrightness:6,mapBaseBrightness:0,baseColor:[1,1,1],markerColor:[.2,.6,.35],glowColor:[1,1,1],scale:1,markers:[],arcs:[],onTextureError:()=>{this.setMode('flat');$('#map-hint').textContent='地球纹理不可用 · 平面地图';}});
       this.draw();
     } catch { this.setMode('flat'); $('#map-hint').textContent='地球不可用 · 已切换平面地图'; }
   }
@@ -38,9 +38,9 @@ export class NodeMap {
   draw(){
     const points=this.servers.filter(s=>coordinate(s,this.options)&&(!this.selected||region(s.region).code===this.selected));
     const links=this.links();
-    $('#link-note').textContent=links.length?`飞线：${links.length} 条配置连接`:'飞线：未配置节点间连接';
+    $('#link-note').textContent=links.length?`${links.length} 条连接 · 悬停查看节点`:'悬停节点查看详情';
     const dark=document.documentElement.dataset.theme==='dark';
-    if(this.globe&&this.mode==='globe')this.globe.update({phi:this.phi,theta:this.theta,dark:dark?1:0,baseColor:dark?[.8,.85,.8]:[1,1,1],glowColor:dark?[.067,.082,.071]:[1,1,1],mapBrightness:dark?4:6,mapBaseBrightness:0,markers:points.map(s=>({location:coordinate(s,this.options),size:.028,color:online(s)?[.25,.65,.4]:[.5,.5,.5]})),arcs:links,arcColor:dark?[.5,.75,.57]:[.2,.5,.3],arcWidth:.45,arcHeight:.18});
+    if(this.globe&&this.mode==='globe')this.globe.update({phi:this.phi,theta:this.theta,dark:dark?1:0,baseColor:dark?[.8,.85,.8]:[1,1,1],glowColor:dark?[.055,.063,.071]:[1,1,1],mapBrightness:dark?4:6,mapBaseBrightness:0,markers:points.map(s=>({location:coordinate(s,this.options),size:.028,color:online(s)?[.25,.65,.4]:[.5,.5,.5]})),arcs:links,arcColor:dark?[.5,.75,.57]:[.2,.5,.3],arcWidth:.45,arcHeight:.18});
     const stage=$('#map-stage'),width=stage.clientWidth,height=stage.clientHeight;
     const occupied=new Map(); const keep=new Set();
     for(const s of points){

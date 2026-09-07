@@ -103,6 +103,7 @@ function connect(){
   ws.onopen=()=>{clearTimeout(timeout);state.attempt=0;state.lastMessage=Date.now();connection('LIVE · 实时',true);subscribe();state.heartbeat=setInterval(()=>{if(Date.now()-state.lastMessage>65000){ws.close();return;}if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},25000);};
   ws.onmessage=event=>{state.lastMessage=Date.now();let msg;try{msg=JSON.parse(event.data);}catch{return;}if(msg.type!=='batchUpdate'||!Array.isArray(msg.updates))return;const touched=new Set();
     for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload,sample.ts)){touched.add(s.id);record(s,n(sample.ts));}}
+    if(document.hidden)return;
     for(const id of touched)updateRow(state.servers.get(id));if(touched.size){if(state.sort!=='default')renderRows();renderRegions();renderAggregates();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);}
   };
   ws.onclose=()=>{clearTimeout(timeout);clearInterval(state.heartbeat);if(state.ws===ws)state.ws=null;reconnect();};ws.onerror=()=>ws.close();
@@ -119,6 +120,6 @@ json('/api/config').then(config=>{state.config=config||{};const title=config.sit
 refresh().then(()=>{if(all().length)map.focus(region(all()[0].region).code);map.init();});
 const poll=setInterval(()=>{if(!document.hidden)refresh();},30000);
 const age=setInterval(()=>{if(document.hidden)return;for(const s of all())updateRow(s);renderRegions();renderAggregates();},15000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();if(!state.ws&&!state.retry)connect();}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){for(const s of all())updateRow(s);renderRegions();renderAggregates();refresh();if(!state.ws&&!state.retry)connect();}});
 addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInterval(age);clearInterval(state.heartbeat);clearTimeout(state.retry);state.ws?.close();});
 addEventListener('pageshow',e=>{if(e.persisted)location.reload();});

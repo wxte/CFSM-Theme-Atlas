@@ -1,7 +1,7 @@
-:root{font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;color:#202522;background:#fff;--bg:#fff;--soft:#f6f8f7;--text:#202522;--muted:#69716c;--line:#dce1de;--accent:#258453;--tint:#edf6f0;--bad:#ba5147;--warn:#a6741d;color-scheme:light;font-synthesis:none}
+:root{font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;color:#202522;background:#fff;--bg:#fff;--soft:#f6f8f7;--text:#202522;--muted:#69716c;--line:#dce1de;--accent:#168353;--down:#087fa3;--purple:#8250c4;--tint:#edf6f0;--bad:#ba5147;--warn:#a6741d;color-scheme:light;font-synthesis:none}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:20px}
-html[data-theme=dark]{--bg:#111512;--soft:#171d19;--text:#dce4de;--muted:#929f95;--line:#2e3831;--accent:#8bc89c;--tint:#202e24;--bad:#e28c80;--warn:#ddbd74;color-scheme:dark}
+html[data-theme=dark]{--bg:#0e1012;--soft:#16191d;--text:#e6e9ed;--muted:#9aa3ad;--line:#2b3037;--accent:#52d994;--down:#49cdf0;--purple:#b595ff;--tint:#162a20;--bad:#fa7f85;--warn:#e8b45b;color-scheme:dark}
 body{margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 button,input,select{font:inherit}
 button,a,input,select{-webkit-tap-highlight-color:transparent}
@@ -19,13 +19,13 @@ h2{font-size:16px;font-weight:600}
 h3{font-size:15px;font-weight:600;overflow-wrap:anywhere}
 strong,b{font-weight:550}
 .shell{width:min(1440px,calc(100% - 80px));margin:auto}
-.masthead{display:flex;align-items:center;gap:22px;height:65px;border-bottom:1px solid var(--line)}
+.masthead{display:flex;align-items:center;gap:22px;height:56px;border-bottom:1px solid var(--line)}
 .brand{font-size:24px;font-weight:650;letter-spacing:-1px;white-space:nowrap}
 .brand>span:first-child{margin-right:8px;font-size:29px;font-weight:400}
 .accent{color:var(--accent)}
 .rule{flex:1;height:1px;background:var(--line)}
 .edition,.eyebrow{font:11px/1.7 ui-monospace,Consolas,monospace;letter-spacing:1.3px;color:var(--muted)}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:23px 0 21px;gap:20px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 0;gap:20px}
 .topbar .eyebrow{margin-bottom:5px}
 #connection{letter-spacing:0;margin-left:13px;color:var(--warn)}
 #connection.live{color:var(--accent)}
@@ -35,14 +35,14 @@ nav{display:flex;margin-right:9px;gap:5px}
 nav a{padding:7px 12px}
 nav a.active{background:var(--text);color:var(--bg);border-radius:4px}
 .kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-block:1px solid var(--line)}
-.kpis article{padding:16px 20px;border-right:1px solid var(--line)}
+.kpis article{padding:13px 20px;border-right:1px solid var(--line)}
 .kpis article:first-child{padding-left:0}
 .kpis article:last-child{border:0}
 .kpis strong{display:block;font:26px/1.6 ui-monospace,Consolas,monospace;letter-spacing:-1.1px;overflow-wrap:anywhere}
 .kpis small{display:block}
 #stat-in{font-size:23px}
 #stat-cost{font-size:22px}
-.observatory{display:grid;grid-template-columns:minmax(180px,1fr) minmax(300px,2.3fr) minmax(200px,1fr);border-bottom:1px solid var(--line);min-height:310px}
+.observatory{display:grid;grid-template-columns:minmax(180px,1fr) minmax(300px,2.3fr) minmax(200px,1fr);border-bottom:1px solid var(--line);min-height:300px}
 .regions,.network-summary{padding:18px 0;display:flex;flex-direction:column}
 .regions{padding-right:23px}
 .network-summary{padding-left:23px}
@@ -53,7 +53,7 @@ nav a.active{background:var(--text);color:var(--bg);border-radius:4px}
 .region{width:100%;border:0;border-radius:2px;display:flex;justify-content:space-between;text-align:left;padding:7px 9px;font-size:13px}
 .region b{font-family:ui-monospace,Consolas,monospace}
 .region small{display:block;font-size:11px}
-#region-list{max-height:176px;overflow:auto}
+#region-list{max-height:190px;overflow:auto}
 .panel-note{font-size:11px;line-height:1.8;color:var(--muted);margin-top:auto;padding-top:13px}
 .map-panel{position:relative;border-inline:1px solid var(--line);padding:12px 16px 10px;min-width:0;overflow:hidden}
 .map-panel .panel-heading{margin-bottom:0}
@@ -81,7 +81,7 @@ html:not([data-lite=true]) .map-label:not(.offline):hover:before{animation:pulse
 #map-tip{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--line);padding:7px 12px;font:11px/1.6 ui-monospace,Consolas,monospace;z-index:3;max-width:95%;white-space:pre-line;box-shadow:0 3px 12px #00000012}
 .map-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font:10px/1.6 ui-monospace,Consolas,monospace}
 .dot{display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;flex-shrink:0;margin-right:5px}
-.carrier-line{display:grid;grid-template-columns:1fr auto;gap:0 10px;border-bottom:1px solid var(--line);padding:9px 0}
+.carrier-line{display:grid;grid-template-columns:1fr auto;gap:0 10px;border-bottom:1px solid var(--line);padding:6px 0}
 .carrier-line strong{font:19px/1.3 ui-monospace,Consolas,monospace}
 .carrier-line small{grid-column:2;text-align:right;font-size:10px}
 .section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 12px}
@@ -199,3 +199,23 @@ footer{gap:8px;flex-wrap:wrap;font-size:10px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}
 *,*:before{animation:none!important}
 }
+
+/* Semantic accents remain readable in both themes; status also has text. */
+#stat-in,[data-field=download]{color:var(--down)}
+#stat-out,[data-field=upload]{color:var(--accent)}
+#stat-out{font:13px/1.5 ui-monospace,Consolas,monospace}
+.meters [data-bar=ram],.resource-card[data-resource=ram] .resource-track b{background:var(--purple)}
+.meters [data-bar=disk],.resource-card[data-resource=disk] .resource-track b{background:var(--down)}
+.meters b.hot{background:var(--warn)}
+.resource-card[data-resource=ram]>strong{color:var(--purple)}
+.resource-card[data-resource=disk]>strong{color:var(--down)}
+.analysis-card[data-chart=cu]{--chart-color:var(--accent)}
+.analysis-card[data-chart=ct]{--chart-color:var(--down)}
+.analysis-card[data-chart=cm]{--chart-color:var(--purple)}
+.analysis-card .series{stroke:var(--chart-color)}
+.analysis-card .analysis-top strong{color:var(--chart-color)}
+.node-row{border-left:2px solid transparent}
+.node-row:hover{border-left-color:var(--accent)}
+.data-stack{font-size:13px;font-variant-numeric:tabular-nums}
+.state{font-size:10px}
+.map-label{font-size:11px}
