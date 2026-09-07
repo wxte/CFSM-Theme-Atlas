@@ -11,6 +11,9 @@ export class NodeMap {
     canvas.addEventListener('keydown', e => { if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return; e.preventDefault(); this.phi += e.key==='ArrowRight'?.15:e.key==='ArrowLeft'?-.15:0; this.theta = Math.max(-1.2,Math.min(1.2,this.theta+(e.key==='ArrowDown'?.1:e.key==='ArrowUp'?-.1:0))); this.requestDraw(); });
     canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); this.unavailable(); });
     new ResizeObserver(() => this.requestDraw()).observe($('#map-stage'));
+    const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+    this.rotation=setInterval(()=>{if(document.hidden||this.drag||this.hoverId||this.failed||!this.globe||reduced.matches)return;this.phi+=.003;this.requestDraw();},50);
+    addEventListener('pagehide',()=>clearInterval(this.rotation));
     document.addEventListener('visibilitychange', () => { if(!document.hidden)this.requestDraw(); });
   }
   async init() {
@@ -56,4 +59,3 @@ export class NodeMap {
     for(const [id,label] of this.labels)if(!keep.has(id)){label.remove();this.labels.delete(id);}
   }
 }
-

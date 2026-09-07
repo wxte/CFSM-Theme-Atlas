@@ -1,10 +1,10 @@
-# CFSM Line Grid · v0.2.3
+# CFSM Line Grid · v0.2.4
 
 面向 CF-Server-Monitor 的原生 JS / CSS 主题。延续 line-grid 的紧凑布局：顶部标题与导航、五项 KPI、Regions / Globe / Network 三栏、全宽节点清单、网络状况、资源概况。日间纯白，夜间黑灰绿。
 
-## v0.2.3
+## v0.2.4
 
-只保留地球，移除平面地图与 Lite 开关；地球维持按需绘制，加载失败时提示原因，节点清单继续可用。
+只保留地球，移除平面地图与 Lite 开关；地球默认缓慢旋转，拖动、悬停节点、页面隐藏或系统减少动态效果时暂停，加载失败时提示原因，节点清单继续可用。
 
 ## v0.2.2
 
@@ -33,7 +33,7 @@
 - 地区过滤、搜索、排序、系统与账单展开；实时更新保留展开状态和现有节点 DOM。
 - 三网历史使用 REST `ping` 的真实时间戳，以及此页面收到的 WebSocket 样本；各节点独立绘线，不补点、不模拟流量。最多保留每台 240 点、最近 2 小时。不额外请求历史 API。
 - 内存与磁盘按 CFSM 的 MB 单位转换；缺失值显示 `—`；成本按计费周期折算，不同币种分别列出。尊重 `show_price`、`show_expire`、`show_tf`。
-- 地球默认静止，拖动或方向键旋转；尺寸、主题、节点位置/状态变化时按需绘制。无持续地球动画循环。无 WebGL 时显示地球不可用提示。
+- 地球默认缓慢旋转，拖动或方向键调整；尺寸、主题、节点位置/状态变化时按需绘制。旋转最高 20 帧/秒，页面隐藏时停止绘制。无 WebGL 时显示地球不可用提示。
 
 ## 位置与连接配置（可选）
 
@@ -64,5 +64,4 @@ Node.js 22+：`npm test` 检查数据逻辑；`npm run check` 检查 JavaScript 
 - [line-grid](https://github.com/selkk-lab/mmwx-theme-line-grid)：布局和信息密度参考；本版本前端为独立实现。
 - [COBE](https://cobe.vercel.app/) / [shuding/cobe](https://github.com/shuding/cobe)：本地使用 COBE 2.0.1（修改纹理加载、加载后重绘及失败回调），MIT 许可见 `assets/vendor/COBE-LICENSE.txt`。
 - [Crucix](https://www.crucix.live/)：地图切换、局部状态层与轻量模式的交互参考，未复用其实现。
-- [Natural Earth](https://www.naturalearthdata.com/about/terms-of-use/)：平面地图基于公开领域 1:110m land 数据。
 - [CFSM API 文档](https://github.com/huilang-me/CF-Server-Monitor/blob/main/API.md)：原生数据协议。
