@@ -1,8 +1,8 @@
-import {ViewRouter,pages,pageFromHash} from './router.js';
-import {flag} from './flags.js';
-import {NetworkCharts,windowSamples} from './network.js';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js';
-import {NodeMap} from './globe.js';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.2.3';
+import {flag} from './flags.js?v=0.2.3';
+import {NetworkCharts,windowSamples} from './network.js?v=0.2.3';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.2.3';
+import {NodeMap} from './globe.js?v=0.2.3';
 const $ = s => document.querySelector(s);
 document.title='WXT Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
@@ -61,7 +61,7 @@ function updateRow(s){
 function renderRows(){
   const list=sorted(),ids=new Set(all().map(s=>s.id));
   for(const [id,row] of state.rows)if(!ids.has(id)){row.remove();state.rows.delete(id);state.history.delete(id);}
-  for(const s of all())if(!state.rows.has(s.id)){const row=$('#node-template').content.firstElementChild.cloneNode(true);row.dataset.id=s.id;const detail=row.querySelector('details');for(const b of row.querySelectorAll('[data-detail-toggle]'))b.addEventListener('click',()=>{detail.open=!detail.open;detail.parentElement.hidden=!detail.open;row.querySelectorAll('[data-detail-toggle]').forEach(el=>{el.setAttribute('aria-expanded',String(detail.open));if(el.classList.contains('detail-button'))el.setAttribute('aria-label',detail.open?'收起节点详情':'展开节点详情');});});row.fields=Object.fromEntries([...row.querySelectorAll('[data-field]')].map(e=>[e.dataset.field,e]));row.bars=Object.fromEntries([...row.querySelectorAll('[data-bar]')].map(e=>[e.dataset.bar,e]));state.rows.set(s.id,row);$('#node-list').append(row);}
+  for(const s of all())if(!state.rows.has(s.id)){const row=$('#node-template').content.firstElementChild.cloneNode(true);row.dataset.id=s.id;const detail=row.querySelector('details');for(const b of row.querySelectorAll('[data-detail-toggle]'))b.addEventListener('click',()=>{detail.open=!detail.open;if(detail.parentElement.classList.contains('node-detail-cell'))detail.parentElement.hidden=false;row.querySelectorAll('[data-detail-toggle]').forEach(el=>{el.setAttribute('aria-expanded',String(detail.open));if(el.classList.contains('detail-button'))el.setAttribute('aria-label',detail.open?'收起节点详情':'展开节点详情');});});row.fields=Object.fromEntries([...row.querySelectorAll('[data-field]')].map(e=>[e.dataset.field,e]));row.bars=Object.fromEntries([...row.querySelectorAll('[data-bar]')].map(e=>[e.dataset.bar,e]));state.rows.set(s.id,row);$('#node-list').append(row);}
   const shown=new Set(list.map(s=>s.id));for(const [id,row] of state.rows)row.hidden=!shown.has(id);
   let cursor=$('#node-list').firstElementChild;
   for(const s of list){const row=state.rows.get(s.id);if(row!==cursor)$('#node-list').insertBefore(row,cursor);cursor=row.nextElementSibling;updateRow(s);}

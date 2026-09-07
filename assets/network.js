@@ -1,4 +1,4 @@
-import {numeric,n,ping,loss,online} from './data.js';
+import {numeric,n,ping,loss,online} from './data.js?v=0.2.3';
 export const lines=['cu','ct','cm'];
 export function windowSamples(samples,now=Date.now()){
   const buckets=new Map();

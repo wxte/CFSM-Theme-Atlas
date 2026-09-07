@@ -1,5 +1,9 @@
 # WXT Atlas
 
+## v0.2.3
+
+修复机器详情展开：移除外层重复隐藏状态；脚本兼容旧版详情容器。样式、入口脚本及模块依赖统一附带版本号，避免升级后浏览器复用旧脚本。概览与节点视图均已验证展开、收起和手机布局。
+
 **Cloudflare Server Monitor** — 原生 JavaScript / CSS 监控主题。
 
 WXT Atlas v0.2.2 将概览、节点、网络、资源、活动和显示设置组织为独立视图。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts 或外部 CDN。

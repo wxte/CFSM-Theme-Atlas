@@ -1,1 +1,1 @@
-{"name":"cfsm-atlas","version":"0.2.2","type":"module","private":true,"scripts":{"test":"node --test tests/*.test.js","check":"node --check assets/app.js && node --check assets/globe.js && node --check assets/network.js && node --check assets/router.js"}}
+{"name":"cfsm-atlas","version":"0.2.3","type":"module","private":true,"scripts":{"test":"node --test tests/*.test.js","check":"node --check assets/app.js && node --check assets/globe.js && node --check assets/network.js && node --check assets/router.js"}}
