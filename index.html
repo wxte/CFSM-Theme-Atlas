@@ -1,59 +1,31 @@
-<!doctype html>
-<html lang="zh-CN" data-theme="light">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff">
-<meta name="theme-version" content="line-grid v0.3.0"><meta name="description" content="全球节点、网络质量与资源概况。">
-<title>line-grid · 节点状态</title><link rel="stylesheet" href="/assets/style.css">
-</head>
-<body>
-<a class="skip" href="#nodes">跳到节点清单</a>
-<header class="masthead"><div class="shell header-inner">
-<a class="brand" href="#nodes"><span class="brand-mark" aria-hidden="true">◉</span>line-grid<span class="accent">.</span></a><span class="workspace-label">CFSM</span>
-<nav aria-label="主导航"><a class="active" href="#nodes">节点</a><a href="#network">网络状况</a><a href="#resources">资源概况</a></nav>
-<div class="header-actions"><button id="refresh" title="刷新数据" aria-label="刷新数据">↻</button><button id="theme" aria-label="切换明暗主题">◐</button><a class="admin-link" href="/admin#admin">管理后台 ↗</a></div>
-</div></header>
+<!doctype html><html lang="zh-CN" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="theme-color" content="#ffffff"><meta name="theme-version" content="WXT Atlas v0.2.0"><meta name="description" content="WXT Atlas · Cloudflare Server Monitor"><title>WXT Atlas · Cloudflare Server Monitor</title><link rel="stylesheet" href="/assets/style.css"></head><body>
+<a class="skip" href="#nodes">跳到节点列表</a>
+<header class="masthead"><div class="shell header-inner"><a class="brand" href="#overview"><svg class="atlas-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><ellipse cx="16" cy="16" rx="5" ry="12"/><path d="M4 16h24M7 9h18M7 23h18"/></svg>WXT Atlas</a><span class="brand-subtitle">Cloudflare Server Monitor</span><div class="header-actions"><span id="connection" role="status">连接中</span><button id="refresh" aria-label="刷新数据" title="刷新数据">↻</button><button id="theme" aria-label="切换明暗主题">◐</button><a href="/admin#admin" class="admin-link">管理后台 ↗</a></div><nav aria-label="主导航"><a href="#overview" class="active">概览</a><a href="#nodes">节点</a><a href="#network">网络</a><a href="#resources">资源</a><a href="#activity">动态</a><a href="#settings">显示设置</a></nav></div></header>
 <main class="shell">
-<section id="overview" class="overview">
-<div class="overview-data">
-<div class="intro"><div><p class="eyebrow">基础设施总览</p><h1><span id="site-title">WXT</span><span class="title-caption">节点观测台</span></h1></div><span id="connection" role="status">连接中</span></div>
-<div class="kpis" aria-label="全站总览">
-<article class="kpi"><span class="kpi-label">节点 <span class="kpi-icon">◉</span></span><strong id="stat-nodes">—</strong><small id="stat-online">等待数据</small></article>
-<article class="kpi"><span class="kpi-label">覆盖地区 <span class="kpi-icon">◎</span></span><strong id="stat-regions">—</strong><small>全球国家 / 地区</small></article>
-<article class="kpi traffic-kpi"><span class="kpi-label">实时流量 <span class="kpi-icon">⇅</span></span><strong id="stat-in">—</strong><small id="stat-out">↑ —</small></article>
-<article class="kpi"><span class="kpi-label">本月流量 <span class="kpi-icon">↗</span></span><strong id="stat-month">—</strong><small>累计上行 + 下行</small></article>
-<article class="kpi cost-kpi"><div><span class="kpi-label">月度支出</span><strong id="stat-cost">—</strong></div><small id="cost-note">按原币种折算月费</small></article>
+<div class="page-heading"><h1 id="page-title">概览</h1><span id="site-title">CFSM</span><small id="last-update">等待数据</small></div>
+<section id="overview">
+<div class="kpis" aria-label="全站概况">
+<article class="kpi"><span class="kpi-label">节点总数</span><strong id="stat-nodes">—</strong><small id="stat-online">等待数据</small><div class="kpi-track"><b id="online-bar"></b></div></article>
+<article class="kpi"><span class="kpi-label">覆盖地区</span><strong id="stat-regions">—</strong><small>国家 / 地区</small></article>
+<article class="kpi"><span class="kpi-label">↓ 实时下行</span><strong id="stat-in">—</strong><small>在线节点合计</small></article>
+<article class="kpi"><span class="kpi-label">↑ 实时上行</span><strong id="stat-out">—</strong><small>在线节点合计</small></article>
+<article class="kpi"><span class="kpi-label">本月流量</span><strong id="stat-month">—</strong><small>累计上行 + 下行</small></article>
+<article class="kpi"><span class="kpi-label">预计月费</span><strong id="stat-cost">—</strong><small id="cost-note">按原币种折算</small></article>
 </div>
-</div>
-<section class="map-panel" aria-label="全球节点地球">
-<div class="panel-heading"><span class="eyebrow">GLOBAL PRESENCE</span><span class="live-label"><i class="dot"></i><b id="map-online">—</b> 在线</span></div>
-<div id="map-stage"><div id="globe-holder"><canvas id="globe" tabindex="0" aria-label="地球，拖动或用方向键旋转，点击地区标记查看节点"></canvas></div><p id="globe-error" class="empty" hidden>当前设备暂时无法显示地球，节点数据仍可查看。</p><div id="map-labels"></div><div id="map-tip" role="status" hidden></div></div>
-<div class="map-footer"><span id="map-hint">拖动探索 · 点选地区</span><span id="map-latency">— AVG</span></div>
-</section>
-</section>
+<div class="observatory">
+<details class="regions-panel" open><summary><h2>地区分布</h2><small><b id="region-count">—</b> 个地区</small><span class="disclosure">⌄</span></summary><div class="region-content"><button class="region-reset active" id="all-regions">全部地区 <b id="all-count">—</b></button><div id="region-list"></div><p class="panel-note">点击地区筛选地球与下方节点</p></div></details>
+<section class="map-panel" aria-label="全球节点地球"><div class="panel-heading"><span class="eyebrow">GLOBAL PRESENCE</span><span class="live-label"><i class="status-dot" aria-hidden="true"></i><b id="map-online">—</b> 在线</span></div><div id="map-stage"><div id="globe-holder"><canvas id="globe" tabindex="0" aria-label="节点地球，拖动或方向键旋转，点击地区标记筛选节点"></canvas></div><p id="globe-error" class="empty" hidden>当前设备暂时无法显示地球，节点列表仍可使用。</p><div id="map-labels"></div><div id="map-tip" role="status" hidden></div></div><div class="map-footer"><span id="map-hint">拖动旋转 · 点选地区</span><span id="map-latency">— AVG</span></div></section>
+<details class="quality-panel" open><summary><h2>网络质量</h2><small>在线节点均值</small><span class="disclosure">⌄</span></summary><div class="quality-content"><div id="carrier-summary"></div><div class="availability"><span>节点在线率</span><strong id="availability">—</strong><div id="availability-track" aria-hidden="true"></div><small>依据探针最近上报状态</small></div></div></details>
+</div></section>
 <div id="notice" role="status" hidden></div>
-<section id="nodes">
-<div class="section-heading"><div><p class="eyebrow">01 / FLEET</p><h2>我的节点 <small id="node-count">—</small></h2></div><div class="tools"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索节点、地区" aria-label="搜索节点"></label><select id="sort" aria-label="节点排序"><option value="default">默认排序</option><option value="cpu">CPU 最高</option><option value="traffic">流量最多</option><option value="name">按名称</option></select></div></div>
-<div class="region-filter"><button id="all-regions" class="region active">全部节点 <b id="all-count">—</b></button><div id="region-list"></div><span class="filter-note"><span id="region-count">—</span> 个地区</span></div>
-<div id="node-list"></div><p id="empty" class="empty">正在读取节点数据…</p>
-</section>
-<section id="network" hidden>
-<div class="section-heading"><div><p class="eyebrow">02 / NETWORK QUALITY</p><h2>网络质量</h2></div><small>选择节点，查看三网延迟与丢包</small></div>
-<div class="network-panel"><div id="network-nodes" class="network-nodes" role="group" aria-label="选择网络图表节点"></div><div id="network-grid" class="analytics-grid"></div><div class="network-footer"><span id="network-range">最近 2 小时 · 真实采样</span><span>悬停 / 触摸图表查看采样 · 方向键浏览</span></div></div>
-<div class="network-summary"><span class="eyebrow">在线节点均值</span><div id="carrier-summary"></div></div>
-</section>
-<section id="resources" hidden><div class="section-heading"><div><p class="eyebrow">03 / CAPACITY</p><h2>资源概况</h2></div><small>全站在线节点</small></div><div class="resource-overview" id="resource-overview"></div></section>
-<footer><span>line-grid <b>v0.3.0</b> · <span id="footer-status">CFSM</span></span><span id="last-update">等待数据</span><span id="location-note">地球位置为地区中心示意</span><span id="link-note" hidden></span></footer>
+<section id="nodes"><div class="section-heading"><h2 id="nodes-heading">节点列表 <small id="node-count">—</small></h2><div class="status-filter" role="group" aria-label="节点状态筛选"><button data-status="all" aria-pressed="true">全部</button><button data-status="online" aria-pressed="false"><i class="status-dot" aria-hidden="true"></i>在线</button><button data-status="offline" aria-pressed="false"><i class="status-dot is-offline" aria-hidden="true"></i>离线</button></div></div><div class="table-toolbar"><label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索节点名称、地区或分组…" aria-label="搜索节点"></label><button id="clear-region" hidden>清除地区筛选</button><select id="sort" aria-label="节点排序"><option value="default">默认排序</option><option value="cpu">CPU 最高</option><option value="traffic">流量最多</option><option value="name">按名称</option></select></div>
+<div class="node-table" role="table" aria-label="服务器节点"><div class="node-columns" role="row"><span role="columnheader">状态</span><span role="columnheader">名称 / 配置</span><span role="columnheader">地区</span><span role="columnheader">实时下行</span><span role="columnheader">实时上行</span><span role="columnheader">CPU / 内存 / 磁盘</span><span role="columnheader">本月流量</span><span role="columnheader">三网延迟</span><span role="columnheader">运行时间</span><span role="columnheader">详情</span></div><div id="node-list" role="rowgroup"></div><p id="empty" class="empty">正在读取节点数据…</p></div></section>
+<section id="network" hidden><div class="section-heading"><h2>网络质量</h2><small>按节点查看三网历史</small></div><div class="network-panel"><div id="network-nodes" class="network-nodes" role="group" aria-label="选择网络图表节点"></div><div id="network-grid" class="analytics-grid"></div><div class="network-footer"><span>最近 2 小时 · 真实采样</span><span>悬停 / 触摸 / 方向键查看采样</span></div></div></section>
+<section id="resources" hidden><div class="section-heading"><h2>资源概况</h2><small>全站在线节点 · 当前用量</small></div><div id="resource-overview" class="resource-overview"></div></section>
+<section id="activity" hidden><div class="section-heading"><h2>观测动态</h2><small>当前页面会话</small></div><p class="activity-note">记录本次打开页面后观察到的节点上线、离线及数据连接变化。</p><ol id="activity-list" class="activity-list"></ol><p id="activity-empty" class="empty">等待状态变化</p></section>
+<section id="settings" hidden><div class="section-heading"><h2>显示设置</h2><small>只保存在当前浏览器</small></div><div class="settings-panel"><label><span>外观<small>日间白色，夜间深灰</small></span><select id="appearance"><option value="system">跟随系统</option><option value="light">日间</option><option value="dark">夜间</option></select></label><label><span>地球<small>自动模式保持缓慢旋转</small></span><select id="globe-mode"><option value="auto">自动</option><option value="static">静止</option><option value="off">关闭</option></select></label><label><span>动态效果<small>减少时关闭旋转及脉冲</small></span><select id="motion"><option value="normal">正常</option><option value="reduced">减少</option></select></label><div class="settings-admin"><span>服务器与告警配置</span><a href="/admin#admin">打开 CFSM 管理后台 ↗</a></div></div></section>
+<footer><span>WXT Atlas <b>v0.2.0</b> · Cloudflare Server Monitor</span><span id="footer-status">原生实时监控</span><span id="location-note">地球点位为地区中心示意</span></footer>
 </main>
-<template id="node-template">
-<article class="node-row">
-<div class="node-main"><div class="node-identity"><span class="node-region" data-field="region"></span><div class="node-heading"><h3 data-field="name"></h3><small data-field="meta"></small></div><span class="state" data-field="status"></span></div></div>
-<div class="node-traffic"><div><span class="metric-label">↓ 下行</span><strong data-field="download"></strong></div><div><span class="metric-label">↑ 上行</span><strong data-field="upload"></strong></div><small data-field="net-note"></small></div>
-<div class="meters"><div><span>CPU</span><strong data-field="cpu"></strong><i><b data-bar="cpu"></b></i></div><div><span>内存</span><strong data-field="ram"></strong><i><b data-bar="ram"></b></i></div><div><span>磁盘</span><strong data-field="disk"></strong><i><b data-bar="disk"></b></i></div></div>
-<div class="node-pings"><span data-field="cu"></span><span data-field="ct"></span><span data-field="cm"></span></div>
-<div class="node-bottom"><div><span class="metric-label">本月</span><strong data-field="month"></strong></div><span data-field="uptime"></span></div>
-<details><summary>系统与账单 <span aria-hidden="true">＋</span></summary><dl class="details"><div><dt>CPU</dt><dd data-field="cpu_info"></dd></div><div><dt>系统</dt><dd data-field="os"></dd></div><div><dt>负载 / 进程</dt><dd data-field="load"></dd></div><div><dt>TCP / UDP</dt><dd data-field="connections"></dd></div><div><dt>价格</dt><dd data-field="price"></dd></div><div><dt>到期</dt><dd data-field="expire"></dd></div><div><dt>流量配额</dt><dd data-field="traffic-limit"></dd></div></dl></details>
-</article>
-</template>
-<script type="module" src="/assets/app.js"></script>
-</body></html>
+<template id="node-template"><article class="node-row" role="row"><div class="status-cell" role="cell"><i class="status-dot" aria-hidden="true"></i><span data-field="status"></span></div><div class="node-main" role="cell"><button class="node-name" data-detail-toggle><h3 data-field="name"></h3></button><small data-field="meta"></small></div><div class="node-region" role="cell"><span class="flag" data-flag></span><span data-field="region"></span></div><div class="rate-cell down" role="cell"><small>↓ 下行</small><strong data-field="download"></strong></div><div class="rate-cell up" role="cell"><small>↑ 上行</small><strong data-field="upload"></strong></div><div class="meters" role="cell"><div><span>CPU</span><i><b data-bar="cpu"></b></i><strong data-field="cpu"></strong></div><div><span>RAM</span><i><b data-bar="ram"></b></i><strong data-field="ram"></strong></div><div><span>DISK</span><i><b data-bar="disk"></b></i><strong data-field="disk"></strong></div></div><div class="transfer-cell" role="cell"><small>本月流量</small><strong data-field="month"></strong></div><div class="node-pings" role="cell"><span data-field="cu"></span><span data-field="ct"></span><span data-field="cm"></span></div><div class="uptime-cell" role="cell"><span data-field="uptime"></span></div><button class="detail-button" data-detail-toggle aria-label="展开节点详情" aria-expanded="false">···</button><details class="node-detail"><summary>系统与账单</summary><dl class="details"><div><dt>CPU</dt><dd data-field="cpu_info"></dd></div><div><dt>系统</dt><dd data-field="os"></dd></div><div><dt>负载 / 进程</dt><dd data-field="load"></dd></div><div><dt>TCP / UDP</dt><dd data-field="connections"></dd></div><div><dt>价格</dt><dd data-field="price"></dd></div><div><dt>到期</dt><dd data-field="expire"></dd></div><div><dt>流量配额</dt><dd data-field="traffic-limit"></dd></div><div><dt>数据状态</dt><dd data-field="net-note"></dd></div></dl></details></article></template>
+<script type="module" src="/assets/app.js"></script></body></html>
