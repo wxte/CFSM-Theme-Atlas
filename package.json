@@ -1,1 +1,1 @@
-{"name":"cfsm-line-grid","version":"0.2.1","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","check":"node --check assets/app.js && node --check assets/globe.js && node --check assets/data.js"}}
+{"name":"cfsm-line-grid","version":"0.2.2","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","check":"node --check assets/app.js && node --check assets/globe.js && node --check assets/data.js"}}

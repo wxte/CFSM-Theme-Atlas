@@ -1,6 +1,10 @@
-# CFSM Line Grid · v0.2.1
+# CFSM Line Grid · v0.2.2
 
 面向 CF-Server-Monitor 的原生 JS / CSS 主题。延续 line-grid 的紧凑布局：顶部标题与导航、五项 KPI、Regions / Globe / Network 三栏、全宽节点清单、网络状况、资源概况。日间纯白，夜间黑灰绿。
+
+## v0.2.2
+
+管理入口修正为 CFSM 官方要求的 `/admin#admin`。手机实时速率独占一行，数值与单位保持完整；节点资源条与三网指标纵向排列；地图标签按实际尺寸避让。
 
 ## v0.2.1
 

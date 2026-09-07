@@ -1,3 +1,4 @@
+import {placeLabel} from './map-layout.js';
 import {coordinate, region, online, bytes, ping} from './data.js';
 const $ = s => document.querySelector(s);
 export class NodeMap {
@@ -42,7 +43,7 @@ export class NodeMap {
     const dark=document.documentElement.dataset.theme==='dark';
     if(this.globe&&this.mode==='globe')this.globe.update({phi:this.phi,theta:this.theta,dark:dark?1:0,baseColor:dark?[.8,.85,.8]:[1,1,1],glowColor:dark?[.055,.063,.071]:[1,1,1],mapBrightness:dark?4:6,mapBaseBrightness:0,markers:points.map(s=>({location:coordinate(s,this.options),size:.028,color:online(s)?[.25,.65,.4]:[.5,.5,.5]})),arcs:links,arcColor:dark?[.5,.75,.57]:[.2,.5,.3],arcWidth:.45,arcHeight:.18});
     const stage=$('#map-stage'),width=stage.clientWidth,height=stage.clientHeight;
-    const occupied=new Map(); const keep=new Set();
+    const occupied=[]; const keep=new Set();
     for(const s of points){
       keep.add(s.id);let label=this.labels.get(s.id);
       if(!label){label=document.createElement('button');label.className='map-label';label.addEventListener('mouseenter',()=>this.showTip(s.id));label.addEventListener('focus',()=>this.showTip(s.id));label.addEventListener('mouseleave',()=>{$('#map-tip').hidden=true;this.hoverId=null;});label.addEventListener('blur',()=>{$('#map-tip').hidden=true;this.hoverId=null;});label.addEventListener('click',()=>{this.onRegion(region(this.servers.find(x=>x.id===s.id)?.region).code);});$('#map-labels').append(label);this.labels.set(s.id,label);}
@@ -50,8 +51,11 @@ export class NodeMap {
       const [lat,lon]=coordinate(s,this.options);let x,y,visible=true;
       if(this.mode==='flat'){const mapWidth=Math.min(width,height*2);x=width/2+lon/360*mapWidth;y=height/2-lat/180*(mapWidth/2);}
       else{const a=lat*Math.PI/180,b=lon*Math.PI/180-Math.PI;const p=[-Math.cos(a)*Math.cos(b),Math.sin(a),Math.cos(a)*Math.sin(b)];const rx=Math.cos(this.phi)*p[0]+Math.sin(this.phi)*p[2];const ry=Math.sin(this.phi)*Math.sin(this.theta)*p[0]+Math.cos(this.theta)*p[1]-Math.cos(this.phi)*Math.sin(this.theta)*p[2];const rz=-Math.sin(this.phi)*Math.cos(this.theta)*p[0]+Math.sin(this.theta)*p[1]+Math.cos(this.phi)*Math.cos(this.theta)*p[2];x=width/2+rx*112;y=height/2-ry*112;visible=rz>0;}
-      const key=`${Math.round(x/25)},${Math.round(y/25)}`,stack=occupied.get(key)||0;occupied.set(key,stack+1);y+=stack*23;
-      label.hidden=!visible;label.style.left=`${Math.max(45,Math.min(width-45,x))}px`;label.style.top=`${Math.max(12,Math.min(height-12,y))}px`;
+      label.hidden=!visible;
+      if(!visible)continue;
+      const pos=placeLabel(x,y,label.offsetWidth||130,label.offsetHeight||24,width,height,occupied);
+      label.hidden=!pos;
+      if(pos){label.style.left=pos.x+'px';label.style.top=pos.y+'px';}
     }
     for(const [id,label] of this.labels)if(!keep.has(id)){label.remove();this.labels.delete(id);}
     const svg=$('#flat-arcs');svg.replaceChildren();

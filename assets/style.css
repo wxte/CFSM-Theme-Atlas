@@ -219,3 +219,30 @@ footer{gap:8px;flex-wrap:wrap;font-size:10px}
 .data-stack{font-size:13px;font-variant-numeric:tabular-nums}
 .state{font-size:10px}
 .map-label{font-size:11px}
+
+@media(max-width:760px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis article{padding:10px 12px!important}
+  .kpis article:nth-child(2){border-right:0}
+  .kpis article:nth-child(3){grid-column:1/-1;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;column-gap:16px;align-items:baseline}
+  .kpis article:nth-child(3)>.eyebrow{grid-column:1/-1}
+  .kpis article:nth-child(5){grid-column:auto}
+  .kpis strong,#stat-in,#stat-cost{font-size:20px;letter-spacing:-.6px}
+  #stat-in,#stat-out{white-space:nowrap}
+  #stat-out{font-size:16px}
+  .topbar>.tools{display:grid;grid-template-columns:1fr auto auto;gap:6px}
+  nav{gap:0;margin:0;min-width:0}
+  nav a{padding:9px 6px;font-size:13px;white-space:nowrap}
+  #refresh,#theme{min-height:40px;padding:7px}
+  .masthead>a:last-child{white-space:nowrap;font-size:12px}
+  .meters{display:grid;grid-template-columns:1fr;gap:7px}
+  .meters>div{font-size:12px}
+  .meters span{width:35px;font-size:11px}
+  .meters strong{width:48px;font-size:12px}
+  .meters i{height:4px}
+  .node-pings{flex-direction:column;font-size:12px;gap:5px}
+  .node-row{background:var(--soft);margin-bottom:10px;border:1px solid var(--line);border-radius:6px;padding:14px}
+  .node-row:hover{border-left-color:var(--line)}
+  .map-tools button{min-height:36px}
+  .map-label{min-height:24px}
+}
