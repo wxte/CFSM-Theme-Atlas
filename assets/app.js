@@ -1,8 +1,10 @@
+import {ViewRouter,pages,pageFromHash} from './router.js';
 import {flag} from './flags.js';
 import {NetworkCharts,windowSamples} from './network.js';
 import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js';
 import {NodeMap} from './globe.js';
 const $ = s => document.querySelector(s);
+document.title='WXT Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
 const map=new NodeMap(selectRegion);
@@ -18,6 +20,7 @@ const all=()=>[...state.servers.values()];
 function visible(){return all().filter(s=>(state.status==='all'||(state.status==='online')===online(s))&&(!state.selected||region(s.region).code===state.selected)&&(!state.search||`${s.name} ${region(s.region).name} ${s.region} ${s.server_group||''}`.toLowerCase().includes(state.search)));}
 function sorted(){return visible().sort((a,b)=>state.sort==='cpu'?n(b.cpu)-n(a.cpu):state.sort==='traffic'?n(month(b))-n(month(a)):state.sort==='name'?String(a.name).localeCompare(String(b.name)):n(a.sort_order)-n(b.sort_order)||String(a.id).localeCompare(String(b.id)));}
 function connection(text,live=false){$('#connection').title=text;if(state.connectionText!==text){if(state.connectionText)addEvent(text,live?'online':'warning');state.connectionText=text;}set($('#connection'),text);$('#connection').classList.toggle('live',live);}
+function loading(active){document.documentElement.classList.toggle('is-loading',active);$('main').setAttribute('aria-busy',String(active));$('#table-skeleton').hidden=!active;if(active)$('#empty').hidden=true;else if(!state.ready)$('#empty').hidden=false;}
 function notice(text=''){set($('#notice'),text);$('#notice').hidden=!text;}
 function chartSetup(){
   for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 90 15" aria-label="本次会话趋势"><path/></svg><small>—</small>';div.dataset.carrier=key;$('#carrier-summary').append(div);}
@@ -29,7 +32,7 @@ function renderSummary(){
   set($('#stat-regions'),String(new Set(list.map(s=>region(s.region).code).filter(c=>c!=='XX')).size).padStart(2,'0'));
   set($('#stat-in'),`${bytes(live.length?total(live,'net_in_speed'):0,true)}`);set($('#stat-out'),`${bytes(live.length?total(live,'net_out_speed'):0,true)}`);
   const monthly=list.map(month).filter(numeric);set($('#stat-month'),allowed('show_tf')?bytes(monthly.length?monthly.reduce((a,v)=>a+v,0):null):'未公开');
-  const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');set($('#cost-note'),cost.missing?`${cost.missing} 台未配置账单 · 原币种 / 月`:'按原币种折算月费');
+  const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');$('#stat-cost').classList.toggle('multi-currency',cost.currencies>1);set($('#cost-note'),cost.missing?`${list.length-cost.missing}/${list.length} 台已配置 · 各币种分别计费`:'已配置节点 · 各币种分别计费');
   $('#online-bar').style.width=`${list.length?live.length/list.length*100:0}%`;set($('#availability'),list.length?`${Math.round(live.length/list.length*100)}%`:'—');const pattern=live.length+'/'+list.length;if($('#availability-track').dataset.pattern!==pattern){$('#availability-track').dataset.pattern=pattern;$('#availability-track').replaceChildren();for(let i=0;i<32;i++){const segment=document.createElement('i');segment.classList.toggle('off',!list.length||i>=Math.round(live.length/list.length*32));$('#availability-track').append(segment);}}
   const shown=visible().filter(s=>online(s));set($('#map-online'),shown.length);const values=shown.flatMap(s=>carriers.map(k=>s[`ping_${k}`])).filter(v=>numeric(v)&&n(v)>=0);set($('#map-latency'),`${values.length?Math.round(values.reduce((a,v)=>a+n(v),0)/values.length)+' ms':'—'} AVG`);
 }
@@ -62,7 +65,7 @@ function renderRows(){
   const shown=new Set(list.map(s=>s.id));for(const [id,row] of state.rows)row.hidden=!shown.has(id);
   let cursor=$('#node-list').firstElementChild;
   for(const s of list){const row=state.rows.get(s.id);if(row!==cursor)$('#node-list').insertBefore(row,cursor);cursor=row.nextElementSibling;updateRow(s);}
-  set($('#node-count'),`${list.length} / ${state.servers.size}`);$('#empty').hidden=list.length>0;set($('#empty'),state.servers.size?'没有符合筛选条件的节点。':'暂无服务器，请在 CFSM 后台添加节点。');
+  set($('#node-count'),`${list.length} / ${state.servers.size}`);$('#empty').hidden=list.length>0;set($('#empty'),state.servers.size?'没有符合筛选条件的节点。':'暂无服务器，请在 CFSM 后台添加节点。');$('#reset-filters').hidden=list.length>0||!state.servers.size;
 }
 function record(s,ts,metrics){
   const samples=state.history.get(s.id)||[];
@@ -84,15 +87,15 @@ function renderResources(){
 function renderAggregates(){renderSummary();renderNetwork();if(state.page==='resources')renderResources();map.update(visible(),state.config.theme_options||{},state.selected);}
 async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
 async function refresh(){
-  if(state.loading)return;state.loading=true;$('#refresh').disabled=true;
+  if(state.loading)return;state.loading=true;if(!state.ready)loading(true);$('#refresh').disabled=true;
   try{
     const payload=await json('/api/servers');if(!Array.isArray(payload.servers))throw Error('服务器列表格式不正确');state.sys=payload.sysConfig||{};
     const next=new Map();for(const s of payload.servers){if(!s.id)continue;const id=String(s.id),old=state.servers.get(id);next.set(id,old&&n(old.last_updated)>n(s.last_updated)?{...s,...old}:{...s,id});const samples=Array.isArray(s.ping)?s.ping:[];if(samples.length){const losses=Array.isArray(s.loss)?s.loss:[];state.history.set(id,windowSamples([...samples.map(p=>({...p,loss:losses.find(l=>l.ts===p.ts)})),...(state.history.get(id)||[])]));}}
-    state.servers=next;if(state.selected&&!all().some(s=>region(s.region).code===state.selected))state.selected='';
+    state.servers=next;state.ready=true;if(state.selected&&!all().some(s=>region(s.region).code===state.selected))state.selected='';
     renderRegions();renderRows();renderAggregates();notice();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);set($('#footer-status'),`${all().length} 个节点 · CFSM`);
     if(state.ws?.readyState===WebSocket.OPEN){subscribe();connection('LIVE · 实时',true);}else if(!state.ws&&!state.retry)connect();
   }catch(e){notice(`${e.message}。${state.servers.size?'保留上次数据，可点击刷新重试。':'可点击刷新重试。'}`);if(!state.servers.size)set($('#empty'),'暂时无法读取节点');connection('数据暂不可用');}
-  finally{state.loading=false;$('#refresh').disabled=false;}
+  finally{state.loading=false;loading(false);$('#refresh').disabled=false;}
 }
 function subscribe(){const ids=[...state.servers.keys()].filter(id=>/^[a-zA-Z0-9._:-]{1,64}$/.test(id)).slice(0,500);state.ws.send(JSON.stringify({type:'subscribe',scope:'all',ids}));if(state.servers.size>500)notice('超过 500 台的节点通过定时刷新更新。');}
 function connect(){
@@ -116,21 +119,21 @@ $('#appearance').addEventListener('change',e=>{settings.appearance=e.target.valu
 $('#theme').addEventListener('click',()=>{settings.appearance=document.documentElement.dataset.theme==='dark'?'light':'dark';saveSettings();});
 applySettings();
 $('#refresh').addEventListener('click',refresh);$('#all-regions').addEventListener('click',()=>selectRegion(''));
+$('#reset-filters').addEventListener('click',()=>{state.search='';state.status='all';$('#search').value='';document.querySelectorAll('[data-status]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.status==='all')));selectRegion('');});
 $('#search').addEventListener('input',e=>{state.search=e.target.value.trim().toLowerCase();renderRows();renderAggregates();});$('#clear-region').addEventListener('click',()=>selectRegion(''));document.querySelectorAll('[data-status]').forEach(b=>b.addEventListener('click',()=>{state.status=b.dataset.status;document.querySelectorAll('[data-status]').forEach(el=>el.setAttribute('aria-pressed',String(el===b)));renderRows();renderAggregates();}));$('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderRows();});
-function showPage(hash=location.hash){
- const pages={overview:'概览',nodes:'节点',network:'网络',resources:'资源',activity:'动态',settings:'显示设置'},key=(hash||'').replace('#',''),page=Object.hasOwn(pages,key)?key:'overview';state.page=page;
+function showPage(key,animate=false){
+ const page=pageFromHash('#'+key);state.page=page;map.clearTip();
  for(const id of Object.keys(pages))$('#'+id).hidden=id!==page&&!(id==='nodes'&&page==='overview');set($('#page-title'),pages[page]);map.active=page==='overview';
  document.querySelectorAll('nav a').forEach(a=>{const active=a.getAttribute('href')==='#'+page;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
  if(map.active)map.requestDraw();if(state.servers.size)renderAggregates();
+ if(animate&&settings.motion!=='reduced'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)$('main').animate?.([{opacity:.55,transform:'translateY(3px)'},{opacity:1,transform:'none'}],{duration:130,easing:'ease-out'});
 }
-addEventListener('hashchange',()=>showPage());
-document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',()=>showPage(a.getAttribute('href'))));
-showPage();
 chartSetup();
-json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);document.title=`WXT Atlas · ${title}`;renderAggregates();}).catch(()=>{});
+new ViewRouter(showPage);
+json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);if(state.ready)renderAggregates();}).catch(()=>{});
 refresh().then(()=>{if(all().length)map.focus(region(all()[0].region).code);map.init();});
 const poll=setInterval(()=>{if(!document.hidden)refresh();},30000);
-const age=setInterval(()=>{if(document.hidden)return;if(state.status!=='all')renderRows();else for(const s of all())updateRow(s);renderRegions();renderAggregates();},15000);
+const age=setInterval(()=>{if(document.hidden||!state.ready)return;if(state.status!=='all')renderRows();else for(const s of all())updateRow(s);renderRegions();renderAggregates();},15000);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(state.retry);state.retry=null;clearInterval(state.heartbeat);state.ws?.close();return;}if(!document.hidden){for(const s of all())updateRow(s);renderRegions();renderAggregates();refresh();if(!state.ws&&!state.retry)connect();}});
 addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInterval(age);clearInterval(state.heartbeat);clearTimeout(state.retry);state.ws?.close();});
 addEventListener('pageshow',e=>{if(e.persisted)location.reload();});

@@ -28,7 +28,7 @@ export function costs(list) {
     if (!numeric(s.price) || !cycles[s.billing_cycle] || !s.currency) { missing++; continue; }
     groups.set(s.currency, (groups.get(s.currency) || 0) + Math.max(0,n(s.price)) / cycles[s.billing_cycle]);
   }
-  return {text:[...groups].map(([c,v]) => `${c}${v.toFixed(2)}`).join(' · ') || '—', missing};
+  return {text:[...groups].map(([c,v]) => `${c}${v.toFixed(2)}`).join(' · ') || '—', missing, currencies:groups.size};
 }
 export function mergeSample(server, patch, ts) {
   if (!patch || typeof patch !== 'object' || !numeric(ts) || n(ts) < n(server.last_updated)) return false;
