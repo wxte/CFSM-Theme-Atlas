@@ -1,4 +1,5 @@
-import {numeric,n,ping,loss,online} from './data.js?v=0.2.3';
+import {networkBuckets} from './insights.js?v=0.2.4';
+import {numeric,n,ping,loss,online} from './data.js?v=0.2.4';
 export const lines=['cu','ct','cm'];
 export function windowSamples(samples,now=Date.now()){
   const buckets=new Map();
@@ -12,11 +13,13 @@ const svgNS='http://www.w3.org/2000/svg';
 export class NetworkCharts{
   constructor(){this.selected='';this.buttons=new Map();this.cards=new Map();this.list=[];this.histories=new Map();this.names={};
     for(const key of lines){const card=document.createElement('article');card.className='analysis-card';card.dataset.chart=key;
-      card.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 130" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 56H354 M30 100H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="103">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="125"></text><text class="axis-text axis-end" x="354" y="125" text-anchor="end"></text></svg><div class="chart-tooltip">悬停或触摸查看采样</div><div class="chart-note"><span>等待数据</span><span>丢包 —</span></div>';
+      card.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 130" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 56H354 M30 100H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="103">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="125"></text><text class="axis-text axis-end" x="354" y="125" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="五分钟采样状态"></div><div class="tracker-key"><span class="healthy">正常</span><span class="warning">异常</span><span class="failed">丢包100%</span><span class="unknown">数据不全</span></div><div class="tracker-caption">每格 5 分钟 · 延迟 ≥200 ms 或丢包记为异常</div><div class="tracker-tooltip" role="status">点选状态格查看该时段</div><div class="chart-tooltip">悬停或触摸查看采样</div><div class="chart-note"><span>等待数据</span><span>丢包 —</span></div>';
+      const tracker=card.querySelector('.network-tracker');
+      for(let i=0;i<24;i++){const b=document.createElement('button');b.type='button';b.addEventListener('click',()=>{const c=this.cards.get(key);c.bucketStart=c.buckets[i].start;this.inspectBucket(key);});tracker.append(b);}
       const svg=card.querySelector('svg');svg.addEventListener('pointermove',e=>{const bounds=svg.getBoundingClientRect();const x=(e.clientX-bounds.left)/bounds.width*360;this.inspect(key,this.now-7200000+Math.max(0,Math.min(1,(x-30)/324))*7200000);});
       svg.addEventListener('pointerleave',()=>{card.querySelector('.cursor').setAttribute('hidden','');set(card.querySelector('.chart-tooltip'),'悬停或触摸查看采样');this.cards.get(key).inspecting=null;});
       svg.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const c=this.cards.get(key),points=c.points;if(!points.length)return;let index=points.findIndex(p=>p.ts===c.inspecting);index=e.key==='Home'?0:e.key==='End'?points.length-1:Math.max(0,Math.min(points.length-1,(index<0?points.length-1:index)+(e.key==='ArrowLeft'?-1:1)));this.inspect(key,points[index].ts);});
-      document.querySelector('#network-grid').append(card);this.cards.set(key,{el:card,points:[],inspecting:null});
+      document.querySelector('#network-grid').append(card);this.cards.set(key,{el:card,points:[],inspecting:null,buckets:[],bucketStart:null,serverId:null});
     }
   }
   update(list,histories,names,enabled){this.list=list;this.histories=histories;this.names=names;this.enabled=enabled;this.now=Date.now();
@@ -25,6 +28,11 @@ export class NetworkCharts{
     for(const [id,b] of this.buttons)if(!keep.has(id)){b.remove();this.buttons.delete(id);}
     const server=list.find(s=>s.id===this.selected);
     for(const key of lines){const c=this.cards.get(key),card=c.el;set(card.querySelector('.analysis-top span'),names[key]);set(card.querySelector('.analysis-top strong'),server&&online(server)?ping(server['ping_'+key]):'—');
+      if(c.serverId!==this.selected){c.bucketStart=null;c.inspecting=null;c.serverId=this.selected;}
+      c.buckets=networkBuckets(enabled?histories.get(this.selected)||[]:[],key,this.now);
+      const statuses={healthy:'正常',warning:'异常',failed:'丢包100%',unknown:'无数据或数据不全'};
+      [...card.querySelector('.network-tracker').children].forEach((b,i)=>{const bucket=c.buckets[i],text=time(bucket.start)+'–'+time(bucket.end)+' · '+statuses[bucket.state]+' · '+bucket.samples.length+' 个采样';if(b.className!==bucket.state)b.className=bucket.state;if(b.title!==text){b.title=text;b.setAttribute('aria-label',text);}b.setAttribute('aria-pressed',String(c.bucketStart===bucket.start));});
+      this.inspectBucket(key);
       c.points=enabled?windowSamples(histories.get(this.selected)||[],this.now).filter(p=>numeric(p[key])&&n(p[key])>=0):[];
       if(!c.points.length){c.inspecting=null;card.querySelector('.cursor').setAttribute('hidden','');}
       const max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);c.max=max;
@@ -38,5 +46,6 @@ export class NetworkCharts{
       if(c.inspecting)this.inspect(key,c.inspecting);else set(card.querySelector('.chart-tooltip'),!enabled?'开启三网详情后显示历史':c.points.length?'悬停或触摸查看采样':'暂无历史采样');
     }
   }
+  inspectBucket(key){const c=this.cards.get(key),bucket=c.buckets.find(b=>b.start===c.bucketStart);for(const b of c.el.querySelector('.network-tracker').children)b.setAttribute('aria-pressed',String(c.buckets[[...b.parentElement.children].indexOf(b)]?.start===c.bucketStart));set(c.el.querySelector('.tracker-tooltip'),!this.enabled?'后台未开启三网详情':!bucket?'点选状态格查看该时段':time(bucket.start)+'–'+time(bucket.end)+' · '+bucket.samples.length+' 个采样 · 最高延迟 '+ping(bucket.maxPing)+' · 最高丢包 '+loss(bucket.maxLoss)+(bucket.state==='unknown'?' · 数据不全':'')+(bucket.state==='failed'?' · 存在完全丢包':''));}
   inspect(key,ts){const c=this.cards.get(key),p=nearestPoint(c.points,ts);if(!p)return;c.inspecting=p.ts;const x=30+Math.max(0,Math.min(1,(p.ts-(this.now-7200000))/7200000))*324;const cursor=c.el.querySelector('.cursor');cursor.removeAttribute('hidden');cursor.setAttribute('d',`M${x} 12V103`);set(c.el.querySelector('.chart-tooltip'),`${time(p.ts)} · ${ping(p[key])} · 丢包 ${loss(p.loss?.[key])}`);}
 }
