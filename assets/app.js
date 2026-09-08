@@ -6,6 +6,7 @@ import {flag} from './flags.js?v=0.3.6';
 import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.7';
 import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
 import {NodeMap} from './globe.js?v=0.3.7';
+import {Plot} from './plot.js?v=0.3.10';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -19,6 +20,17 @@ if($('#activity-toggle'))$('#activity-toggle').innerHTML=icons.activity;
 if(!$('#activity-badge')){const badge=document.createElement('span');badge.id='activity-badge';badge.hidden=true;$('#activity-toggle')?.append(badge);}
 document.title='WXT Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
+const severity = value => {
+  if(!numeric(value))return 'unknown';
+  const v=Math.max(0,n(value));
+  return v>=95?'critical':v>=80?'hot':v>=60?'warn':'safe';
+};
+const markSeverity = (el,value) => {
+  if(!el)return;
+  el.classList.remove('safe','warn','hot','critical','unknown','zero');
+  const level=severity(value);el.classList.add(level);
+  if(numeric(value)&&n(value)<=0)el.classList.add('zero');
+};
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
 const map=new NodeMap(selectRegion);
 const charts=new NetworkCharts(),historyAPI=new HistoryAPI();
@@ -58,20 +70,33 @@ const names={cu:'联通',ct:'电信',cm:'移动',bd:'BGP'};
 const label=key=>state.sys[`custom_${key}_name`]||names[key];
 const allowed=key=>state.sys[key]!==false&&state.sys[key]!=='false';
 const all=()=>[...state.servers.values()];
+const trafficSeries={in:[],out:[]},trafficPlots={};
+function updateTrafficSparks(live){
+  const now=Date.now();
+  for(const [key,field] of [['in','net_in_speed'],['out','net_out_speed']]){
+    const value=live.length?total(live,field):null,series=trafficSeries[key],last=series.at(-1);
+    if(last&&now-last.ts<8000){last.ts=now;last.value=numeric(value)?n(value):null;}
+    else series.push({ts:now,value:numeric(value)?n(value):null});
+    trafficSeries[key]=series.slice(-48);
+    const points=trafficSeries[key],maximum=Math.max(1024,...points.map(p=>numeric(p.value)?n(p.value):0));
+    const divisor=Math.max(1,points.length-1);
+    trafficPlots[key]?.update(points.map((p,i)=>numeric(p.value)?{ts:p.ts,x:2+i/divisor*116,y:30-Math.min(maximum,n(p.value))/maximum*26}:null));
+  }
+}
 function visible(){return all().filter(s=>(state.status==='all'||(state.status==='online')===online(s))&&(!state.quick||(state.quick==='load'?highLoad(s):allowed('show_expire')&&expiring(s)))&&(!state.selected||region(s.region).code===state.selected)&&(!state.search||`${s.name} ${region(s.region).name} ${s.region} ${s.server_group||''}`.toLowerCase().includes(state.search)));}
 function sorted(){return visible().sort((a,b)=>state.sort==='cpu'?n(b.cpu)-n(a.cpu):state.sort==='traffic'?n(month(b))-n(month(a)):state.sort==='name'?String(a.name).localeCompare(String(b.name)):n(a.sort_order)-n(b.sort_order)||String(a.id).localeCompare(String(b.id)));}
 function connection(text,live=false){$('#connection').title=text;if(state.connectionText!==text){if(state.connectionText)addEvent(text,'connection');state.connectionText=text;}set($('#connection'),text);$('#connection').classList.toggle('live',live);}
 function loading(active){document.documentElement.classList.toggle('is-loading',active);$('main').setAttribute('aria-busy',String(active));$('#table-skeleton').hidden=!active;if(active)$('#empty').hidden=true;else if(!state.ready)$('#empty').hidden=false;}
 function notice(text=''){set($('#notice'),text);$('#notice').hidden=!text;}
 function chartSetup(){
-  for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 240 28" preserveAspectRatio="none" role="img"><title></title><path/><circle r="2"/></svg><small class="trend-note"></small><small class="trend-loss">—</small>';div.dataset.carrier=key;$('#carrier-summary').append(div);}
-  for(const [key,title] of [['cpu','CPU 平均使用率'],['ram','内存使用率'],['disk','磁盘使用率'],['connections','连接总数']]){const card=document.createElement('article');card.className='resource-card';card.dataset.resource=key;card.innerHTML='<span class="eyebrow"></span><strong>—</strong><div class="resource-track"><b></b></div><small>等待数据</small>';set(card.firstElementChild,title);$('#resource-overview').append(card);}
+  for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 240 28" preserveAspectRatio="none" role="img"><title></title><path/></svg><small class="trend-note"></small><small class="trend-loss">—</small>';div.dataset.carrier=key;div.plot=new Plot(div.querySelector('svg'),div.querySelector('path'),{baseline:27,smooth:true});$('#carrier-summary').append(div);}
+  for(const key of ['in','out']){const svg=$(`[data-live-traffic="${key}"] .kpi-spark`);if(svg)trafficPlots[key]=new Plot(svg,svg.querySelector('.kpi-spark-series'));}
 }
 function renderSummary(){
   const list=all(),live=list.filter(s=>online(s));
   set($('#stat-nodes'),String(list.length).padStart(2,'0'));set($('#stat-online'),`${live.length} 在线 / ${list.length-live.length} 离线`);
   set($('#stat-regions'),String(new Set(list.map(s=>region(s.region).code).filter(c=>c!=='XX')).size).padStart(2,'0'));
-  set($('#stat-in'),`${bytes(live.length?total(live,'net_in_speed'):0,true)}`);set($('#stat-out'),`${bytes(live.length?total(live,'net_out_speed'):0,true)}`);
+  set($('#stat-in'),`${bytes(live.length?total(live,'net_in_speed'):0,true)}`);set($('#stat-out'),`${bytes(live.length?total(live,'net_out_speed'):0,true)}`);updateTrafficSparks(live);
   const monthly=list.map(month).filter(numeric);set($('#stat-month'),allowed('show_tf')?bytes(monthly.length?monthly.reduce((a,v)=>a+v,0):null):'未公开');
   const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');$('#stat-cost').classList.toggle('multi-currency',cost.currencies>1);set($('#cost-note'),cost.missing?`${list.length-cost.missing}/${list.length} 台已配置 · 按币种分别汇总`:'按币种分别汇总');
   $('#online-bar').style.width=`${list.length?live.length/list.length*100:0}%`;set($('#availability'),list.length?`${Math.round(live.length/list.length*100)}%`:'—');const pattern=live.length+'/'+list.length;if($('#availability-track').dataset.pattern!==pattern){$('#availability-track').dataset.pattern=pattern;$('#availability-track').replaceChildren();for(let i=0;i<32;i++){const segment=document.createElement('i');segment.classList.toggle('off',!list.length||i>=Math.round(live.length/list.length*32));$('#availability-track').append(segment);}}
@@ -98,7 +123,7 @@ function updateRow(s){
   f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
   f('price',allowed('show_price')?(numeric(s.price)?`${s.currency||''}${Math.max(0,n(s.price))} / ${cycles[s.billing_cycle]||'?'} 个月`:'未配置'):'未公开');f('expire',allowed('show_expire')?(s.expire_date||'未配置'):'未公开');
-  for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;bar.classList.toggle('hot',n(value)>85);}
+  for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;markSeverity(bar,value);}
   f('download',`${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`${live?bytes(s.net_out_speed,true):'—'}`);f('net-note',live&&(numeric(s.net_in_speed)||numeric(s.net_out_speed))?`实时速率 · ${s.interface||'自动网卡'}`:live?'已连接 · 等待网卡上报':'离线 · 保留最后上报');
   f('month',allowed('show_tf')?bytes(month(s)):'未公开');f('uptime',uptime(s));
   const quota=trafficQuota(s),quotaBar=quotaTrack.firstElementChild,quotaVisible=allowed('show_tf')&&quota.limit!==null;
@@ -106,7 +131,7 @@ function updateRow(s){
   if(quotaVisible){
     const usedPercent=numeric(quota.percent)?Math.max(0,quota.percent):0,width=`${Math.min(100,usedPercent)}%`;
     if(quotaBar.style.width!==width)quotaBar.style.width=width;
-    quotaBar.classList.toggle('hot',usedPercent>=80);quotaBar.classList.toggle('over',usedPercent>100);
+    markSeverity(quotaBar,usedPercent);quotaBar.classList.toggle('over',usedPercent>100);
     quotaTrack.setAttribute('aria-valuenow',String(Math.min(100,usedPercent)));
     quotaTrack.setAttribute('aria-valuetext',numeric(quota.percent)?`已用 ${quota.percent.toFixed(1)}%，余量 ${bytes(quota.remaining)}`:'等待流量上报');
     f('traffic-remaining',numeric(quota.percent)?`${quota.percent>100?'超额':'余'} ${bytes(quota.remaining)} · ${quota.percent.toFixed(1)}% 已用`:'等待流量上报');
@@ -136,13 +161,10 @@ function renderNetwork(){
  if(state.page==='overview'||state.page==='resources')for(const key of [...carriers,'bd']){
   const el=$('[data-carrier="'+key+'"]'),value=avg(live,'ping_'+key);
   set(el.children[0],label(key));set(el.children[1],ping(value));set(el.querySelector('.trend-loss'),'丢包 '+loss(avg(live,'loss_'+key)));
-  const {points,sources}=aggregateHistory(enabled?live.map(s=>s.id):[],state.history,key,now),svg=el.querySelector('svg'),path=el.querySelector('path'),dot=el.querySelector('circle');
+  const {points,sources}=aggregateHistory(enabled?live.map(s=>s.id):[],state.history,key,now),svg=el.querySelector('svg');
   const maximum=Math.max(50,Math.ceil(Math.max(0,...points.map(p=>p.value))/50)*50);
   const x=p=>2+Math.max(0,Math.min(1,(p.ts-(now-7200000))/7200000))*236,y=p=>25-p.value/maximum*22;
-  const d=points.map((p,i)=>(i&&p.bucket-points[i-1].bucket===1?'L':'M')+x(p).toFixed(1)+','+y(p).toFixed(1)).join(' ');
-  if(path.getAttribute('d')!==d)path.setAttribute('d',d);
-  if(points.length)svg.removeAttribute('hidden');else svg.setAttribute('hidden','');
-  if(points.length){dot.setAttribute('cx',x(points.at(-1)));dot.setAttribute('cy',y(points.at(-1)));}
+  if(points.length){svg.removeAttribute('hidden');const geometry=[];let previous=null;for(const p of points){if(previous&&p.bucket-previous.bucket!==1)geometry.push(null);geometry.push({ts:p.ts,x:x(p),y:y(p)});previous=p;}el.plot?.update(geometry,{animate:true});}else{el.plot?.update([],{animate:false});svg.setAttribute('hidden','');}
   set(el.querySelector('.trend-note'),!enabled?'历史未公开':points.length?'近 2 小时 · '+sources+'/'+live.length+' 台':'暂无历史');
   const description=label(key)+'延迟趋势，纵轴 0–'+maximum+' ms；每 6 分钟汇总有采样节点的均值，不补齐缺失时段。'+points.map(p=>new Date(p.ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+' '+Math.round(p.value)+' ms（'+p.count+'台）').join('；');
   svg.setAttribute('aria-label',description);set(svg.querySelector('title'),description);
@@ -155,12 +177,7 @@ function renderNetwork(){
   loadNetworkHistory();
  }
 }
-function renderResources(){
-  const list=all().filter(s=>online(s));
-  const values={cpu:[avg(list,'cpu'),`${n(total(list,'cpu_cores'))} 核 · ${list.length} 台在线`],ram:[percent(total(list,'ram_used'),total(list,'ram_total')),`${bytes(numeric(total(list,'ram_used'))?total(list,'ram_used')*1048576:null)} / ${bytes(numeric(total(list,'ram_total'))?total(list,'ram_total')*1048576:null)}`],disk:[percent(total(list,'disk_used'),total(list,'disk_total')),`${bytes(numeric(total(list,'disk_used'))?total(list,'disk_used')*1048576:null)} / ${bytes(numeric(total(list,'disk_total'))?total(list,'disk_total')*1048576:null)}`],connections:[null,`TCP ${total(list,'tcp_conn')??'—'} / UDP ${total(list,'udp_conn')??'—'}`]};
-  for(const [key,[value,note]] of Object.entries(values)){const card=$(`[data-resource="${key}"]`);set(card.querySelector('strong'),key==='connections'?(list.length?String(n(total(list,'tcp_conn'))+n(total(list,'udp_conn'))):'—'):fmtPct(value));set(card.querySelector('small'),note);const track=card.querySelector('.resource-track');track.hidden=key==='connections';track.firstElementChild.style.width=`${n(value)}%`;}
-}
-function renderAggregates(){observeStatus();renderNetwork();if(state.page==='overview'||state.page==='resources'){renderSummary();renderResources();map.update(visible(),state.config.theme_options||{},state.selected);}}
+function renderAggregates(){observeStatus();renderNetwork();if(state.page==='overview'||state.page==='resources'){renderSummary();map.update(visible(),state.config.theme_options||{},state.selected);}}
 async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
 async function refresh(){
   if(state.loading)return;state.loading=true;if(!state.ready)loading(true);$('#refresh').disabled=true;
