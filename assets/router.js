@@ -1,4 +1,4 @@
-export const pages={overview:'概览',nodes:'节点',network:'网络',resources:'资源',activity:'活动',settings:'显示设置'};
+export const pages={overview:'概览',nodes:'节点',network:'网络',resources:'概览',activity:'活动'};
 export function pageFromHash(hash){const key=String(hash||'').replace(/^#/,'');return Object.hasOwn(pages,key)?key:'overview';}
 
 // Hash URLs remain compatible with CFSM; navigation never invokes anchor scrolling.

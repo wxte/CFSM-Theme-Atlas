@@ -1,8 +1,12 @@
 # WXT Atlas
 
-## v0.2.6
+## v0.2.7
 
-- 顶部操作改为 Geist 风格线性图标：日 / 夜、动态效果、最近活动和显示设置；活动入口显示当前会话计数并提供最近记录。
+- 尝试使用 Vercel Geist Pixel 作为品牌、标题和数据数字的展示字体；正文继续使用 Geist Sans，避免中文长文本难读。字体由已在 CFSM 白名单中的 jsDelivr 加载。
+- 资源卡移动到 KPI 下方，移除重复的“资源概况”标题；顶部移除齿轮与独立显示设置页，日夜和动态效果直接在右上角操作。
+- 活动保留为右上角弹层和完整活动视图，活动图标与动态效果图标分开，按钮保持同一套线性方形风格。
+
+- 顶部操作使用 Geist 风格线性图标：日 / 夜、动态效果和最近活动；活动入口显示当前会话计数并提供最近记录。
 - 资源概况并入概览，节点页继续保留 CPU、内存、磁盘和流量字段，主导航只保留概览、节点、网络。
 - 浅色主题提高实时上下行文字、曲线、节点在线率和资源进度条的饱和度，同时保持文字对比度。
 
@@ -34,7 +38,7 @@
 
 **Cloudflare Server Monitor** — 原生 JavaScript / CSS 监控主题。
 
-WXT Atlas v0.2.6 将概览、节点、网络、资源、活动和显示设置组织为独立视图。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts 或外部 CDN。
+WXT Atlas v0.2.7 提供概览、节点、网络三视图；资源并入概览，活动通过右上角弹层和活动视图查看。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts；Geist Pixel 仅从已在 CFSM 白名单中的 jsDelivr 加载。
 
 ## v0.2.2
 
@@ -65,7 +69,7 @@ CFSM 后台「主题商店 → 自定义主题 URL」填写：
 
 公开名称已独立为 WXT Atlas，包名为 `cfsm-atlas`。现有 GitHub 仓库路径暂时保留，避免影响已经配置的主题地址；仓库尚未重命名。
 
-更新时建议使用固定提交地址 `https://github.com/wxte/cfsm-line-grid/tree/<完整提交 SHA>`，避免分支缓存继续显示旧版。页脚及 HTML 的 `theme-version` 应显示 **WXT Atlas v0.2.6**。
+更新时建议使用固定提交地址 `https://github.com/wxte/cfsm-line-grid/tree/<完整提交 SHA>`，避免分支缓存继续显示旧版。页脚及 HTML 的 `theme-version` 应显示 **WXT Atlas v0.2.7**。
 
 所有运行文件均在 `index.html` 与 `assets/`，无需 CSP 加入第三方 CDN。管理入口为 `/admin#admin`，其管理界面由 CFSM 提供；主题内的「显示设置」不进入管理后台。
 

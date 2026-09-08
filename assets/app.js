@@ -1,18 +1,19 @@
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.2.6';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.2.6';
-import {flag} from './flags.js?v=0.2.6';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.2.6';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.2.6';
-import {NodeMap} from './globe.js?v=0.2.6';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.2.7';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.2.7';
+import {flag} from './flags.js?v=0.2.7';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.2.7';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.2.7';
+import {NodeMap} from './globe.js?v=0.2.7';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
  moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.3 15.3A7.8 7.8 0 0 1 8.7 4.7 8.2 8.2 0 1 0 19.3 15.3Z"/></svg>',
  spark:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.2 5.7L19 9l-5.8 1.3L12 16l-1.2-5.7L5 9l5.8-1.3L12 2Zm7 12 .6 2.4L22 17l-2.4.6L19 20l-.6-2.4L16 17l2.4-.6L19 14ZM5 14l.5 2L7 16.5 5.5 17 5 19l-.5-2-1.5-.5 1.5-.5L5 14Z"/></svg>',
  pulse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-6 4 12 2-6h7"/></svg>',
+ activity:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>',
  gear:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm8 3.3-2-.7a6.8 6.8 0 0 0-.5-1.3l.9-1.9-1.8-1.8-1.9.9a6.8 6.8 0 0 0-1.3-.5l-.7-2h-2.5l-.7 2a6.8 6.8 0 0 0-1.3.5l-1.9-.9L4.5 8.1l.9 1.9a6.8 6.8 0 0 0-.5 1.3l-2 .7v2.5l2 .7c.1.5.3.9.5 1.3l-.9 1.9 1.8 1.8 1.9-.9c.4.2.9.4 1.3.5l.7 2h2.5l.7-2c.5-.1.9-.3 1.3-.5l1.9.9 1.8-1.8-.9-1.9c.2-.4.4-.9.5-1.3l2-.7v-2.5Z"/></svg>'
 };
-if($('#activity-toggle'))$('#activity-toggle').innerHTML=icons.pulse;
+if($('#activity-toggle'))$('#activity-toggle').innerHTML=icons.activity;
 if(!$('#activity-badge')){const badge=document.createElement('span');badge.id='activity-badge';badge.hidden=true;$('#activity-toggle')?.append(badge);}
 document.title='WXT Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
@@ -152,9 +153,9 @@ function connect(){
 function reconnect(){if(state.stopped||document.hidden||state.retry)return;connection('重连中 · 定时刷新');state.retry=setTimeout(()=>{state.retry=null;connect();},Math.min(30000,1000*2**Math.min(state.attempt++,5)));}
 const settings={appearance:'system',globe:'auto',motion:'normal'};try{Object.assign(settings,JSON.parse(localStorage.getItem('wxt-atlas-settings')||'{}'));}catch{}
 const systemTheme=matchMedia('(prefers-color-scheme: dark)');
-function applySettings(){const theme=settings.appearance==='system'?(systemTheme.matches?'dark':'light'):settings.appearance==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;document.documentElement.dataset.motion=settings.motion;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#15191d':'#ffffff';$('#theme').innerHTML=theme==='dark'?icons.sun:icons.moon;$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');$('#theme').title=theme==='dark'?'切换日间主题':'切换夜间主题';const reduced=settings.motion==='reduced';$('#motion-toggle').innerHTML=reduced?icons.spark:icons.pulse;$('#motion-toggle').setAttribute('aria-pressed',String(reduced));$('#motion-toggle').setAttribute('aria-label',reduced?'启用动态效果':'减少动态效果');$('#motion-toggle').title=reduced?'启用动态效果':'减少动态效果';map.mode=settings.globe;map.reduced=reduced;$('.map-panel').hidden=settings.globe==='off';$('.observatory').classList.toggle('no-globe',settings.globe==='off');$('#appearance').value=settings.appearance;$('#globe-mode').value=settings.globe;$('#motion').value=settings.motion;map.requestDraw();}
+function applySettings(){const theme=settings.appearance==='system'?(systemTheme.matches?'dark':'light'):settings.appearance==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;document.documentElement.dataset.motion=settings.motion;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#15191d':'#ffffff';$('#theme').innerHTML=theme==='dark'?icons.sun:icons.moon;$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');$('#theme').title=theme==='dark'?'切换日间主题':'切换夜间主题';const reduced=settings.motion==='reduced';$('#motion-toggle').innerHTML=icons.spark;$('#motion-toggle').setAttribute('aria-pressed',String(reduced));$('#motion-toggle').setAttribute('aria-label',reduced?'启用动态效果':'减少动态效果');$('#motion-toggle').title=reduced?'启用动态效果':'减少动态效果';map.mode=settings.globe;map.reduced=reduced;$('.map-panel').hidden=settings.globe==='off';$('.observatory').classList.toggle('no-globe',settings.globe==='off');map.requestDraw();}
 function saveSettings(){try{localStorage.setItem('wxt-atlas-settings',JSON.stringify(settings));}catch{}applySettings();}
-$('#appearance').addEventListener('change',e=>{settings.appearance=e.target.value;saveSettings();});$('#globe-mode').addEventListener('change',e=>{settings.globe=e.target.value;saveSettings();});$('#motion').addEventListener('change',e=>{settings.motion=e.target.value;saveSettings();});systemTheme.addEventListener?.('change',applySettings);
+systemTheme.addEventListener?.('change',()=>{if(settings.appearance==='system')applySettings();});
 $('#theme').addEventListener('click',()=>{settings.appearance=document.documentElement.dataset.theme==='dark'?'light':'dark';saveSettings();});
 $('#motion-toggle').addEventListener('click',()=>{settings.motion=settings.motion==='reduced'?'normal':'reduced';saveSettings();});
 $('#activity-toggle').addEventListener('click',()=>{const button=$('#activity-toggle'),panel=$('#activity-popover'),open=panel.hidden;panel.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open)renderActivity();});
