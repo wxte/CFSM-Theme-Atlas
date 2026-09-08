@@ -4,7 +4,7 @@ import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.5';
 import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.5';
 import {flag} from './flags.js?v=0.3.5';
 import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.5';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.5';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.5';
 import {NodeMap} from './globe.js?v=0.3.5';
 const $ = s => document.querySelector(s);
 const icons={
@@ -90,14 +90,28 @@ function renderRegions(){
 function selectRegion(code){state.selected=code;renderRegions();renderRows();renderAggregates();map.focus(code);}
 function updateRow(s){
   const row=state.rows.get(s.id);if(!row)return;const live=online(s),r=region(s.region);row.classList.toggle('offline',!live);row.querySelector('.status-cell').setAttribute('aria-label',live?'在线':'离线');
+  const quotaCell=row.querySelector('.transfer-cell');
+  let quotaTrack=quotaCell.querySelector('.quota-track'),quotaNote=quotaCell.querySelector('[data-field="traffic-remaining"]');
+  if(!quotaTrack){quotaTrack=document.createElement('div');quotaTrack.className='quota-track';quotaTrack.setAttribute('role','progressbar');quotaTrack.setAttribute('aria-label','本月流量已用比例');quotaTrack.setAttribute('aria-valuemin','0');quotaTrack.setAttribute('aria-valuemax','100');const fill=document.createElement('b');quotaTrack.append(fill);quotaNote=document.createElement('small');quotaNote.className='quota-remaining';quotaNote.dataset.field='traffic-remaining';quotaCell.append(quotaTrack,quotaNote);row.fields['traffic-remaining']=quotaNote;}
   renderNodeTrends(row,s,state.history.get(s.id)||[],allowed('show_three_net_details'));
   const f=(key,value)=>set(row.fields[key],value);
   f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
   f('price',allowed('show_price')?(numeric(s.price)?`${s.currency||''}${Math.max(0,n(s.price))} / ${cycles[s.billing_cycle]||'?'} 个月`:'未配置'):'未公开');f('expire',allowed('show_expire')?(s.expire_date||'未配置'):'未公开');
   for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;bar.classList.toggle('hot',n(value)>85);}
-  f('download',`${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`${live?bytes(s.net_out_speed,true):'—'}`);f('net-note',live?'实时速率':'离线 · 保留最后上报');
-  f('month',allowed('show_tf')?bytes(month(s)):'未公开');f('uptime',uptime(s));f('traffic-limit',allowed('show_tf')?(s.traffic_limit?`配额 ${s.traffic_limit}`:'未配置流量配额'):'');
+  f('download',`${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`${live?bytes(s.net_out_speed,true):'—'}`);f('net-note',live&&(numeric(s.net_in_speed)||numeric(s.net_out_speed))?`实时速率 · ${s.interface||'自动网卡'}`:live?'已连接 · 等待网卡上报':'离线 · 保留最后上报');
+  f('month',allowed('show_tf')?bytes(month(s)):'未公开');f('uptime',uptime(s));
+  const quota=trafficQuota(s),quotaBar=quotaTrack.firstElementChild,quotaVisible=allowed('show_tf')&&quota.limit!==null;
+  quotaTrack.hidden=!quotaVisible;
+  if(quotaVisible){
+    const usedPercent=numeric(quota.percent)?Math.max(0,quota.percent):0,width=`${Math.min(100,usedPercent)}%`;
+    if(quotaBar.style.width!==width)quotaBar.style.width=width;
+    quotaBar.classList.toggle('hot',usedPercent>=80);quotaBar.classList.toggle('over',usedPercent>100);
+    quotaTrack.setAttribute('aria-valuenow',String(Math.min(100,usedPercent)));
+    quotaTrack.setAttribute('aria-valuetext',numeric(quota.percent)?`已用 ${quota.percent.toFixed(1)}%，余量 ${bytes(quota.remaining)}`:'等待流量上报');
+    f('traffic-remaining',numeric(quota.percent)?`${quota.percent>100?'超额':'余'} ${bytes(quota.remaining)} · ${quota.percent.toFixed(1)}% 已用`:'等待流量上报');
+  }else{f('traffic-remaining',allowed('show_tf')?'未配置月配额':'');}
+  f('traffic-limit',allowed('show_tf')?(quota.limit!==null?`配额 ${bytes(quota.limit)} · ${({dl:'仅下行',ul:'仅上行',max:'上下行取高',total:'上行+下行'}[s.traffic_calc_type||'total']||'上行+下行')}`:'未配置流量配额'):'');
   for(const k of carriers){f(k,`${label(k)} ${ping(s[`ping_${k}`])}${n(s[`loss_${k}`])>0?' / '+loss(s[`loss_${k}`]):''}`);row.fields[k].classList.toggle('lossy',numeric(s[`loss_${k}`])&&n(s[`loss_${k}`])>0);}
 }
 function renderRows(){

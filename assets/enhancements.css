@@ -28,3 +28,8 @@ html[data-motion=reduced] .drawer-backdrop,html[data-motion=reduced] .node-drawe
 /* v0.3.5: details and their charts stay in the node row. */
 .node-detail-cell>.node-detail{width:100%;margin-top:0}.node-detail .inline-trends{max-width:640px;margin:14px 0 0;padding-top:14px;border-top:1px solid var(--line)}.node-detail .node-spark svg{height:42px}.node-detail .node-sample-note{font-size:12px}.node-detail .details{margin-top:12px}.node-detail:not([open]){display:none}
 @media(max-width:800px){.header-actions .admin-link{display:inline-flex;align-items:center;min-height:30px;white-space:nowrap;font-size:12px;margin-left:2px}.header-actions{flex-wrap:wrap;justify-content:flex-end;max-width:100%}.node-detail .inline-trends{max-width:none}.node-detail .details{gap:12px}}
+
+/* Monthly quota stays a quiet secondary signal beside the existing traffic total. */
+.quota-track{height:4px;margin-top:5px;background:var(--line);border-radius:4px;overflow:hidden}.quota-track[hidden]{display:none}.quota-track>b{display:block;width:0;height:100%;background:var(--accent);transition:width .2s ease,background .2s ease}.quota-track>b.hot{background:var(--warn)}.quota-track>b.over{background:var(--bad)}.quota-remaining{display:block!important;margin-top:4px;font-size:10px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.transfer-cell{min-width:0}.transfer-cell>strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1100px){.quota-remaining{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.quota-track>b{transition:none}}

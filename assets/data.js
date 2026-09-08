@@ -19,6 +19,25 @@ export function uptime(s, now = Date.now()) {
   return `${Math.floor(elapsed / 86400000)}d ${Math.floor(elapsed / 3600000) % 24}h`;
 }
 export function month(s) { return numeric(s.net_rx_monthly) || numeric(s.net_tx_monthly) ? n(s.net_rx_monthly) + n(s.net_tx_monthly) : null; }
+export function trafficUsage(s) {
+  const rx = numeric(s.net_rx_monthly) ? n(s.net_rx_monthly) : null;
+  const tx = numeric(s.net_tx_monthly) ? n(s.net_tx_monthly) : null;
+  if (rx === null && tx === null) return null;
+  const type = s.traffic_calc_type || 'total';
+  if (type === 'dl') return rx;
+  if (type === 'ul') return tx;
+  if (type === 'max') return Math.max(rx ?? 0, tx ?? 0);
+  return (rx ?? 0) + (tx ?? 0);
+}
+export function trafficQuota(s) {
+  const limitGb = numeric(s.traffic_limit) && n(s.traffic_limit) > 0 ? n(s.traffic_limit) : null;
+  const used = trafficUsage(s);
+  if (limitGb === null) return {used, limit:null, percent:null, remaining:null};
+  const limit = limitGb * 1024 ** 3;
+  if (!numeric(used)) return {used:null, limit, percent:null, remaining:null};
+  const percent = used / limit * 100;
+  return {used, limit, percent, remaining:Math.max(0, limit - used)};
+}
 export function avg(list, field) { const values = list.map(s => s[field]).filter(v => numeric(v) && n(v) >= 0); return values.length ? values.reduce((a,v) => a + n(v), 0) / values.length : null; }
 export function total(list, field) { const values = list.map(s => s[field]).filter(numeric); return values.length ? values.reduce((a,v) => a + n(v), 0) : null; }
 export const cycles = {month:1, quarter:3, half_year:6, year:12, two_years:24, three_years:36, four_years:48, five_years:60};
