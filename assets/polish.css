@@ -1,4 +1,4 @@
-/* WXT Atlas v0.3.16 — live motion, continuous load colors, denser mobile layout. */
+/* WXT Atlas v0.3.20 — unified surfaces, traffic context, network/activity states. */
 
 /* Resource and quota fills are separate: resource pressure advances about 20 points earlier in JS. */
 .meters i,.quota-track{background:color-mix(in srgb,var(--line) 92%,var(--panel));overflow:visible}
@@ -591,4 +591,172 @@ html[data-theme=dark] .network-explainer [role=group][aria-label="网络历史�
   nav a,.header-actions .icon-button,.admin-link,.table-toolbar .search,.activity-toolbar .search,
   .status-filter button,.network-explainer [role=group][aria-label="网络历史范围"] button,
   .quick-filters button{transition:none!important}
+}
+
+/* v0.3.20 — finish the information hierarchy: network toolbar, activity surfaces,
+   useful traffic details, and loading/empty/notice states. */
+
+/* Traffic usage carries quota context directly, so the expanded description list can
+   spend its last two slots on actual RX/TX usage instead of repeating the quota. */
+.transfer-cell>strong{font-variant-numeric:tabular-nums}
+@media(min-width:801px){
+  .transfer-cell>strong{font-size:11.5px;letter-spacing:-.08px}
+  .quota-remaining{color:color-mix(in srgb,var(--muted) 90%,transparent)}
+}
+
+/* Network page: one compact control surface, then independent server surfaces. */
+.network-explainer{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px 14px;
+  margin-bottom:8px!important;
+  padding:9px 11px;
+  border:1px solid var(--atlas-control-border);
+  border-radius:11px;
+  background:var(--panel);
+  box-shadow:var(--atlas-surface-shadow);
+}
+.network-explainer>span{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.network-explainer>.tracker-key{justify-content:flex-end;margin:0!important}
+.network-explainer>small{
+  grid-column:1/-1;
+  display:block;
+  margin:0;
+  padding-top:7px;
+  border-top:1px solid color-mix(in srgb,var(--line) 78%,transparent);
+  color:color-mix(in srgb,var(--muted) 88%,transparent);
+  line-height:1.45;
+}
+.history-note{
+  display:inline-flex!important;
+  align-items:center;
+  gap:7px;
+  width:auto;
+  min-height:27px;
+  margin:0 0 9px;
+  padding:4px 8px!important;
+  border:1px solid var(--atlas-control-border)!important;
+  border-radius:7px!important;
+  background:color-mix(in srgb,var(--soft) 58%,var(--panel))!important;
+  color:var(--muted)!important;
+  box-shadow:var(--atlas-control-shadow);
+  line-height:1.25;
+}
+.history-note::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.75;flex:0 0 auto}
+.history-note:hover{color:var(--text)!important;border-color:color-mix(in srgb,var(--line) 55%,var(--muted))!important}
+.network-server-heading{
+  background:color-mix(in srgb,var(--soft) 34%,var(--panel));
+  border-bottom-color:color-mix(in srgb,var(--line) 86%,transparent)!important;
+}
+.network-server-heading h3{letter-spacing:-.1px}
+.network-server .analysis-card{background:var(--panel)}
+.network-server .analysis-top>span{color:var(--muted)}
+.network-server .chart-tooltip{border:1px solid color-mix(in srgb,var(--line) 78%,transparent);background:color-mix(in srgb,var(--soft) 70%,var(--panel))}
+
+/* Activity becomes a stream of independent event surfaces rather than one welded list. */
+#activity>.activity-note:first-of-type{
+  margin-bottom:11px;
+  padding:8px 10px;
+  border:1px solid var(--atlas-control-border);
+  border-radius:8px;
+  background:color-mix(in srgb,var(--soft) 55%,var(--panel));
+  line-height:1.45;
+}
+.activity-toolbar{margin:0 0 10px!important}
+#activity-count{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:3px 7px;
+  border:1px solid var(--atlas-control-border);
+  border-radius:999px;
+  background:color-mix(in srgb,var(--soft) 55%,var(--panel));
+  color:var(--muted);
+  font-size:10.5px;
+}
+.activity-list{
+  display:grid;
+  gap:8px;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:visible!important;
+  background:transparent!important;
+}
+.activity-list li{
+  min-height:50px;
+  padding:10px 12px!important;
+  border:1px solid var(--line)!important;
+  border-radius:9px;
+  background:var(--panel);
+  box-shadow:var(--atlas-surface-shadow);
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease;
+}
+.activity-list li:last-child{border:1px solid var(--line)!important}
+.activity-list li:hover{border-color:color-mix(in srgb,var(--line) 58%,var(--muted))!important;box-shadow:0 5px 16px rgba(15,23,42,.045)}
+.activity-list .event-kind{border:1px solid var(--atlas-control-border);background:color-mix(in srgb,var(--soft) 68%,var(--panel));font-weight:550}
+#activity>.activity-note:not(:first-of-type){margin-top:10px;padding-left:2px;line-height:1.45}
+
+/* Error/status notice follows the same quiet alert language as the rest of the shell. */
+#notice{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:9px 11px!important;
+  border:1px solid color-mix(in srgb,var(--warn) 28%,var(--line));
+  border-radius:9px!important;
+  background:color-mix(in srgb,var(--warn) 6%,var(--panel))!important;
+  color:color-mix(in srgb,var(--warn) 88%,var(--text))!important;
+  box-shadow:var(--atlas-control-shadow);
+}
+#notice::before{content:'';width:6px;height:6px;margin-top:6px;border-radius:50%;background:var(--warn);flex:0 0 auto}
+
+/* Empty states are obvious but quiet; loading skeletons mirror the independent node cards. */
+#empty,#network-empty,#activity-empty{
+  min-height:92px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:8px 0 0;
+  padding:18px!important;
+  border:1px dashed color-mix(in srgb,var(--line) 58%,var(--muted));
+  border-radius:10px;
+  background:color-mix(in srgb,var(--soft) 46%,var(--panel));
+  color:var(--muted);
+  text-align:center;
+}
+#activity-empty{margin-top:0}
+.empty-actions{display:flex;justify-content:center}
+.empty-actions button{margin:8px 0 0!important;min-height:30px;border-radius:7px}
+#table-skeleton{display:grid;gap:10px}
+.skeleton-row{
+  margin-bottom:0!important;
+  border:1px solid var(--line)!important;
+  border-radius:11px!important;
+  background:var(--panel);
+  box-shadow:var(--atlas-surface-shadow);
+  overflow:hidden;
+}
+.skeleton-row:last-child{border-bottom:1px solid var(--line)!important}
+.skeleton-row i,.skeleton-row span{animation:atlasSkeletonPulse 1.35s ease-in-out infinite}
+@keyframes atlasSkeletonPulse{50%{opacity:.46}}
+
+@media(max-width:800px){
+  .network-explainer{grid-template-columns:1fr;padding:7px 8px;gap:6px;margin-bottom:7px!important}
+  .network-explainer>.tracker-key{justify-content:flex-start}
+  .network-explainer>small{grid-column:1;padding-top:6px}
+  .history-note{min-height:25px;margin-bottom:7px;padding:3px 7px!important;font-size:9px!important}
+  #activity>.activity-note:first-of-type{padding:7px 8px;margin-bottom:8px;font-size:9px}
+  .activity-toolbar{margin-bottom:8px!important}
+  #activity-count{min-height:23px;font-size:9px}
+  .activity-list{gap:6px}
+  .activity-list li{min-height:46px;padding:8px 9px!important;border-radius:8px}
+  #empty,#network-empty,#activity-empty{min-height:74px;margin-top:6px;padding:14px!important;border-radius:8px;font-size:10px}
+  #table-skeleton{gap:7px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .activity-list li{transition:none!important}
+  .skeleton-row i,.skeleton-row span{animation:none!important}
 }

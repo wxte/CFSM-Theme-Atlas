@@ -144,19 +144,22 @@ function updateRow(s){
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
   f('price',allowed('show_price')?(numeric(s.price)?`${s.currency||''}${Math.max(0,n(s.price))} / ${cycles[s.billing_cycle]||'?'} 个月`:'未配置'):'未公开');f('expire',allowed('show_expire')?(s.expire_date||'未配置'):'未公开');
   for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;markSeverity(bar,value,'resource');}
-  f('download',`${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`${live?bytes(s.net_out_speed,true):'—'}`);f('net-note',live&&(numeric(s.net_in_speed)||numeric(s.net_out_speed))?`实时速率 · ${s.interface||'自动网卡'}`:live?'已连接 · 等待网卡上报':'离线 · 保留最后上报');
-  f('month',allowed('show_tf')?bytes(month(s)):'未公开');f('uptime',uptime(s));
+  f('download',`${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`${live?bytes(s.net_out_speed,true):'—'}`);
   const quota=trafficQuota(s),quotaBar=quotaTrack.firstElementChild,quotaVisible=allowed('show_tf')&&quota.limit!==null;
+  const trafficMode=({dl:'仅下行',ul:'仅上行',max:'取高',total:'双向'}[s.traffic_calc_type||'total']||'双向');
+  const trafficUsed=allowed('show_tf')?quota.used:null;
+  f('month',allowed('show_tf')?(quotaVisible?`${bytes(trafficUsed)} / ${bytes(quota.limit)}`:bytes(trafficUsed)):'未公开');f('uptime',uptime(s));
+  f('traffic-down',allowed('show_tf')?bytes(numeric(s.net_rx_monthly)?n(s.net_rx_monthly):null):'未公开');
+  f('traffic-up',allowed('show_tf')?bytes(numeric(s.net_tx_monthly)?n(s.net_tx_monthly):null):'未公开');
   quotaTrack.hidden=!quotaVisible;
   if(quotaVisible){
     const usedPercent=numeric(quota.percent)?Math.max(0,quota.percent):0,width=`${Math.min(100,usedPercent)}%`;
     if(quotaBar.style.width!==width)quotaBar.style.width=width;
     markSeverity(quotaBar,usedPercent,'quota');quotaBar.classList.toggle('over',usedPercent>100);
     quotaTrack.setAttribute('aria-valuenow',String(Math.min(100,usedPercent)));
-    quotaTrack.setAttribute('aria-valuetext',numeric(quota.percent)?`已用 ${quota.percent.toFixed(1)}%，余量 ${bytes(quota.remaining)}`:'等待流量上报');
-    f('traffic-remaining',numeric(quota.percent)?`${quota.percent>100?'超额':'余'} ${bytes(quota.remaining)} · ${quota.percent.toFixed(1)}% 已用`:'等待流量上报');
+    quotaTrack.setAttribute('aria-valuetext',numeric(quota.percent)?`${trafficMode}流量，已用 ${quota.percent.toFixed(1)}%，余量 ${bytes(quota.remaining)}`:'等待流量上报');
+    f('traffic-remaining',numeric(quota.percent)?`${trafficMode} · ${quota.percent>100?'已超额':'余 '+bytes(quota.remaining)} · ${quota.percent.toFixed(1)}%`:'等待流量上报');
   }else{f('traffic-remaining',allowed('show_tf')?'未配置月配额':'');}
-  f('traffic-limit',allowed('show_tf')?(quota.limit!==null?`配额 ${bytes(quota.limit)} · ${({dl:'仅下行',ul:'仅上行',max:'上下行取高',total:'上行+下行'}[s.traffic_calc_type||'total']||'上行+下行')}`:'未配置流量配额'):'');
   for(const k of carriers){f(k,`${label(k)} ${ping(s[`ping_${k}`])}${n(s[`loss_${k}`])>0?' / '+loss(s[`loss_${k}`]):''}`);row.fields[k].classList.toggle('lossy',numeric(s[`loss_${k}`])&&n(s[`loss_${k}`])>0);}
 }
 function renderRows(){
@@ -192,9 +195,9 @@ function renderNetwork(){
  if(state.page==='network'){
   const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,result?.error?[]:[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>latest)]);}
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
-  if(charts.live)set($('#network-history-note'),'实时窗口 · 最近约 5 分钟 · 从首个页面快照铺满');
+  if(charts.live)set($('#network-history-note'),'实时采样 · 约 5 分钟窗口 · 5 秒快照');
   else if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
-  else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 可点击重试':'点击锁定采样 · Esc 返回实时');}
+  else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 点击重试':'历史采样 · 点击图表锁定 · Esc 返回实时');}
   loadNetworkHistory();
  }
 }

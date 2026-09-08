@@ -1,16 +1,18 @@
-WXT Atlas v0.3.19 — stacked shell + Catalyst controls
+WXT Atlas v0.3.20 — hierarchy / traffic cleanup
 
-覆盖文件：
-- index.html
-- assets/polish.css
+覆盖路径：
+  index.html
+  assets/app.js
+  assets/polish.css
 
-其余 v0.3.17 JS 文件随包保留，功能不变。
+本包也保留 v0.3.17 已稳定的 network.js / node-trends.js / plot.js，整包覆盖不会回退前面功能。
 
 本版：
-- 桌面顶部改为更紧凑的 stacked shell
-- 主导航统一成 Catalyst 风格 segmented navigation
-- LIVE/在线/地区/网络状态使用克制 badge
-- 节点状态、网络时间范围、手机三网切换统一交互语言
-- 搜索/排序/快捷筛选统一控件边框与 focus 状态
-- 网络图例压成状态 chips
-- 保留 v0.3.18 独立服务器卡片和手机端布局
+- 本周期流量显示 已用 / 配额，例如 69.4 GB / 1000 GB
+- 配额计算方式收进进度条辅助文字：双向 / 仅下行 / 仅上行 / 取高
+- 详情删除重复的“流量配额”和低价值“数据状态”
+- 详情新增“本周期下行 / 本周期上行”
+- 网络页控制区、历史状态、服务器内部层级统一
+- Activity 改为独立事件 surface
+- notice / empty / loading skeleton 统一到 Catalyst/Vercel 风格
+- 保持 v0.3.18+ 的独立服务器卡片与手机紧凑布局
