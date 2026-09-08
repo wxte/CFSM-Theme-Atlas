@@ -1,51 +1,119 @@
-import {networkBuckets} from './insights.js?v=0.2.4';
-import {numeric,n,ping,loss,online} from './data.js?v=0.2.4';
+import {sampleGroups} from './insights.js?v=0.2.5';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.2.5';
 export const lines=['cu','ct','cm'];
+const historyLines=[...lines,'bd'],windowMs=7200000;
+const valid=v=>numeric(v)&&n(v)>=0;
+// Only identical report times can share metrics; partial reports retain other carriers.
 export function windowSamples(samples,now=Date.now()){
-  const buckets=new Map();
-  for(const p of samples){if(!numeric(p.ts)||p.ts<now-7200000||p.ts>now+5000)continue;const bucket=Math.floor(p.ts/30000),old=buckets.get(bucket);if(!old||p.ts>=old.ts)buckets.set(bucket,p);}
-  return [...buckets.values()].sort((a,b)=>a.ts-b.ts).slice(-241);
+ const exact=new Map();
+ for(const p of samples){
+  if(!numeric(p?.ts)||p.ts<now-windowMs||p.ts>now+5000)continue;
+  const ts=n(p.ts),old=exact.get(ts);if(!old){exact.set(ts,p);continue;}
+  const merged={...old,ts};
+  for(const key of historyLines){if(p[key]!==undefined)merged[key]=p[key];if(p.loss?.[key]!==undefined)merged.loss={...merged.loss,[key]:p.loss[key]};}
+  exact.set(ts,merged);
+ }
+ const buckets=new Map();
+ for(const p of [...exact.values()].sort((a,b)=>a.ts-b.ts)){
+  const bucket=Math.floor(p.ts/30000);if(!buckets.has(bucket))buckets.set(bucket,new Map());
+  for(const key of historyLines){
+   if(p[key]!==undefined)buckets.get(bucket).set(key,p);
+   if(p.loss?.[key]!==undefined)buckets.get(bucket).set('loss.'+key,p);
+  }
+ }
+ const projected=new Map();
+ for(const bucket of buckets.values())for(const [field,p] of bucket){
+  const ts=n(p.ts),point=projected.get(ts)||{ts};
+  if(field.startsWith('loss.')){const key=field.slice(5);point.loss={...point.loss,[key]:p.loss[key]};}
+  else point[field]=p[field];
+  projected.set(ts,point);
+ }
+ return [...projected.values()].sort((a,b)=>a.ts-b.ts);
+}
+export function historyFromArrays(pings=[],losses=[]){
+ const merged=new Map();
+ for(const p of pings)if(numeric(p?.ts))merged.set(n(p.ts),{...p,ts:n(p.ts)});
+ for(const p of losses)if(numeric(p?.ts)){const ts=n(p.ts);merged.set(ts,{...(merged.get(ts)||{ts}),loss:p});}
+ return [...merged.values()];
+}
+export function aggregateHistory(ids,histories,key,now=Date.now()){
+ const buckets=new Map(),sources=new Set(),start=now-windowMs;
+ for(const id of ids)for(const p of histories.get(id)||[]){
+  if(p.ts<start||p.ts>now||!valid(p[key]))continue;
+  const bucket=Math.floor((p.ts-start)/360000);if(!buckets.has(bucket))buckets.set(bucket,new Map());
+  const byNode=buckets.get(bucket),values=byNode.get(id)||[];values.push(p);byNode.set(id,values);sources.add(id);
+ }
+ const points=[...buckets].sort((a,b)=>a[0]-b[0]).map(([bucket,byNode])=>{
+  const nodes=[...byNode.values()];
+  return {bucket,ts:nodes.reduce((sum,ps)=>sum+ps.reduce((v,p)=>v+n(p.ts),0)/ps.length,0)/nodes.length,value:nodes.reduce((sum,ps)=>sum+ps.reduce((v,p)=>v+n(p[key]),0)/ps.length,0)/nodes.length,count:nodes.length};
+ });
+ return {points,sources:sources.size};
 }
 export function nearestPoint(points,ts){return points.reduce((best,p)=>!best||Math.abs(p.ts-ts)<Math.abs(best.ts-ts)?p:best,null);}
 const set=(el,value)=>{const text=String(value??'—');if(el.textContent!==text)el.textContent=text;};
+const attr=(el,key,value)=>{value=String(value);if(el.getAttribute(key)!==value)el.setAttribute(key,value);};
 const time=ts=>new Date(ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+const statusNames={healthy:'正常',warning:'高延迟或丢包',failed:'丢包100%',unknown:'指标缺失'};
 const svgNS='http://www.w3.org/2000/svg';
 export class NetworkCharts{
-  constructor(){this.selected='';this.buttons=new Map();this.cards=new Map();this.list=[];this.histories=new Map();this.names={};
-    for(const key of lines){const card=document.createElement('article');card.className='analysis-card';card.dataset.chart=key;
-      card.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 130" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 56H354 M30 100H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="103">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="125"></text><text class="axis-text axis-end" x="354" y="125" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="五分钟采样状态"></div><div class="tracker-key"><span class="healthy">正常</span><span class="warning">异常</span><span class="failed">丢包100%</span><span class="unknown">数据不全</span></div><div class="tracker-caption">每格 5 分钟 · 延迟 ≥200 ms 或丢包记为异常</div><div class="tracker-tooltip" role="status">点选状态格查看该时段</div><div class="chart-tooltip">悬停或触摸查看采样</div><div class="chart-note"><span>等待数据</span><span>丢包 —</span></div>';
-      const tracker=card.querySelector('.network-tracker');
-      for(let i=0;i<24;i++){const b=document.createElement('button');b.type='button';b.addEventListener('click',()=>{const c=this.cards.get(key);c.bucketStart=c.buckets[i].start;this.inspectBucket(key);});tracker.append(b);}
-      const svg=card.querySelector('svg');svg.addEventListener('pointermove',e=>{const bounds=svg.getBoundingClientRect();const x=(e.clientX-bounds.left)/bounds.width*360;this.inspect(key,this.now-7200000+Math.max(0,Math.min(1,(x-30)/324))*7200000);});
-      svg.addEventListener('pointerleave',()=>{card.querySelector('.cursor').setAttribute('hidden','');set(card.querySelector('.chart-tooltip'),'悬停或触摸查看采样');this.cards.get(key).inspecting=null;});
-      svg.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const c=this.cards.get(key),points=c.points;if(!points.length)return;let index=points.findIndex(p=>p.ts===c.inspecting);index=e.key==='Home'?0:e.key==='End'?points.length-1:Math.max(0,Math.min(points.length-1,(index<0?points.length-1:index)+(e.key==='ArrowLeft'?-1:1)));this.inspect(key,points[index].ts);});
-      document.querySelector('#network-grid').append(card);this.cards.set(key,{el:card,points:[],inspecting:null,buckets:[],bucketStart:null,serverId:null});
-    }
+ constructor(){this.rows=new Map();this.now=Date.now();}
+ createCard(key){
+  const el=document.createElement('article');el.className='analysis-card';el.dataset.chart=key;
+  el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="83">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">悬停曲线 / 点选状态格</div>';
+  const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,signature:null,buttons:[]};
+  c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');
+  c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.now-windowMs+Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*360-30)/324))*windowMs);});
+  c.svg.addEventListener('pointerleave',()=>{c.inspecting=null;el.querySelector('.cursor').setAttribute('hidden','');this.inspectGroup(c);});
+  c.svg.addEventListener('keydown',e=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const points=c.points;if(!points.length)return;
+   let i=points.findIndex(p=>p.ts===c.inspecting);i=e.key==='Home'?0:e.key==='End'?points.length-1:Math.max(0,Math.min(points.length-1,(i<0?points.length-1:i)+(e.key==='ArrowLeft'?-1:1)));this.inspect(c,points[i].ts);
+  });
+  return c;
+ }
+ update(list,histories,names,enabled){
+  this.now=Date.now();this.enabled=enabled;const keep=new Set(),root=document.querySelector('#network-grid');let cursor=root.firstElementChild;
+  for(const s of list){
+   keep.add(s.id);let row=this.rows.get(s.id);
+   if(!row){
+    const el=document.createElement('section');el.className='network-server';el.innerHTML='<header class="network-server-heading"><i class="status-dot" aria-hidden="true"></i><h3></h3><small></small><span class="network-server-status"></span></header><div class="analytics-grid"></div>';
+    row={el,cards:lines.map(key=>this.createCard(key))};row.cards.forEach(c=>el.querySelector('.analytics-grid').append(c.el));this.rows.set(s.id,row);root.append(el);
+   }
+   if(row.el!==cursor)root.insertBefore(row.el,cursor);cursor=row.el.nextElementSibling;
+   const live=online(s);row.el.classList.toggle('offline',!live);set(row.el.querySelector('h3'),s.name||'未命名节点');set(row.el.querySelector('header small'),region(s.region).name);set(row.el.querySelector('.network-server-status'),live?'在线':'离线 · 保留历史');
+   const history=enabled?windowSamples(histories.get(s.id)||[],this.now):[];
+   for(const c of row.cards){
+    set(c.el.querySelector('.analysis-top span'),names[c.key]);set(c.el.querySelector('.analysis-top strong'),live?ping(s['ping_'+c.key]):'—');set(c.el.querySelector('.chart-note span:last-child'),'当前丢包 '+(live?loss(s['loss_'+c.key]):'—'));
+    const samples=history.filter(p=>p[c.key]!==undefined||p.loss?.[c.key]!==undefined);
+    // CPU-only updates do not rebuild the other charts.
+    const signature=JSON.stringify([enabled,Math.floor(this.now/30000),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
+    if(c.signature===signature)continue;c.signature=signature;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=sampleGroups(samples,c.key,this.now);this.draw(c,s.name||'未命名节点',names[c.key]);
+   }
   }
-  update(list,histories,names,enabled){this.list=list;this.histories=histories;this.names=names;this.enabled=enabled;this.now=Date.now();
-    if(!list.some(s=>s.id===this.selected))this.selected=list[0]?.id||'';
-    const keep=new Set();for(const s of list){keep.add(s.id);let b=this.buttons.get(s.id);if(!b){b=document.createElement('button');b.addEventListener('click',()=>{this.selected=s.id;this.update(this.list,this.histories,this.names,this.enabled);});this.buttons.set(s.id,b);document.querySelector('#network-nodes').append(b);}set(b,s.name||'未命名');b.setAttribute('aria-pressed',String(s.id===this.selected));}
-    for(const [id,b] of this.buttons)if(!keep.has(id)){b.remove();this.buttons.delete(id);}
-    const server=list.find(s=>s.id===this.selected);
-    for(const key of lines){const c=this.cards.get(key),card=c.el;set(card.querySelector('.analysis-top span'),names[key]);set(card.querySelector('.analysis-top strong'),server&&online(server)?ping(server['ping_'+key]):'—');
-      if(c.serverId!==this.selected){c.bucketStart=null;c.inspecting=null;c.serverId=this.selected;}
-      c.buckets=networkBuckets(enabled?histories.get(this.selected)||[]:[],key,this.now);
-      const statuses={healthy:'正常',warning:'异常',failed:'丢包100%',unknown:'无数据或数据不全'};
-      [...card.querySelector('.network-tracker').children].forEach((b,i)=>{const bucket=c.buckets[i],text=time(bucket.start)+'–'+time(bucket.end)+' · '+statuses[bucket.state]+' · '+bucket.samples.length+' 个采样';if(b.className!==bucket.state)b.className=bucket.state;if(b.title!==text){b.title=text;b.setAttribute('aria-label',text);}b.setAttribute('aria-pressed',String(c.bucketStart===bucket.start));});
-      this.inspectBucket(key);
-      c.points=enabled?windowSamples(histories.get(this.selected)||[],this.now).filter(p=>numeric(p[key])&&n(p[key])>=0):[];
-      if(!c.points.length){c.inspecting=null;card.querySelector('.cursor').setAttribute('hidden','');}
-      const max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);c.max=max;
-      const x=p=>30+Math.max(0,Math.min(1,(p.ts-(this.now-7200000))/7200000))*324;
-      const d=c.points.map((p,i)=>`${i&&p.ts-c.points[i-1].ts<900000?'L':'M'}${x(p).toFixed(1)},${(100-n(p[key])/max*88).toFixed(1)}`).join(' ');const path=card.querySelector('.series');if(path.getAttribute('d')!==d)path.setAttribute('d',d);
-      const dots=card.querySelector('.samples');dots.replaceChildren();for(const p of c.points){if(c.points.length>30)break;const dot=document.createElementNS(svgNS,'circle');dot.setAttribute('cx',x(p));dot.setAttribute('cy',100-n(p[key])/max*88);dot.setAttribute('r','2');dot.setAttribute('class','sample-dot');dots.append(dot);}
-      const losses=card.querySelector('.losses');losses.replaceChildren();for(const p of enabled?windowSamples(histories.get(this.selected)||[],this.now):[]){if(!numeric(p.loss?.[key])||n(p.loss[key])<=0)continue;const mark=document.createElementNS(svgNS,'rect');mark.setAttribute('x',x(p));mark.setAttribute('y','105');mark.setAttribute('width','3');mark.setAttribute('height','5');mark.setAttribute('class','loss-mark');losses.append(mark);}
-      set(card.querySelector('.axis-max'),max);set(card.querySelector('.axis-start'),time(this.now-7200000));set(card.querySelector('.axis-end'),time(this.now));
-      card.querySelector('svg').setAttribute('aria-label',`${server?.name||'无节点'} · ${names[key]}延迟，单位毫秒，${c.points.length}个采样；方向键查看`);
-      set(card.querySelector('.chart-note span'),enabled?`${c.points.length} 个采样 · 红标为丢包`:'后台未开启三网详情');set(card.querySelector('.chart-note span:last-child'),`当前丢包 ${server&&online(server)?loss(server['loss_'+key]):'—'}`);
-      if(c.inspecting)this.inspect(key,c.inspecting);else set(card.querySelector('.chart-tooltip'),!enabled?'开启三网详情后显示历史':c.points.length?'悬停或触摸查看采样':'暂无历史采样');
-    }
-  }
-  inspectBucket(key){const c=this.cards.get(key),bucket=c.buckets.find(b=>b.start===c.bucketStart);for(const b of c.el.querySelector('.network-tracker').children)b.setAttribute('aria-pressed',String(c.buckets[[...b.parentElement.children].indexOf(b)]?.start===c.bucketStart));set(c.el.querySelector('.tracker-tooltip'),!this.enabled?'后台未开启三网详情':!bucket?'点选状态格查看该时段':time(bucket.start)+'–'+time(bucket.end)+' · '+bucket.samples.length+' 个采样 · 最高延迟 '+ping(bucket.maxPing)+' · 最高丢包 '+loss(bucket.maxLoss)+(bucket.state==='unknown'?' · 数据不全':'')+(bucket.state==='failed'?' · 存在完全丢包':''));}
-  inspect(key,ts){const c=this.cards.get(key),p=nearestPoint(c.points,ts);if(!p)return;c.inspecting=p.ts;const x=30+Math.max(0,Math.min(1,(p.ts-(this.now-7200000))/7200000))*324;const cursor=c.el.querySelector('.cursor');cursor.removeAttribute('hidden');cursor.setAttribute('d',`M${x} 12V103`);set(c.el.querySelector('.chart-tooltip'),`${time(p.ts)} · ${ping(p[key])} · 丢包 ${loss(p.loss?.[key])}`);}
+  for(const [id,row] of this.rows)if(!keep.has(id)){row.el.remove();this.rows.delete(id);}
+  document.querySelector('#network-empty').hidden=list.length>0;set(document.querySelector('#network-count'),list.length+' 台节点 · 全部展开');
+ }
+ x(ts){return 30+Math.max(0,Math.min(1,(ts-(this.now-windowMs))/windowMs))*324;}
+ draw(c,serverName,name){
+  if(!c.points.length){c.inspecting=null;c.el.querySelector('.cursor').setAttribute('hidden','');}
+  const {el,key}=c,max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);
+  const d=c.points.map((p,i)=>`${i&&p.ts-c.points[i-1].ts<900000?'L':'M'}${this.x(p.ts).toFixed(1)},${(80-n(p[key])/max*68).toFixed(1)}`).join(' ');attr(c.path,'d',d);
+  const dots=el.querySelector('.samples');dots.replaceChildren();
+  if(c.points.length<=30)for(const p of c.points){const dot=document.createElementNS(svgNS,'circle');attr(dot,'cx',this.x(p.ts));attr(dot,'cy',80-n(p[key])/max*68);attr(dot,'r',2);attr(dot,'class','sample-dot');dots.append(dot);}
+  const marks=el.querySelector('.losses');marks.replaceChildren();
+  for(const p of c.samples)if(valid(p.loss?.[key])&&n(p.loss[key])>0){const mark=document.createElementNS(svgNS,'rect');attr(mark,'x',this.x(p.ts));attr(mark,'y',85);attr(mark,'width',3);attr(mark,'height',5);attr(mark,'class','loss-mark');marks.append(mark);}
+  set(el.querySelector('.axis-max'),max);set(el.querySelector('.axis-start'),time(this.now-windowMs));set(el.querySelector('.axis-end'),time(this.now));attr(c.svg,'aria-label',`${serverName} · ${name}延迟，单位毫秒，${c.points.length}个采样；方向键查看`);
+  c.tracker.style.gridTemplateColumns=`repeat(${Math.max(1,c.groups.length)},minmax(0,1fr))`;
+  while(c.buttons.length>c.groups.length)c.buttons.pop().remove();
+  while(c.buttons.length<c.groups.length){const b=document.createElement('button'),i=c.buttons.length;b.type='button';b.addEventListener('click',()=>{c.selectedStart=c.groups[i]?.start;this.inspectGroup(c);});c.buttons.push(b);c.tracker.append(b);}
+  c.groups.forEach((group,i)=>{const b=c.buttons[i];b.className=group.state;const title=time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+group.samples.length+' 次采样 · '+statusNames[group.state];attr(b,'title',title);attr(b,'aria-label',title);});
+  set(el.querySelector('.chart-note span'),!this.enabled?'历史未公开':!c.samples.length?'暂无历史采样':c.samples.length+' 次采样 · '+(c.samples.length<=24?'每格一次':'相邻采样合并'));
+  if(c.inspecting)this.inspect(c,c.inspecting);else this.inspectGroup(c);
+ }
+ inspectGroup(c){
+  const group=c.groups.find(g=>g.start===c.selectedStart);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',g===group));
+  set(c.tip,!this.enabled?'后台未开启三网详情':!c.samples.length?'暂无历史采样':!group?'悬停曲线 / 点选状态格':time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+(group.samples.length>1?'最高 ':'')+ping(group.maxPing)+' · 丢包 '+loss(group.maxLoss)+(group.state==='unknown'?' · 指标缺失':''));
+ }
+ inspect(c,ts){
+  const p=nearestPoint(c.points,ts);if(!p)return;c.inspecting=p.ts;const cursor=c.el.querySelector('.cursor');cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(p.ts)} 12V83`);set(c.tip,`${time(p.ts)} · ${ping(p[c.key])} · 丢包 ${loss(p.loss?.[c.key])}`);
+ }
 }

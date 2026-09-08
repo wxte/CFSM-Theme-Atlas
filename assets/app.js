@@ -1,16 +1,16 @@
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.2.4';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.2.4';
-import {flag} from './flags.js?v=0.2.4';
-import {NetworkCharts,windowSamples} from './network.js?v=0.2.4';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.2.4';
-import {NodeMap} from './globe.js?v=0.2.4';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.2.5';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.2.5';
+import {flag} from './flags.js?v=0.2.5';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.2.5';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.2.5';
+import {NodeMap} from './globe.js?v=0.2.5';
 const $ = s => document.querySelector(s);
 document.title='WXT Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
 const map=new NodeMap(selectRegion);
 const charts=new NetworkCharts();
-const activityObserver=new ActivityObserver(),activityRows=[],filterChips=new Map(),miniTrends=new Map();let lastTrend=0,trendScope='';
+const activityObserver=new ActivityObserver(),activityRows=[],filterChips=new Map();
 function renderActivity(){
  const kind=$('#activity-kind').value||'all',search=$('#activity-search').value.trim().toLowerCase();let count=0;
  for(const row of activityRows){row.hidden=!(kind==='all'||row.dataset.kind===kind)||!row.searchText.includes(search);if(!row.hidden)count++;}
@@ -35,7 +35,7 @@ function connection(text,live=false){$('#connection').title=text;if(state.connec
 function loading(active){document.documentElement.classList.toggle('is-loading',active);$('main').setAttribute('aria-busy',String(active));$('#table-skeleton').hidden=!active;if(active)$('#empty').hidden=true;else if(!state.ready)$('#empty').hidden=false;}
 function notice(text=''){set($('#notice'),text);$('#notice').hidden=!text;}
 function chartSetup(){
-  for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 90 15" aria-label="本次会话趋势"><path/></svg><small>—</small>';div.dataset.carrier=key;$('#carrier-summary').append(div);}
+  for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 240 28" preserveAspectRatio="none" role="img"><title></title><path/><circle r="2"/></svg><small class="trend-note"></small><small class="trend-loss">—</small>';div.dataset.carrier=key;$('#carrier-summary').append(div);}
   for(const [key,title] of [['cpu','CPU / 平均占用'],['ram','MEMORY / 内存'],['disk','STORAGE / 磁盘'],['connections','CONNECTIONS / 连接']]){const card=document.createElement('article');card.className='resource-card';card.dataset.resource=key;card.innerHTML='<span class="eyebrow"></span><strong>—</strong><div class="resource-track"><b></b></div><small>等待数据</small>';set(card.firstElementChild,title);$('#resource-overview').append(card);}
 }
 function renderSummary(){
@@ -82,15 +82,27 @@ function renderRows(){
 }
 function record(s,ts,metrics){
   const samples=state.history.get(s.id)||[];
-  if(!numeric(ts)||!metrics||!carriers.some(k=>Object.hasOwn(metrics,'ping_'+k)||Object.hasOwn(metrics,'loss_'+k)))return;
-  const sample={ts,...Object.fromEntries(carriers.map(k=>[k,metrics['ping_'+k]])),loss:Object.fromEntries(carriers.map(k=>[k,metrics['loss_'+k]]))};
+  if(!numeric(ts)||!metrics||![...carriers,'bd'].some(k=>Object.hasOwn(metrics,'ping_'+k)||Object.hasOwn(metrics,'loss_'+k)))return;
+  const sample={ts,...Object.fromEntries([...carriers,'bd'].map(k=>[k,metrics['ping_'+k]])),loss:Object.fromEntries([...carriers,'bd'].map(k=>[k,metrics['loss_'+k]]))};
   state.history.set(s.id,windowSamples([...samples,sample]));
 }
 function renderNetwork(){
- const list=visible(),live=list.filter(s=>online(s));const scope=JSON.stringify([state.selected,state.status,state.search,state.quick]);if(scope!==trendScope){miniTrends.clear();lastTrend=0;trendScope=scope;}const now=Date.now(),capture=now-lastTrend>10000;
- for(const key of [...carriers,'bd']){const el=$('[data-carrier="'+key+'"]'),value=avg(live,'ping_'+key);set(el.children[0],label(key));set(el.children[1],ping(value));set(el.children[3],loss(avg(live,'loss_'+key)));let points=miniTrends.get(key)||[];if(capture&&numeric(value)){points.push({t:now,v:value});points=points.slice(-24);miniTrends.set(key,points);}const path=el.querySelector('path');if(points.length>1){const lo=Math.min(...points.map(p=>p.v))-5,hi=Math.max(...points.map(p=>p.v))+5;path.setAttribute('d',points.map((p,i)=>(i?'L':'M')+(i/(points.length-1)*90).toFixed(1)+','+(13-(p.v-lo)/(hi-lo)*11).toFixed(1)).join(' '));}else path.setAttribute('d','');}
- if(capture)lastTrend=now;
- if(state.page==='network')charts.update(all(),state.history,Object.fromEntries(carriers.map(k=>[k,label(k)])),state.sys.show_three_net_details!==false&&state.sys.show_three_net_details!=='false');
+ const live=visible().filter(s=>online(s)),now=Date.now(),enabled=allowed('show_three_net_details');
+ for(const key of [...carriers,'bd']){
+  const el=$('[data-carrier="'+key+'"]'),value=avg(live,'ping_'+key);
+  set(el.children[0],label(key));set(el.children[1],ping(value));set(el.querySelector('.trend-loss'),'丢包 '+loss(avg(live,'loss_'+key)));
+  const {points,sources}=aggregateHistory(enabled?live.map(s=>s.id):[],state.history,key,now),svg=el.querySelector('svg'),path=el.querySelector('path'),dot=el.querySelector('circle');
+  const maximum=Math.max(50,Math.ceil(Math.max(0,...points.map(p=>p.value))/50)*50);
+  const x=p=>2+Math.max(0,Math.min(1,(p.ts-(now-7200000))/7200000))*236,y=p=>25-p.value/maximum*22;
+  const d=points.map((p,i)=>(i&&p.bucket-points[i-1].bucket===1?'L':'M')+x(p).toFixed(1)+','+y(p).toFixed(1)).join(' ');
+  if(path.getAttribute('d')!==d)path.setAttribute('d',d);
+  if(points.length)svg.removeAttribute('hidden');else svg.setAttribute('hidden','');
+  if(points.length){dot.setAttribute('cx',x(points.at(-1)));dot.setAttribute('cy',y(points.at(-1)));}
+  set(el.querySelector('.trend-note'),!enabled?'历史未公开':points.length?'近 2 小时 · '+sources+'/'+live.length+' 台':'暂无历史');
+  const description=label(key)+'延迟趋势，纵轴 0–'+maximum+' ms；每 6 分钟汇总有采样节点的均值，不补齐缺失时段。'+points.map(p=>new Date(p.ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+' '+Math.round(p.value)+' ms（'+p.count+'台）').join('；');
+  svg.setAttribute('aria-label',description);set(svg.querySelector('title'),description);
+ }
+ if(state.page==='network')charts.update(all(),state.history,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
 }
 function renderResources(){
   const list=all().filter(s=>online(s));
@@ -103,7 +115,7 @@ async function refresh(){
   if(state.loading)return;state.loading=true;if(!state.ready)loading(true);$('#refresh').disabled=true;
   try{
     const payload=await json('/api/servers');if(!Array.isArray(payload.servers))throw Error('服务器列表格式不正确');state.sys=payload.sysConfig||{};
-    const next=new Map();for(const s of payload.servers){if(!s.id)continue;const id=String(s.id),old=state.servers.get(id);next.set(id,old&&n(old.last_updated)>n(s.last_updated)?{...s,...old}:{...s,id});const samples=Array.isArray(s.ping)?s.ping:[];if(samples.length){const losses=Array.isArray(s.loss)?s.loss:[];state.history.set(id,windowSamples([...samples.map(p=>({...p,loss:losses.find(l=>l.ts===p.ts)})),...(state.history.get(id)||[])]));}}
+    const next=new Map();for(const s of payload.servers){if(!s.id)continue;const id=String(s.id),old=state.servers.get(id);next.set(id,old&&n(old.last_updated)>n(s.last_updated)?{...s,...old}:{...s,id});const samples=historyFromArrays(Array.isArray(s.ping)?s.ping:[],Array.isArray(s.loss)?s.loss:[]);state.history.set(id,windowSamples([...samples,...(state.history.get(id)||[])]));}
     state.servers=next;state.ready=true;if(state.selected&&!all().some(s=>region(s.region).code===state.selected))state.selected='';
     renderRegions();renderRows();renderAggregates();notice();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);set($('#footer-status'),`${all().length} 个节点 · CFSM`);
     if(state.ws?.readyState===WebSocket.OPEN){subscribe();connection('LIVE · 实时',true);}else if(!state.ws&&!state.retry)connect();
@@ -117,7 +129,7 @@ function connect(){
   state.ws=ws;const timeout=setTimeout(()=>{if(ws.readyState===WebSocket.CONNECTING)ws.close();},15000);
   ws.onopen=()=>{clearTimeout(timeout);state.attempt=0;state.lastMessage=Date.now();connection('LIVE · 实时',true);subscribe();state.heartbeat=setInterval(()=>{if(Date.now()-state.lastMessage>65000){ws.close();return;}if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},25000);};
   ws.onmessage=event=>{state.lastMessage=Date.now();let msg;try{msg=JSON.parse(event.data);}catch{return;}if(msg.type!=='batchUpdate'||!Array.isArray(msg.updates))return;const touched=new Set();
-    for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload,sample.ts)){touched.add(s.id);record(s,n(sample.ts),sample.data??sample.payload);}}
+    for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload??sample.metrics,sample.ts)){touched.add(s.id);record(s,n(sample.ts),sample.data??sample.payload??sample.metrics);}}
     if(document.hidden)return;
     for(const id of touched)updateRow(state.servers.get(id));if(touched.size){if(state.sort!=='default'||state.status!=='all'||state.quick)renderRows();renderRegions();renderAggregates();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);}
   };

@@ -1,4 +1,4 @@
-import {numeric,n,online,percent} from './data.js?v=0.2.4';
+import {numeric,n,online,percent} from './data.js?v=0.2.5';
 
 export function resourceLevels(server){
  return {CPU:numeric(server.cpu)&&n(server.cpu)>=0?n(server.cpu):null,RAM:percent(server.ram_used,server.ram_total),DISK:percent(server.disk_used,server.disk_total)};
@@ -16,13 +16,14 @@ export function expiring(server,now=Date.now()){
  const days=expiryDays(server.expire_date,now);return days!==null&&days<=14;
 }
 
-// Buckets represent five minutes each. Missing observations never become healthy.
-export function networkBuckets(samples,key,now=Date.now()){
- const step=300000,end=Math.floor(now/step)*step+step,start=end-24*step;
- const buckets=Array.from({length:24},(_,i)=>({start:start+i*step,end:start+(i+1)*step,state:'unknown',samples:[],maxPing:null,maxLoss:null,partial:false}));
- for(const p of samples){if(!numeric(p.ts)||p.ts<start||p.ts>now)continue;const i=Math.floor((p.ts-start)/step);if(i>=0&&i<24)buckets[i].samples.push(p);}
+// Each cell contains actual observations, not a promise of continuous uptime.
+// Dense live histories group adjacent samples; the worst observed state survives.
+export function sampleGroups(samples,key,now=Date.now()){
+ const points=samples.filter(p=>numeric(p.ts)&&p.ts>=now-7200000&&p.ts<=now&&(p[key]!==undefined||p.loss?.[key]!==undefined)).sort((a,b)=>a.ts-b.ts);
+ const count=Math.min(24,points.length),buckets=Array.from({length:count},()=>({state:'unknown',samples:[],maxPing:null,maxLoss:null,partial:false}));
+ points.forEach((p,i)=>buckets[Math.floor(i*count/points.length)].samples.push(p));
  for(const b of buckets){
-  if(!b.samples.length)continue;
+  b.start=b.samples[0].ts;b.end=b.samples.at(-1).ts;
   let rank=0;
   for(const p of b.samples){
    const latency=numeric(p[key])&&n(p[key])>=0?n(p[key]):null,packetLoss=numeric(p.loss?.[key])&&n(p.loss[key])>=0?n(p.loss[key]):null;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {highLoad,expiring,expiryDays,networkBuckets,ActivityObserver} from '../assets/insights.js';
+import {highLoad,expiring,expiryDays,sampleGroups,ActivityObserver} from '../assets/insights.js';
 
 test('quick filters use real online resource data and calendar dates',()=>{
  const now=new Date(2026,8,8,23,59).getTime();
@@ -12,18 +12,24 @@ test('quick filters use real online resource data and calendar dates',()=>{
  assert.equal(expiryDays('2026-02-30',now),null);assert.equal(expiring({expire_date:'never'},now),false);
 });
 
-test('network buckets distinguish missing, zero, partial and failed observations',()=>{
+test('sample status distinguishes missing metrics without inventing missing time slots',()=>{
  const now=1800000000000,ts=now-1000;
- const bucket=samples=>networkBuckets(samples,'cu',now).find(b=>ts>=b.start&&ts<b.end);
- assert.equal(bucket([]).state,'unknown');
- assert.equal(bucket([{ts,cu:0,loss:{cu:0}}]).state,'healthy');
- assert.equal(bucket([{ts,cu:80}]).state,'unknown');
- assert.equal(bucket([{ts,cu:-1,loss:{cu:0}}]).state,'unknown');
- assert.equal(bucket([{ts,cu:240,loss:{cu:0}}]).state,'warning');
- assert.equal(bucket([{ts,cu:null,loss:{cu:100}}]).state,'failed');
- assert.equal(bucket([{ts:ts-1000,cu:250,loss:{cu:2}},{ts,cu:80,loss:{cu:0}}]).maxPing,250);
- assert.equal(bucket([{ts:ts-1000,cu:80,loss:{cu:0}},{ts,cu:null}]).state,'unknown');
- assert.equal(networkBuckets([{ts:now+1000,cu:80,loss:{cu:0}},{ts:now-8000000,cu:80,loss:{cu:0}}],'cu',now).every(b=>b.samples.length===0),true);
+ const group=samples=>sampleGroups(samples,'cu',now)[0];
+ assert.deepEqual(sampleGroups([],'cu',now),[]);
+ assert.equal(group([{ts,cu:0,loss:{cu:0}}]).state,'healthy');
+ assert.equal(group([{ts,cu:80}]).state,'unknown');
+ assert.equal(group([{ts,cu:-1,loss:{cu:0}}]).state,'unknown');
+ assert.equal(group([{ts,cu:240,loss:{cu:0}}]).state,'warning');
+ assert.equal(group([{ts,cu:null,loss:{cu:100}}]).state,'failed');
+ const sparse=Array.from({length:20},(_,i)=>({ts:now-6840000+i*360000,cu:80,loss:{cu:0}}));
+ assert.equal(sampleGroups(sparse,'cu',now).length,20);
+ assert.ok(sampleGroups(sparse,'cu',now).every(b=>b.state==='healthy'&&b.samples.length===1));
+ const dense=Array.from({length:240},(_,i)=>({ts:now-7200000+i*30000,cu:80,loss:{cu:0}}));
+ dense[4]={...dense[4],cu:null,loss:{cu:100}};dense[14]={...dense[14],loss:{cu:null}};
+ const grouped=sampleGroups(dense,'cu',now);
+ assert.equal(grouped.length,24);assert.equal(grouped[0].state,'failed');assert.equal(grouped[1].state,'unknown');
+ assert.equal(grouped.flatMap(b=>b.samples).length,240);
+ assert.deepEqual(sampleGroups([{ts:now+1000,cu:80},{ts:now-8000000,cu:80}],'cu',now),[]);
 });
 
 test('events establish a baseline, report transitions once, and require measured recovery',()=>{
