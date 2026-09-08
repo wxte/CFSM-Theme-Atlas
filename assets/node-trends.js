@@ -1,4 +1,4 @@
-import {Plot,plotPaths} from './plot.js?v=0.3.7';
+import {Plot,plotPaths} from './plot.js?v=0.3.10';
 import {numeric,n,bytes} from './data.js?v=0.3.6';
 import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.6';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();

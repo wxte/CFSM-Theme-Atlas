@@ -55,6 +55,7 @@
 .meters b.unknown,.quota-track>b.unknown{background:var(--line);color:var(--muted)}
 .meters b.unknown::after,.meters b.zero::after,.quota-track>b.unknown::after,.quota-track>b.zero::after{display:none}
 .plot-end,.carrier-line svg circle{animation:atlas-plot-pulse 2.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.carrier-line[data-carrier=cu] svg{color:var(--chart-cu);stroke:currentColor}.carrier-line[data-carrier=ct] svg{color:var(--chart-ct);stroke:currentColor}.carrier-line[data-carrier=cm] svg{color:var(--chart-cm);stroke:currentColor}.carrier-line[data-carrier=bd] svg{color:var(--accent);stroke:currentColor}
 @keyframes atlas-meter-pulse{0%,100%{opacity:.72;box-shadow:0 0 0 2px var(--panel),0 0 5px currentColor}50%{opacity:1;box-shadow:0 0 0 2px var(--panel),0 0 10px currentColor}}
 @keyframes atlas-plot-pulse{0%,100%{opacity:.82;transform:scale(.9)}50%{opacity:1;transform:scale(1.22)}}
 @media(prefers-reduced-motion:reduce){.meters b,.quota-track>b{transition:none}.meters b::after,.quota-track>b::after,.plot-end,.carrier-line svg circle{animation:none}}
