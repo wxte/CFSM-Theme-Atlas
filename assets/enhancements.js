@@ -106,19 +106,20 @@ const drawerValueEls=new Map();let drawerRow=null,drawerTrigger=null,drawerName=
 function buildDrawer(){
  const body=$('#drawer-body');body.replaceChildren();drawerValueEls.clear();
  const top=document.createElement('div');top.className='drawer-snapshot';for(const key of ['download','upload','cpu','ram','disk']){const card=document.createElement('div'),label={download:'↓ 下行',upload:'↑ 上行',cpu:'CPU',ram:'RAM',disk:'DISK'}[key];card.innerHTML='<small></small><strong></strong>';card.querySelector('small').textContent=label;drawerValueEls.set('snapshot:'+key,card.querySelector('strong'));top.append(card);}body.append(top);
- const dl=document.createElement('dl');dl.className='drawer-details';for(const [label,key] of drawerFields){const wrap=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;wrap.append(dt,dd);dl.append(wrap);drawerValueEls.set(key,dd);drawerValueEls.set('wrap:'+key,wrap);}body.append(dl);
+ const dl=document.createElement('dl');dl.className='drawer-details';for(const [label,key] of drawerFields){const wrap=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;wrap.append(dt,dd);dl.append(wrap);drawerValueEls.set(key,dd);drawerValueEls.set('wrap:'+key,wrap);}body.append(dl);const trends=drawerRow?.querySelector('.node-trends');if(trends){const copy=trends.cloneNode(true);copy.classList.add('drawer-trends');body.append(copy);}
 }
 function syncDrawer(){
  if(!drawerRow||drawer.hidden||!document.documentElement.contains(drawerRow))return;
  drawerName=$('[data-field="name"]',drawerRow)?.textContent.trim()||'节点详情';drawerMeta=$('[data-field="meta"]',drawerRow)?.textContent.trim()||'';$('#drawer-title').textContent=drawerName;$('#drawer-meta').textContent=drawerMeta;
  for(const key of ['download','upload','cpu','ram','disk']){const value=$(`[data-field="${key}"]`,drawerRow)?.textContent.trim()||'—';const el=drawerValueEls.get('snapshot:'+key);if(el&&el.textContent!==value)el.textContent=value;}
+ const previous=$('.drawer-trends',drawer);const trends=drawerRow.querySelector('.node-trends');if(previous&&trends){previous.replaceChildren(...[...trends.childNodes].map(n=>n.cloneNode(true)));}
  for(const [,key] of drawerFields){const value=$(`[data-field="${key}"]`,drawerRow)?.textContent.trim()||'';const dd=drawerValueEls.get(key),wrap=drawerValueEls.get('wrap:'+key);if(dd&&dd.textContent!==value)dd.textContent=value||'—';if(wrap)wrap.hidden=!value;}
 }
 function openDrawer(row,trigger){
- drawerRow=row;drawerTrigger=trigger||document.activeElement;buildDrawer();syncDrawer();drawer.hidden=false;document.documentElement.classList.add('drawer-open');requestAnimationFrame(()=>drawer.classList.add('is-open'));$('#drawer-close').focus();
+ drawerRow=row;drawerTrigger=trigger||document.activeElement;buildDrawer();drawer.hidden=false;syncDrawer();document.documentElement.classList.add('drawer-open');requestAnimationFrame(()=>drawer.classList.add('is-open'));$('#drawer-close').focus();
 }
 function closeDrawer(){
- if(drawer.hidden)return;drawer.classList.remove('is-open');document.documentElement.classList.remove('drawer-open');const restore=drawerTrigger;drawerRow=null;setTimeout(()=>{drawer.hidden=true;restore?.focus?.({preventScroll:true});},180);
+ if(drawer.hidden)return;drawer.classList.remove('is-open');document.documentElement.classList.remove('drawer-open');const restore=drawerTrigger;drawerRow=null;setTimeout(()=>{if(drawerRow)return;drawer.hidden=true;restore?.focus?.({preventScroll:true});},180);
 }
 $('#drawer-close').addEventListener('click',closeDrawer);$('.drawer-backdrop',drawer).addEventListener('click',closeDrawer);
 $('#drawer-network').addEventListener('click',()=>{const name=drawerName;closeDrawer();navigate('#network');setTimeout(()=>{const target=$$('.network-server').find(el=>$('h3',el)?.textContent.trim()===name);target?.scrollIntoView({behavior:'smooth',block:'start'});target?.querySelector('svg[tabindex="0"]')?.focus({preventScroll:true});},180);});

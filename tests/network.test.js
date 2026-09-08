@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {windowSamples,nearestPoint,historyFromArrays,aggregateHistory} from '../assets/network.js';
+import {windowSamples,nearestPoint,historyFromArrays,aggregateHistory,NetworkCharts} from '../assets/network.js';
+test('range changes map the full selected interval onto the chart',()=>{
+ const chart=new NetworkCharts();chart.now=9000000;
+ for(const range of [3600000,7200000]){chart.rangeMs=range;assert.equal(chart.x(chart.now-range),30);assert.equal(chart.x(chart.now-range/2),192);assert.equal(chart.x(chart.now),354);}
+});
 test('live downsampling retains a full two-hour window and actual timestamps',()=>{
  const now=9000000;
  const input=Array.from({length:3601},(_,i)=>({ts:now-7200000+i*2000,cu:i,loss:{cu:0}}));

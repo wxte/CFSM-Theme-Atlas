@@ -1,9 +1,10 @@
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.0';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.0';
-import {flag} from './flags.js?v=0.3.0';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.0';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.0';
-import {NodeMap} from './globe.js?v=0.3.0';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.1';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.1';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.1';
+import {flag} from './flags.js?v=0.3.1';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.1';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.1';
+import {NodeMap} from './globe.js?v=0.3.1';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -20,6 +21,7 @@ const set = (el,value) => { const text=String(value??'—'); if(el.textContent!=
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
 const map=new NodeMap(selectRegion);
 const charts=new NetworkCharts();
+document.querySelectorAll('[data-network-range]').forEach(button=>button.addEventListener('click',()=>{charts.rangeMs=Number(button.dataset.networkRange);document.querySelectorAll('[data-network-range]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));renderNetwork();}));
 const activityObserver=new ActivityObserver(),activityRows=[],filterChips=new Map();
 function renderActivity(){
  const kind=$('#activity-kind').value||'all',search=$('#activity-search').value.trim().toLowerCase();let count=0;
@@ -75,6 +77,7 @@ function renderRegions(){
 function selectRegion(code){state.selected=code;renderRegions();renderRows();renderAggregates();map.focus(code);}
 function updateRow(s){
   const row=state.rows.get(s.id);if(!row)return;const live=online(s),r=region(s.region);row.classList.toggle('offline',!live);row.querySelector('.status-cell').setAttribute('aria-label',live?'在线':'离线');
+  renderNodeTrends(row,s,state.history.get(s.id)||[],allowed('show_three_net_details'));
   const f=(key,value)=>set(row.fields[key],value);
   f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
@@ -95,6 +98,7 @@ function renderRows(){
   set($('#node-count'),`${list.length} / ${state.servers.size}`);$('#empty').hidden=list.length>0;set($('#empty'),state.servers.size?'没有符合筛选条件的节点。':'暂无服务器，请在 CFSM 后台添加节点。');$('#reset-filters').hidden=list.length>0||!state.servers.size;
 }
 function record(s,ts,metrics){
+  recordResources(s.id,ts,metrics);
   const samples=state.history.get(s.id)||[];
   if(!numeric(ts)||!metrics||![...carriers,'bd'].some(k=>Object.hasOwn(metrics,'ping_'+k)||Object.hasOwn(metrics,'loss_'+k)))return;
   const sample={ts,...Object.fromEntries([...carriers,'bd'].map(k=>[k,metrics['ping_'+k]])),loss:Object.fromEntries([...carriers,'bd'].map(k=>[k,metrics['loss_'+k]]))};

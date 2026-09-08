@@ -1,5 +1,5 @@
-import {sampleGroups} from './insights.js?v=0.3.0';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.0';
+import {sampleGroups} from './insights.js?v=0.3.1';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.1';
 export const lines=['cu','ct','cm'];
 const historyLines=[...lines,'bd'],windowMs=7200000;
 const valid=v=>numeric(v)&&n(v)>=0;
@@ -56,13 +56,13 @@ const time=ts=>new Date(ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2
 const statusNames={healthy:'正常',warning:'高延迟或丢包',failed:'丢包100%',unknown:'指标缺失'};
 const svgNS='http://www.w3.org/2000/svg';
 export class NetworkCharts{
- constructor(){this.rows=new Map();this.now=Date.now();}
+ constructor(){this.rangeMs=7200000;this.rows=new Map();this.now=Date.now();}
  createCard(key){
   const el=document.createElement('article');el.className='analysis-card';el.dataset.chart=key;
   el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="83">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">悬停曲线 / 点选状态格</div>';
   const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,signature:null,buttons:[]};
   c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');
-  c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.now-windowMs+Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*360-30)/324))*windowMs);});
+  c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.now-this.rangeMs+Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*360-30)/324))*this.rangeMs);});
   c.svg.addEventListener('pointerleave',()=>{c.inspecting=null;el.querySelector('.cursor').setAttribute('hidden','');this.inspectGroup(c);});
   c.svg.addEventListener('keydown',e=>{
    if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const points=c.points;if(!points.length)return;
@@ -80,19 +80,19 @@ export class NetworkCharts{
    }
    if(row.el!==cursor)root.insertBefore(row.el,cursor);cursor=row.el.nextElementSibling;
    const live=online(s);row.el.classList.toggle('offline',!live);set(row.el.querySelector('h3'),s.name||'未命名节点');set(row.el.querySelector('header small'),region(s.region).name);set(row.el.querySelector('.network-server-status'),live?'在线':'离线 · 保留历史');
-   const history=enabled?windowSamples(histories.get(s.id)||[],this.now):[];
+   const history=enabled?windowSamples(histories.get(s.id)||[],this.now).filter(p=>p.ts>=this.now-this.rangeMs):[];
    for(const c of row.cards){
     set(c.el.querySelector('.analysis-top span'),names[c.key]);set(c.el.querySelector('.analysis-top strong'),live?ping(s['ping_'+c.key]):'—');set(c.el.querySelector('.chart-note span:last-child'),'当前丢包 '+(live?loss(s['loss_'+c.key]):'—'));
     const samples=history.filter(p=>p[c.key]!==undefined||p.loss?.[c.key]!==undefined);
     // CPU-only updates do not rebuild the other charts.
-    const signature=JSON.stringify([enabled,Math.floor(this.now/30000),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
+    const signature=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/30000),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
     if(c.signature===signature)continue;c.signature=signature;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=sampleGroups(samples,c.key,this.now);this.draw(c,s.name||'未命名节点',names[c.key]);
    }
   }
   for(const [id,row] of this.rows)if(!keep.has(id)){row.el.remove();this.rows.delete(id);}
   document.querySelector('#network-empty').hidden=list.length>0;set(document.querySelector('#network-count'),list.length+' 台节点 · 全部展开');
  }
- x(ts){return 30+Math.max(0,Math.min(1,(ts-(this.now-windowMs))/windowMs))*324;}
+ x(ts){return 30+Math.max(0,Math.min(1,(ts-(this.now-this.rangeMs))/this.rangeMs))*324;}
  draw(c,serverName,name){
   if(!c.points.length){c.inspecting=null;c.el.querySelector('.cursor').setAttribute('hidden','');}
   const {el,key}=c,max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);
@@ -101,7 +101,7 @@ export class NetworkCharts{
   if(c.points.length<=30)for(const p of c.points){const dot=document.createElementNS(svgNS,'circle');attr(dot,'cx',this.x(p.ts));attr(dot,'cy',80-n(p[key])/max*68);attr(dot,'r',2);attr(dot,'class','sample-dot');dots.append(dot);}
   const marks=el.querySelector('.losses');marks.replaceChildren();
   for(const p of c.samples)if(valid(p.loss?.[key])&&n(p.loss[key])>0){const mark=document.createElementNS(svgNS,'rect');attr(mark,'x',this.x(p.ts));attr(mark,'y',85);attr(mark,'width',3);attr(mark,'height',5);attr(mark,'class','loss-mark');marks.append(mark);}
-  set(el.querySelector('.axis-max'),max);set(el.querySelector('.axis-start'),time(this.now-windowMs));set(el.querySelector('.axis-end'),time(this.now));attr(c.svg,'aria-label',`${serverName} · ${name}延迟，单位毫秒，${c.points.length}个采样；方向键查看`);
+  set(el.querySelector('.axis-max'),max);set(el.querySelector('.axis-start'),time(this.now-this.rangeMs));set(el.querySelector('.axis-end'),time(this.now));attr(c.svg,'aria-label',`${serverName} · ${name}延迟，单位毫秒，${c.points.length}个采样；方向键查看`);
   c.tracker.style.gridTemplateColumns=`repeat(${Math.max(1,c.groups.length)},minmax(0,1fr))`;
   while(c.buttons.length>c.groups.length)c.buttons.pop().remove();
   while(c.buttons.length<c.groups.length){const b=document.createElement('button'),i=c.buttons.length;b.type='button';b.addEventListener('click',()=>{c.selectedStart=c.groups[i]?.start;this.inspectGroup(c);});c.buttons.push(b);c.tracker.append(b);}
