@@ -1,4 +1,4 @@
-import {renderTrendBox} from './node-trends.js?v=0.3.2';
+import {renderTrendBox} from './node-trends.js?v=0.3.3';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
@@ -15,7 +15,7 @@ const svg={
  chart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg>'
 };
 
-document.documentElement.dataset.atlasEnhanced='0.3.2';
+document.documentElement.dataset.atlasEnhanced='0.3.3';
 
 /* ---------- Toasts ---------- */
 const toastHost=document.createElement('div');
@@ -38,10 +38,6 @@ if(activity)new MutationObserver(records=>{for(const record of records)for(const
 
 /* ---------- Command palette ---------- */
 function installHeaderSearch(){
- const actions=$('.header-actions');if(!actions||$('#command-open'))return;
- const button=document.createElement('button');button.id='command-open';button.className='icon-button command-open';button.type='button';button.innerHTML=svg.search;
- button.setAttribute('aria-label','搜索与快捷命令');button.setAttribute('aria-keyshortcuts','Control+K Meta+K');button.title='搜索与快捷命令 · ⌘K / Ctrl K';
- actions.insertBefore(button,$('#refresh')||actions.firstChild);button.addEventListener('click',openPalette);
  for(const span of $$('.search > span')){span.classList.add('search-icon');span.innerHTML=svg.search;}
 }
 

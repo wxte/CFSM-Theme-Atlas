@@ -1,4 +1,4 @@
-import {numeric,n,online,percent} from './data.js?v=0.3.2';
+import {numeric,n,online,percent} from './data.js?v=0.3.3';
 
 export function resourceLevels(server){
  return {CPU:numeric(server.cpu)&&n(server.cpu)>=0?n(server.cpu):null,RAM:percent(server.ram_used,server.ram_total),DISK:percent(server.disk_used,server.disk_total)};
