@@ -1,5 +1,5 @@
-import {sampleGroups} from './insights.js?v=0.3.4';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.4';
+import {sampleGroups} from './insights.js?v=0.3.5';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.5';
 export const lines=['cu','ct','cm'];
 const historyLines=[...lines,'bd'],windowMs=7200000;
 const valid=v=>numeric(v)&&n(v)>=0;

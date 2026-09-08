@@ -1,4 +1,3 @@
-import {renderTrendBox} from './node-trends.js?v=0.3.4';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
@@ -15,7 +14,7 @@ const svg={
  chart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg>'
 };
 
-document.documentElement.dataset.atlasEnhanced='0.3.4';
+document.documentElement.dataset.atlasEnhanced='0.3.5';
 
 /* ---------- Toasts ---------- */
 const toastHost=document.createElement('div');
@@ -94,41 +93,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='/'&&!palette.open&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')){e.preventDefault();openPalette();}
 });
 
-/* ---------- Live node drawer ---------- */
-const drawer=document.createElement('div');drawer.id='node-drawer-layer';drawer.className='node-drawer-layer';drawer.hidden=true;
-drawer.innerHTML=`<button class="drawer-backdrop" type="button" aria-label="关闭节点详情"></button><aside class="node-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><header><div><span class="eyebrow">NODE INSPECT</span><h2 id="drawer-title">节点详情</h2><small id="drawer-meta"></small></div><button id="drawer-close" class="icon-button" type="button" aria-label="关闭节点详情">${svg.close}</button></header><div class="drawer-actions"><button id="drawer-network" type="button">${svg.chart}<span>网络分析</span></button><button id="drawer-copy" type="button">${svg.copy}<span>复制详情</span></button></div><div id="drawer-body" class="drawer-body"></div></aside>`;
-document.body.append(drawer);
-const drawerFields=[['状态','status'],['地区','region'],['实时下行','download'],['实时上行','upload'],['CPU','cpu'],['内存','ram'],['磁盘','disk'],['本月流量','month'],['联通','cu'],['电信','ct'],['移动','cm'],['运行时间','uptime'],['CPU 型号','cpu_info'],['系统','os'],['负载 / 进程','load'],['TCP / UDP','connections'],['价格','price'],['到期','expire'],['流量配额','traffic-limit'],['数据状态','net-note']];
-const drawerValueEls=new Map();let drawerRow=null,drawerTrigger=null,drawerName='',drawerMeta='';
-function buildDrawer(){
- const body=$('#drawer-body');body.replaceChildren();drawerValueEls.clear();
- const top=document.createElement('div');top.className='drawer-snapshot';for(const key of ['download','upload','cpu','ram','disk']){const card=document.createElement('div'),label={download:'↓ 下行',upload:'↑ 上行',cpu:'CPU',ram:'RAM',disk:'DISK'}[key];card.innerHTML='<small></small><strong></strong>';card.querySelector('small').textContent=label;drawerValueEls.set('snapshot:'+key,card.querySelector('strong'));top.append(card);}body.append(top);
- const dl=document.createElement('dl');dl.className='drawer-details';for(const [label,key] of drawerFields){const wrap=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;wrap.append(dt,dd);dl.append(wrap);drawerValueEls.set(key,dd);drawerValueEls.set('wrap:'+key,wrap);}body.append(dl);if(drawerRow){const copy=document.createElement('div');copy.className='node-trends drawer-trends';body.prepend(copy);renderTrendBox(copy,drawerRow.dataset.id);}
-}
-function syncDrawer(){
- if(!drawerRow||drawer.hidden||!document.documentElement.contains(drawerRow))return;
- drawerName=$('[data-field="name"]',drawerRow)?.textContent.trim()||'节点详情';drawerMeta=$('[data-field="meta"]',drawerRow)?.textContent.trim()||'';$('#drawer-title').textContent=drawerName;$('#drawer-meta').textContent=drawerMeta;
- for(const key of ['download','upload','cpu','ram','disk']){const value=$(`[data-field="${key}"]`,drawerRow)?.textContent.trim()||'—';const el=drawerValueEls.get('snapshot:'+key);if(el&&el.textContent!==value)el.textContent=value;}
- const previous=$('.drawer-trends',drawer);if(previous)renderTrendBox(previous,drawerRow.dataset.id);
- for(const [,key] of drawerFields){const value=$(`[data-field="${key}"]`,drawerRow)?.textContent.trim()||'';const dd=drawerValueEls.get(key),wrap=drawerValueEls.get('wrap:'+key);if(dd&&dd.textContent!==value)dd.textContent=value||'—';if(wrap)wrap.hidden=!value;}
-}
-function openDrawer(row,trigger){
- drawerRow=row;drawerTrigger=trigger||document.activeElement;buildDrawer();drawer.hidden=false;syncDrawer();document.documentElement.classList.add('drawer-open');requestAnimationFrame(()=>drawer.classList.add('is-open'));$('#drawer-close').focus();
-}
-function closeDrawer(){
- if(drawer.hidden)return;drawer.classList.remove('is-open');document.documentElement.classList.remove('drawer-open');const restore=drawerTrigger;drawerRow=null;setTimeout(()=>{if(drawerRow)return;drawer.hidden=true;restore?.focus?.({preventScroll:true});},180);
-}
-$('#drawer-close').addEventListener('click',closeDrawer);$('.drawer-backdrop',drawer).addEventListener('click',closeDrawer);
-$('#drawer-network').addEventListener('click',()=>{const name=drawerName;closeDrawer();navigate('#network');setTimeout(()=>{const target=$$('.network-server').find(el=>$('h3',el)?.textContent.trim()===name);target?.scrollIntoView({behavior:'smooth',block:'start'});target?.querySelector('svg[tabindex="0"]')?.focus({preventScroll:true});},180);});
-async function copyText(text){try{await navigator.clipboard.writeText(text);return true;}catch{}try{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.append(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch{return false;}}
-$('#drawer-copy').addEventListener('click',async()=>{
- if(!drawerRow)return;const lines=[drawerName,drawerMeta];for(const [label,key] of drawerFields){const value=$(`[data-field="${key}"]`,drawerRow)?.textContent.trim();if(value)lines.push(`${label}: ${value}`);}const ok=await copyText(lines.filter(Boolean).join('\n'));toast(ok?`已复制 ${drawerName} 详情`:'复制失败，请手动选择文本',ok?'recovery':'warning');
-});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.defaultPrevented&&!drawer.hidden&&!palette.open){e.preventDefault();closeDrawer();}});
-drawer.addEventListener('keydown',e=>{if(e.key!=='Tab'||drawer.hidden)return;const focusable=$$('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])',$('.node-drawer',drawer)).filter(el=>!el.disabled&&!el.hidden);if(!focusable.length)return;const first=focusable[0],last=focusable.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
-document.addEventListener('click',e=>{const target=e.target instanceof Element?e.target.closest('[data-detail-toggle]'):null;if(!target)return;const row=target.closest('.node-row');if(!row)return;e.preventDefault();e.stopImmediatePropagation();openDrawer(row,target);},true);
-let drawerSyncQueued=false;const nodeList=$('#node-list');if(nodeList)new MutationObserver(()=>{if(drawer.hidden||drawerSyncQueued)return;drawerSyncQueued=true;requestAnimationFrame(()=>{drawerSyncQueued=false;syncDrawer();});}).observe(nodeList,{subtree:true,childList:true,characterData:true});
-let touchStart=null;$('.node-drawer header',drawer)?.addEventListener('touchstart',e=>{if(e.touches.length===1)touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};},{passive:true});$('.node-drawer header',drawer)?.addEventListener('touchend',e=>{if(!touchStart||!e.changedTouches.length)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;touchStart=null;if(innerWidth<=800&&dy>70&&Math.abs(dx)<60)closeDrawer();},{passive:true});
+/* Node details use the native inline disclosure in app.js. */
 
 /* ---------- Relative last-updated ---------- */
 const updateEl=$('#last-update');let lastUpdatedAt=0;

@@ -1,11 +1,11 @@
-import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.4';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.4';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.4';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.4';
-import {flag} from './flags.js?v=0.3.4';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.4';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.4';
-import {NodeMap} from './globe.js?v=0.3.4';
+import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.5';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.5';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.5';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.5';
+import {flag} from './flags.js?v=0.3.5';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.5';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.5';
+import {NodeMap} from './globe.js?v=0.3.5';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -104,7 +104,7 @@ function renderRows(){
   renderFilters();
   const list=sorted(),ids=new Set(all().map(s=>s.id));
   for(const [id,row] of state.rows)if(!ids.has(id)){row.remove();state.rows.delete(id);state.history.delete(id);}
-  for(const s of all())if(!state.rows.has(s.id)){const row=$('#node-template').content.firstElementChild.cloneNode(true);row.dataset.id=s.id;const detail=row.querySelector('details');for(const b of row.querySelectorAll('[data-detail-toggle]'))b.addEventListener('click',()=>{detail.open=!detail.open;if(detail.parentElement.classList.contains('node-detail-cell'))detail.parentElement.hidden=false;row.querySelectorAll('[data-detail-toggle]').forEach(el=>{el.setAttribute('aria-expanded',String(detail.open));if(el.classList.contains('detail-button')){el.setAttribute('aria-label',detail.open?'收起节点详情':'展开节点详情');set(el,detail.open?'收起':'详情');}});});row.fields=Object.fromEntries([...row.querySelectorAll('[data-field]')].map(e=>[e.dataset.field,e]));row.bars=Object.fromEntries([...row.querySelectorAll('[data-bar]')].map(e=>[e.dataset.bar,e]));state.rows.set(s.id,row);$('#node-list').append(row);}
+  for(const s of all())if(!state.rows.has(s.id)){const row=$('#node-template').content.firstElementChild.cloneNode(true);row.dataset.id=s.id;const detail=row.querySelector('details');for(const b of row.querySelectorAll('[data-detail-toggle]'))b.addEventListener('click',()=>{detail.open=!detail.open;if(detail.open)updateRow(state.servers.get(row.dataset.id));if(detail.parentElement.classList.contains('node-detail-cell'))detail.parentElement.hidden=false;row.querySelectorAll('[data-detail-toggle]').forEach(el=>{el.setAttribute('aria-expanded',String(detail.open));if(el.classList.contains('detail-button')){el.setAttribute('aria-label',detail.open?'收起节点详情':'展开节点详情');set(el,detail.open?'收起':'详情');}});});row.fields=Object.fromEntries([...row.querySelectorAll('[data-field]')].map(e=>[e.dataset.field,e]));row.bars=Object.fromEntries([...row.querySelectorAll('[data-bar]')].map(e=>[e.dataset.bar,e]));state.rows.set(s.id,row);$('#node-list').append(row);}
   const shown=new Set(list.map(s=>s.id));for(const [id,row] of state.rows)row.hidden=!shown.has(id);
   let cursor=$('#node-list').firstElementChild;
   for(const s of list){const row=state.rows.get(s.id);if(row!==cursor)$('#node-list').insertBefore(row,cursor);cursor=row.nextElementSibling;updateRow(s);}

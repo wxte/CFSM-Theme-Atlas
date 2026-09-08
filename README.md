@@ -1,3 +1,7 @@
+## v0.3.5
+
+恢复行内折叠详情，节点图表移入详情并按需显示，恢复手机管理后台入口。[版本说明](docs/RELEASE-v0.3.5.md)。
+
 ## v0.3.4
 
 修复短范围状态格的人工空桶，减少重复DOM写入和历史处理。[修复与性能测试说明](docs/RELEASE-v0.3.4.md)。
@@ -152,6 +156,7 @@ Atlas 布局与交互为独立实现，未引入这些参考项目的应用框�
 - [Geist Tabs](https://vercel.com/geist/tabs)：同级视图即时切换并保留可分享 URL。
 - [Geist Empty State](https://vercel.com/geist/empty-state)：区分无数据、无搜索结果和请求失败，提供明确恢复操作。
 - [next-view-transitions](https://github.com/shuding/next-view-transitions)：借鉴简短的内容过渡；Atlas 使用浏览器原生动画，不安装该 Next.js 包。
+
 
 
 

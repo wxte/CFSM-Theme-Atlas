@@ -1,5 +1,5 @@
-import {numeric,n,bytes} from './data.js?v=0.3.4';
-import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.4';
+import {numeric,n,bytes} from './data.js?v=0.3.5';
+import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.5';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
 export function recordResources(id,ts,metrics){
  if(!numeric(ts)||!metrics||!keys.some(k=>Object.hasOwn(metrics,k)))return;
@@ -28,7 +28,7 @@ export function sampleState(p){
 const sampleTime=new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const describe=p=>sampleTime.format(p.ts)+' · '+['cu','ct','cm'].map((k,i)=>`${['联通','电信','移动'][i]} ${numeric(p[k])?p[k]+' ms':'—'} / 丢包 ${numeric(p.loss?.[k])?p.loss[k]+'%':'—'}`).join(' · ');
 export function renderNodeTrends(row,s,history,enabled){
- let box=row.querySelector('.node-trends');if(!box){box=document.createElement('div');box.className='node-trends';row.querySelector('.node-main').append(box);}
+ const detail=row.querySelector('.node-detail');
  const store=nodeObservations(s.id);
  const model=models.get(s.id);
  if(!model||model.history!==history||model.enabled!==enabled||store.network[0]?.ts<Date.now()-7200000){
@@ -36,7 +36,7 @@ export function renderNodeTrends(row,s,history,enabled){
   const signature=JSON.stringify(network);if(signature!==store.networkSignature){store.network=network;store.networkSignature=signature;store.networkVersion=(store.networkVersion||0)+1;scheduleSave();}
  }
  if(!enabled)selections.delete(s.id);
- models.set(s.id,{enabled,history});renderTrendBox(box,s.id);
+ models.set(s.id,{enabled,history});if(!detail?.open)return;let box=detail.querySelector('.node-trends');if(!box){box=document.createElement('div');box.className='node-trends inline-trends';detail.prepend(box);}renderTrendBox(box,s.id);
 }
 export function renderTrendBox(box,id){
  const store=nodeObservations(id),enabled=models.get(id)?.enabled!==false;
