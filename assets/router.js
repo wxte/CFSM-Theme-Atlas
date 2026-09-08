@@ -8,6 +8,8 @@ export class ViewRouter{
   environment.history.scrollRestoration='manual';
   environment.history.replaceState({...environment.history.state,atlasKey:0},'','#'+this.page);
   this.apply(this.page,0,false);
+  // The browser may apply its initial fragment scroll after module initialization.
+  environment.addEventListener('load',()=>{environment.requestAnimationFrame?.(()=>{if(this.key===0)environment.scrollTo({top:0,behavior:'instant'});});},{once:true});
   for(const link of root.querySelectorAll('a[href^="#"]'))link.addEventListener('click',event=>{
    if(event.defaultPrevented||event.button>0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
    const hash=link.getAttribute('href');if(!Object.hasOwn(pages,hash.slice(1)))return;

@@ -18,4 +18,9 @@ test('history loader deduplicates, limits concurrency, caches and reports 7d aut
  await api.get('node0',24);assert.equal(calls,8);const [a,b]=await Promise.all([api.get('private',168),api.get('private',168)]);assert.equal(a,b);assert.match(a.error,/需要登录/);assert.deepEqual(a.points,[]);
 });
 
-test('41 sparse valid observations create 41 usable cells; genuine missing metrics stay unknown',()=>{const now=Date.now(),points=Array.from({length:41},(_,i)=>({ts:now-7200000+i*175000,cu:150,loss:{cu:0}}));const groups=timeGroups(points,'cu',now,7200000);assert.equal(groups.length,41);assert.ok(groups.every(g=>g.samples.length===1&&g.state==='healthy'));points[5].cu=null;assert.equal(timeGroups(points,'cu',now,7200000)[5].state,'unknown');const dense=timeGroups(Array.from({length:120},(_,i)=>({ts:now-120000+i*1000,cu:80,loss:{cu:i===1?100:0}})),'cu',now,7200000);assert.equal(dense.length,60);assert.ok(dense.every(g=>g.samples.length===2));assert.equal(dense[0].state,'failed');});
+test('compact groups retain every real sample and preserve loss and missing metrics',()=>{
+ const now=Date.now(),points=Array.from({length:41},(_,i)=>({ts:now-7200000+i*175000,cu:150,loss:{cu:0}}));
+ const groups=timeGroups(points,'cu',now,7200000);assert.equal(groups.length,24);assert.ok(groups.every(g=>g.samples.length>0&&g.state==='healthy'));assert.deepEqual(groups.flatMap(g=>g.samples),points);
+ points[5].cu=null;assert.ok(timeGroups(points,'cu',now,7200000).some(g=>g.state==='unknown'));
+ const dense=timeGroups(Array.from({length:120},(_,i)=>({ts:now-120000+i*1000,cu:80,loss:{cu:i===1?100:0}})),'cu',now,7200000);assert.equal(dense.length,24);assert.ok(dense.every(g=>g.samples.length===5));assert.equal(dense[0].state,'failed');
+});

@@ -1,11 +1,11 @@
-import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.5';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.5';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.5';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.5';
-import {flag} from './flags.js?v=0.3.5';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.5';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.5';
-import {NodeMap} from './globe.js?v=0.3.5';
+import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.6';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.6';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.6';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.6';
+import {flag} from './flags.js?v=0.3.6';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.6';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
+import {NodeMap} from './globe.js?v=0.3.6';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -65,7 +65,7 @@ function loading(active){document.documentElement.classList.toggle('is-loading',
 function notice(text=''){set($('#notice'),text);$('#notice').hidden=!text;}
 function chartSetup(){
   for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 240 28" preserveAspectRatio="none" role="img"><title></title><path/><circle r="2"/></svg><small class="trend-note"></small><small class="trend-loss">—</small>';div.dataset.carrier=key;$('#carrier-summary').append(div);}
-  for(const [key,title] of [['cpu','CPU / 平均占用'],['ram','MEMORY / 内存'],['disk','STORAGE / 磁盘'],['connections','CONNECTIONS / 连接']]){const card=document.createElement('article');card.className='resource-card';card.dataset.resource=key;card.innerHTML='<span class="eyebrow"></span><strong>—</strong><div class="resource-track"><b></b></div><small>等待数据</small>';set(card.firstElementChild,title);$('#resource-overview').append(card);}
+  for(const [key,title] of [['cpu','CPU 平均使用率'],['ram','内存使用率'],['disk','磁盘使用率'],['connections','连接总数']]){const card=document.createElement('article');card.className='resource-card';card.dataset.resource=key;card.innerHTML='<span class="eyebrow"></span><strong>—</strong><div class="resource-track"><b></b></div><small>等待数据</small>';set(card.firstElementChild,title);$('#resource-overview').append(card);}
 }
 function renderSummary(){
   const list=all(),live=list.filter(s=>online(s));
@@ -73,12 +73,12 @@ function renderSummary(){
   set($('#stat-regions'),String(new Set(list.map(s=>region(s.region).code).filter(c=>c!=='XX')).size).padStart(2,'0'));
   set($('#stat-in'),`${bytes(live.length?total(live,'net_in_speed'):0,true)}`);set($('#stat-out'),`${bytes(live.length?total(live,'net_out_speed'):0,true)}`);
   const monthly=list.map(month).filter(numeric);set($('#stat-month'),allowed('show_tf')?bytes(monthly.length?monthly.reduce((a,v)=>a+v,0):null):'未公开');
-  const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');$('#stat-cost').classList.toggle('multi-currency',cost.currencies>1);set($('#cost-note'),cost.missing?`${list.length-cost.missing}/${list.length} 台已配置 · 各币种分别计费`:'已配置节点 · 各币种分别计费');
+  const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');$('#stat-cost').classList.toggle('multi-currency',cost.currencies>1);set($('#cost-note'),cost.missing?`${list.length-cost.missing}/${list.length} 台已配置 · 按币种分别汇总`:'按币种分别汇总');
   $('#online-bar').style.width=`${list.length?live.length/list.length*100:0}%`;set($('#availability'),list.length?`${Math.round(live.length/list.length*100)}%`:'—');const pattern=live.length+'/'+list.length;if($('#availability-track').dataset.pattern!==pattern){$('#availability-track').dataset.pattern=pattern;$('#availability-track').replaceChildren();for(let i=0;i<32;i++){const segment=document.createElement('i');segment.classList.toggle('off',!list.length||i>=Math.round(live.length/list.length*32));$('#availability-track').append(segment);}}
   const shown=visible().filter(s=>online(s));set($('#map-online'),shown.length);const values=shown.flatMap(s=>carriers.map(k=>s[`ping_${k}`])).filter(v=>numeric(v)&&n(v)>=0);set($('#map-latency'),`${values.length?Math.round(values.reduce((a,v)=>a+n(v),0)/values.length)+' ms':'—'} AVG`);
 }
 function renderRegions(){
-  observeStatus();
+
   const groups=new Map();for(const server of all()){const code=region(server.region).code;if(!groups.has(code))groups.set(code,[]);groups.get(code).push(server);}
   set($('#region-count'),groups.size);set($('#all-count'),state.servers.size);$('#all-regions').classList.toggle('active',!state.selected);$('#all-regions').setAttribute('aria-pressed',String(!state.selected));$('#clear-region').hidden=!state.selected;
   for(const [code,list]of [...groups].sort((a,b)=>b[1].length-a[1].length)){
@@ -133,7 +133,7 @@ function record(s,ts,metrics){
 }
 function renderNetwork(){
  const live=visible().filter(s=>online(s)),now=Date.now(),enabled=allowed('show_three_net_details');
- for(const key of [...carriers,'bd']){
+ if(state.page==='overview'||state.page==='resources')for(const key of [...carriers,'bd']){
   const el=$('[data-carrier="'+key+'"]'),value=avg(live,'ping_'+key);
   set(el.children[0],label(key));set(el.children[1],ping(value));set(el.querySelector('.trend-loss'),'丢包 '+loss(avg(live,'loss_'+key)));
   const {points,sources}=aggregateHistory(enabled?live.map(s=>s.id):[],state.history,key,now),svg=el.querySelector('svg'),path=el.querySelector('path'),dot=el.querySelector('circle');
@@ -151,7 +151,7 @@ function renderNetwork(){
   const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,result?.error?[]:[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>latest)]);}
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
   if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
-  else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 可点击重试':'服务端历史 · 缺失时段留空；点按曲线锁定，Esc 返回实时');}
+  else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 可点击重试':'点击锁定采样 · Esc 返回实时');}
   loadNetworkHistory();
  }
 }
@@ -160,7 +160,7 @@ function renderResources(){
   const values={cpu:[avg(list,'cpu'),`${n(total(list,'cpu_cores'))} 核 · ${list.length} 台在线`],ram:[percent(total(list,'ram_used'),total(list,'ram_total')),`${bytes(numeric(total(list,'ram_used'))?total(list,'ram_used')*1048576:null)} / ${bytes(numeric(total(list,'ram_total'))?total(list,'ram_total')*1048576:null)}`],disk:[percent(total(list,'disk_used'),total(list,'disk_total')),`${bytes(numeric(total(list,'disk_used'))?total(list,'disk_used')*1048576:null)} / ${bytes(numeric(total(list,'disk_total'))?total(list,'disk_total')*1048576:null)}`],connections:[null,`TCP ${total(list,'tcp_conn')??'—'} / UDP ${total(list,'udp_conn')??'—'}`]};
   for(const [key,[value,note]] of Object.entries(values)){const card=$(`[data-resource="${key}"]`);set(card.querySelector('strong'),key==='connections'?(list.length?String(n(total(list,'tcp_conn'))+n(total(list,'udp_conn'))):'—'):fmtPct(value));set(card.querySelector('small'),note);const track=card.querySelector('.resource-track');track.hidden=key==='connections';track.firstElementChild.style.width=`${n(value)}%`;}
 }
-function renderAggregates(){renderSummary();renderNetwork();renderResources();map.update(visible(),state.config.theme_options||{},state.selected);}
+function renderAggregates(){observeStatus();renderNetwork();if(state.page==='overview'||state.page==='resources'){renderSummary();renderResources();map.update(visible(),state.config.theme_options||{},state.selected);}}
 async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
 async function refresh(){
   if(state.loading)return;state.loading=true;if(!state.ready)loading(true);$('#refresh').disabled=true;
@@ -175,6 +175,9 @@ async function refresh(){
   finally{state.loading=false;loading(false);$('#refresh').disabled=false;}
 }
 function subscribe(){const ids=[...state.servers.keys()].filter(id=>/^[a-zA-Z0-9._:-]{1,64}$/.test(id)).slice(0,500);state.ws.send(JSON.stringify({type:'subscribe',scope:'all',ids}));if(state.servers.size>500)notice('超过 500 台的节点通过定时刷新更新。');}
+// Coalesce bursts from multiple agents into one render per animation frame.
+const pendingRows=new Set();let liveFrame=0;
+function scheduleLiveRender(){if(liveFrame)return;liveFrame=requestAnimationFrame(()=>{liveFrame=0;if(document.hidden){pendingRows.clear();return;}if(['overview','nodes','resources'].includes(state.page)){if(state.sort!=='default'||state.status!=='all'||state.quick)renderRows();else for(const id of pendingRows){const s=state.servers.get(id);if(s)updateRow(s);}renderRegions();}pendingRows.clear();renderAggregates();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);});}
 function connect(){
   if(state.stopped||document.hidden||state.ws)return;connection('连接中');let ws;
   try{ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/ws?subscribe=all`);}catch{reconnect();return;}
@@ -183,7 +186,7 @@ function connect(){
   ws.onmessage=event=>{state.lastMessage=Date.now();let msg;try{msg=JSON.parse(event.data);}catch{return;}if(msg.type!=='batchUpdate'||!Array.isArray(msg.updates))return;const touched=new Set();
     for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload??sample.metrics,sample.ts)){touched.add(s.id);record(s,n(sample.ts),sample.data??sample.payload??sample.metrics);}}
     if(document.hidden)return;
-    for(const id of touched)updateRow(state.servers.get(id));if(touched.size){if(state.sort!=='default'||state.status!=='all'||state.quick)renderRows();renderRegions();renderAggregates();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);}
+    for(const id of touched)pendingRows.add(id);if(touched.size)scheduleLiveRender();
   };
   ws.onclose=()=>{clearTimeout(timeout);clearInterval(state.heartbeat);if(state.ws===ws)state.ws=null;reconnect();};ws.onerror=()=>ws.close();
 }
@@ -215,7 +218,7 @@ function showPage(key,animate=false){
  const page=pageFromHash('#'+key),displayPage=page==='resources'?'overview':page;state.page=page;map.clearTip();
  for(const id of Object.keys(pages))if($('#'+id))$('#'+id).hidden=id!==displayPage&&!(id==='nodes'&&displayPage==='overview');set($('#page-title'),pages[displayPage]);map.active=displayPage==='overview';
  document.querySelectorAll('nav a').forEach(a=>{const active=a.getAttribute('href')==='#'+displayPage;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
- if(map.active)map.requestDraw();if(state.servers.size)renderAggregates();
+ if(map.active)map.requestDraw();if(state.servers.size){if(['overview','nodes','resources'].includes(page))renderRows();renderAggregates();}
  if(animate&&settings.motion!=='reduced'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)$('main').animate?.([{opacity:.55,transform:'translateY(3px)'},{opacity:1,transform:'none'}],{duration:130,easing:'ease-out'});
 }
 function saveViewState(){try{sessionStorage.setItem('atlas-view-v1',JSON.stringify(Object.fromEntries(['search','status','quick','sort','selected'].map(k=>[k,state[k]]))));}catch{}}
