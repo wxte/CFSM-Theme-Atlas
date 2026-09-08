@@ -62,3 +62,223 @@
 @media(prefers-reduced-motion:reduce){
  .meters b,.quota-track>b{transition:none!important}.plot-end,.carrier-line svg circle{animation:none!important}
 }
+
+/* v0.3.18 — restore independent server surfaces on desktop.
+   Direction: Vercel spacing + Catalyst description-list details + HomeDash density.
+   Mobile layout intentionally remains unchanged. */
+:root{
+  --atlas-surface-shadow:0 1px 2px rgba(15,23,42,.035),0 1px 1px rgba(15,23,42,.025);
+  --atlas-surface-shadow-hover:0 8px 24px rgba(15,23,42,.065),0 2px 6px rgba(15,23,42,.04);
+}
+html[data-theme=dark]{
+  --atlas-surface-shadow:0 1px 2px rgba(0,0,0,.22);
+  --atlas-surface-shadow-hover:0 10px 28px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.18);
+}
+
+@media(min-width:801px){
+  /* The old desktop table visually welded every server together. Keep the column
+     guide, but make each node its own calm surface like the mobile layout. */
+  .node-table{
+    border:0!important;
+    border-radius:0!important;
+    overflow:visible!important;
+    background:transparent!important;
+  }
+  .node-columns{
+    background:transparent!important;
+    border:0!important;
+    padding-top:0!important;
+    padding-bottom:8px!important;
+    color:color-mix(in srgb,var(--muted) 88%,transparent);
+    font-size:11px;
+  }
+  #node-list{
+    display:grid;
+    gap:10px;
+  }
+  .node-row{
+    border:1px solid var(--line)!important;
+    border-radius:11px!important;
+    background:var(--panel)!important;
+    box-shadow:var(--atlas-surface-shadow);
+    overflow:visible;
+    transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease,background-color .16s ease;
+  }
+  .node-row:last-child{border-bottom:1px solid var(--line)!important}
+  .node-row:hover{
+    background:var(--panel)!important;
+    border-color:color-mix(in srgb,var(--line) 58%,var(--muted))!important;
+    box-shadow:var(--atlas-surface-shadow-hover);
+    transform:translateY(-1px);
+  }
+  .node-row.map-selected{
+    background:color-mix(in srgb,var(--tint) 28%,var(--panel))!important;
+    border-color:color-mix(in srgb,var(--accent) 34%,var(--line))!important;
+  }
+  .node-row:has(.node-detail[open]){
+    border-color:color-mix(in srgb,var(--accent) 26%,var(--line))!important;
+    box-shadow:0 8px 28px rgba(15,23,42,.055),0 1px 3px rgba(15,23,42,.035);
+  }
+  html[data-theme=dark] .node-row:has(.node-detail[open]){
+    box-shadow:0 10px 30px rgba(0,0,0,.24);
+  }
+
+  /* Keep the action quiet and compact instead of making the last column look
+     like another data field. */
+  .detail-cell .detail-button{
+    width:28px!important;
+    min-width:28px!important;
+    height:28px!important;
+    min-height:28px!important;
+    padding:0!important;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--line)!important;
+    border-radius:7px!important;
+    background:var(--panel)!important;
+    color:var(--muted);
+    box-shadow:0 1px 1px rgba(15,23,42,.03);
+    font-size:0!important;
+  }
+  .detail-cell .detail-button::before{
+    content:'⌄';
+    display:block;
+    font-size:15px;
+    line-height:1;
+    transform:translateY(-1px);
+    transition:transform .16s ease,color .16s ease;
+  }
+  .detail-cell .detail-button[aria-expanded=true]::before{transform:rotate(180deg) translateY(1px)}
+  .detail-cell .detail-button:hover{
+    color:var(--text);
+    background:var(--soft)!important;
+    border-color:color-mix(in srgb,var(--line) 55%,var(--muted))!important;
+  }
+
+  /* In-card detail: no drawer/modal feel. One divider, then compact observability
+     cards and a Catalyst-like description list. */
+  .node-detail-cell>.node-detail{
+    margin-top:3px!important;
+    padding-top:13px;
+    border-top:1px solid var(--line);
+  }
+  .node-detail .inline-trends{
+    max-width:none!important;
+    margin:0 0 12px!important;
+    padding:0!important;
+    border-top:0!important;
+  }
+  .node-detail .node-sparks{
+    gap:9px;
+  }
+  .node-detail .node-spark{
+    padding:9px 10px 5px;
+    border:1px solid color-mix(in srgb,var(--line) 88%,var(--panel));
+    border-radius:8px;
+    background:color-mix(in srgb,var(--soft) 72%,var(--panel));
+  }
+  .node-detail .node-spark small{
+    color:var(--muted);
+    font-size:10px;
+  }
+  .node-detail .node-spark .spark-value{
+    display:block;
+    margin-top:1px;
+    color:var(--text);
+    font-size:13px;
+    line-height:1.35;
+    font-weight:550;
+    font-variant-numeric:tabular-nums;
+  }
+  .node-detail .node-spark svg{height:37px!important}
+  .node-detail .node-sample-track{margin-top:8px}
+  .node-detail .node-sample-note{margin-top:5px;color:var(--muted)}
+
+  .node-detail .details{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    column-gap:28px!important;
+    row-gap:0!important;
+    margin:10px 0 0!important;
+    padding:4px 0 0!important;
+    border-top:1px solid var(--line)!important;
+  }
+  .node-detail .details>div{
+    min-width:0;
+    display:grid;
+    grid-template-columns:minmax(76px,auto) minmax(0,1fr);
+    align-items:baseline;
+    gap:12px;
+    padding:8px 1px;
+    border-bottom:1px solid color-mix(in srgb,var(--line) 82%,transparent);
+  }
+  .node-detail .details dt{
+    margin:0;
+    color:var(--muted);
+    font-size:10.5px;
+    line-height:1.4;
+    white-space:nowrap;
+  }
+  .node-detail .details dd{
+    margin:0!important;
+    color:var(--text);
+    font-size:11.5px;
+    line-height:1.45;
+    text-align:right;
+    overflow-wrap:anywhere;
+  }
+
+  /* Bring all major desktop surfaces onto the same quiet visual system without
+     adding the heavy blur/gradient effects HomeDash intentionally moved away from. */
+  .kpi,.resource-card,.observatory,.network-server{
+    border-color:color-mix(in srgb,var(--line) 92%,var(--panel));
+    box-shadow:var(--atlas-surface-shadow);
+  }
+  .kpi,.resource-card,.network-server{border-radius:11px}
+  .observatory{border-radius:12px}
+  .network-server{
+    overflow:hidden;
+    transition:border-color .16s ease,box-shadow .16s ease;
+  }
+  .network-server:hover{
+    border-color:color-mix(in srgb,var(--line) 62%,var(--muted));
+    box-shadow:0 5px 18px rgba(15,23,42,.045);
+  }
+
+  /* Catalyst-like control treatment: compact, clearly interactive, no chunky pills. */
+  .table-toolbar .search,
+  .table-toolbar select,
+  .table-toolbar button,
+  .status-filter button,
+  .quick-filters button,
+  .active-filters button,
+  .network-explainer button{
+    border-radius:7px;
+  }
+  .status-filter button,
+  .quick-filters button,
+  .network-explainer button{
+    transition:background-color .14s ease,border-color .14s ease,color .14s ease,box-shadow .14s ease;
+  }
+  .status-filter button[aria-pressed=true],
+  .quick-filters button[aria-pressed=true],
+  .network-explainer button[aria-pressed=true]{
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent);
+  }
+
+  /* Cleaner spacing between the section chrome and the independent cards. */
+  .section-heading{margin-bottom:11px}
+  .table-toolbar{margin-bottom:11px}
+  .quick-filters{margin-bottom:10px}
+}
+
+@media(min-width:801px) and (max-width:1100px){
+  .node-detail .details{grid-template-columns:1fr!important}
+  .node-detail .node-sparks{gap:7px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .node-row,.network-server,.detail-cell .detail-button::before{transition:none!important}
+  .node-row:hover{transform:none!important}
+}
