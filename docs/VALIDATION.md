@@ -1,4 +1,4 @@
-# WXT Atlas v0.2.7 验证记录
+# WXT Atlas v0.2.8 验证记录
 
 日期：2026-09-07。使用本地预览代理连接用户的 CFSM 原生公开接口，7 台真实节点。未修改后端或管理设置。
 
@@ -7,6 +7,13 @@
 - 顶部移除齿轮与独立显示设置分页；日夜与动态效果由右上角图标直接切换。
 - 资源卡位于 KPI 下方且不再重复显示分区标题。
 - Geist Pixel 作为展示字体加载失败时自动回退 Geist Sans，不影响正文和数据可读性。
+
+## v0.2.8 · 本地字体与小字号可读性
+
+- 移除远程 Geist Pixel CSS；正文、中文、小数据和节点名称使用本地 Atlas UI（Sarasa UI SC 子集），品牌和 KPI 大数字使用本地 Atlas Pixel Display。
+- 保留 `unicode-range` 字体分片与 `font-display: swap`；首屏只预加载常用字集和展示数字字体，不访问 CDN 字体域名。
+- 浏览器报告确认正文、品牌和 KPI 的计算字体分别为 Atlas UI / Atlas Pixel Display；桌面和 390px 手机均无横向溢出，字体请求全部来自 `127.0.0.1` 主题资源。首页只请求 Atlas UI Regular、Atlas UI Semibold 和 Geist Pixel Display 三个 WOFF2，合计约 111 KiB；动态节点名使用系统中文回退。
+- `fonts.test.js` 校验没有远程字体 URL、所有 CSS 引用的字体文件存在，并保留本地字体许可文件。
 
 ## 自动检查
 
@@ -52,3 +59,4 @@
 - Geist 本地 WOFF2 69,760 字节，许可随文件附带；新增资源从同源加载，控制台未出现字体或脚本错误。
 
 没有重跑线上 PageSpeed；不声称此次更改带来特定性能分数。
+

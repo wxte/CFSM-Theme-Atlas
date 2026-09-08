@@ -1,6 +1,12 @@
 # WXT Atlas
 
-## v0.2.7
+## v0.2.8
+
+- 字体改为全部本地加载，移除阻塞首屏的 jsDelivr 字体 CSS。
+- 中文、英文导航与小字改用更纱黑体 UI SC；Geist Pixel Square 只用于品牌和大数字。标签最小 12px，修正活动按钮徽标数字溢出。
+- 常用界面字集优先加载，动态服务器名和地区名回退系统中文，避免冷启动下载完整 CJK 字库；字库覆盖与许可证随主题提供。见 [字体说明](docs/FONTS.md)。
+
+## v0.2.7（历史）
 
 - 尝试使用 Vercel Geist Pixel 作为品牌、标题和数据数字的展示字体；正文继续使用 Geist Sans，避免中文长文本难读。字体由已在 CFSM 白名单中的 jsDelivr 加载。
 - 资源卡移动到 KPI 下方，移除重复的“资源概况”标题；顶部移除齿轮与独立显示设置页，日夜和动态效果直接在右上角操作。
@@ -38,7 +44,7 @@
 
 **Cloudflare Server Monitor** — 原生 JavaScript / CSS 监控主题。
 
-WXT Atlas v0.2.7 提供概览、节点、网络三视图；资源并入概览，活动通过右上角弹层和活动视图查看。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts；Geist Pixel 仅从已在 CFSM 白名单中的 jsDelivr 加载。
+WXT Atlas v0.2.8 提供概览、节点、网络三视图；资源并入概览，活动通过右上角弹层和活动视图查看。无需修改 CFSM 后端，无需构建，无 Vue / React / ECharts；字体、地球脚本与纹理均随主题本地发布，不需要第三方字体 CDN。
 
 ## v0.2.2
 
@@ -69,7 +75,7 @@ CFSM 后台「主题商店 → 自定义主题 URL」填写：
 
 公开名称已独立为 WXT Atlas，包名为 `cfsm-atlas`。现有 GitHub 仓库路径暂时保留，避免影响已经配置的主题地址；仓库尚未重命名。
 
-更新时建议使用固定提交地址 `https://github.com/wxte/cfsm-line-grid/tree/<完整提交 SHA>`，避免分支缓存继续显示旧版。页脚及 HTML 的 `theme-version` 应显示 **WXT Atlas v0.2.7**。
+更新时建议使用固定提交地址 `https://github.com/wxte/cfsm-line-grid/tree/<完整提交 SHA>`，避免分支缓存继续显示旧版。页脚及 HTML 的 `theme-version` 应显示当前版本号。
 
 所有运行文件均在 `index.html` 与 `assets/`，无需 CSP 加入第三方 CDN。管理入口为 `/admin#admin`，其管理界面由 CFSM 提供；主题内的「显示设置」不进入管理后台。
 
@@ -121,3 +127,4 @@ Atlas 布局与交互为独立实现，未引入这些参考项目的应用框�
 - [Geist Tabs](https://vercel.com/geist/tabs)：同级视图即时切换并保留可分享 URL。
 - [Geist Empty State](https://vercel.com/geist/empty-state)：区分无数据、无搜索结果和请求失败，提供明确恢复操作。
 - [next-view-transitions](https://github.com/shuding/next-view-transitions)：借鉴简短的内容过渡；Atlas 使用浏览器原生动画，不安装该 Next.js 包。
+

@@ -23,3 +23,7 @@
 - 不承诺新 Lighthouse 分数；发布并重新应用主题后分别重测手机与桌面，比较 TBT 与 NO_LCP 是否消失。
 - 报告中的 robots.txt 返回主题 HTML，属于服务端路径回退，主题 CSS/JS 无法修复。本次未修改后台路由。
 - 报告记录 WebSocket ERR_NAME_NOT_RESOLVED，是测试时的域名解析失败；需要线上复测确认，不通过屏蔽日志掩盖问题。主题保留轮询回退。
+
+## v0.2.8 本地字体
+
+移除 jsDelivr 字体样式表，保留单个本地 style.css。字体只发布常用界面字集和展示数字字体，动态 CJK 文本使用平台字体回退；页面不等待远程字体服务。具体体积与验证见 docs/FONTS.md 和 docs/VALIDATION.md。上线分数必须另行复测，不从本地预览推算。
