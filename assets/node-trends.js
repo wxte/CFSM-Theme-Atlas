@@ -1,4 +1,4 @@
-import {Plot,plotPaths} from './plot.js?v=0.3.14';
+import {Plot,plotPaths} from './plot.js?v=0.3.17';
 import {numeric,n,bytes} from './data.js?v=0.3.6';
 import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.6';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
@@ -12,9 +12,32 @@ export function recordResources(id,ts,metrics){
  if(points.at(-1)?.ts===point.ts)Object.assign(points.at(-1),point);else points.push(point);
  state.resources=points.slice(-60);state.resourceVersion=(state.resourceVersion||0)+1;scheduleSave();
 }
+
+// v0.3.17: detail microcharts use a local range per metric. CPU is no longer forced into
+// a 0–100% graph and download/upload no longer share one maximum, so small live movement
+// remains visible just like the realtime network charts.
+export function sparkRange(points,key){
+ const values=points.map(p=>p?.[key]).filter(v=>numeric(v)&&n(v)>=0).map(Number);
+ if(!values.length)return key==='cpu'?{min:0,max:5}:{min:0,max:1024};
+ const rawMin=Math.min(...values),rawMax=Math.max(...values),span=rawMax-rawMin;
+ if(key==='cpu'){
+  const pad=Math.max(1,span*.55),minimumSpan=5;
+  let min=Math.max(0,rawMin-pad),max=Math.min(100,rawMax+pad);
+  if(max-min<minimumSpan){const mid=(min+max)/2;min=Math.max(0,mid-minimumSpan/2);max=Math.min(100,min+minimumSpan);min=Math.max(0,max-minimumSpan);}
+  return {min,max};
+ }
+ const pad=Math.max(128,span*.5,rawMax*.05),minimumSpan=1024;
+ let min=Math.max(0,rawMin-pad),max=rawMax+pad;
+ if(max-min<minimumSpan){const mid=(min+max)/2;min=Math.max(0,mid-minimumSpan/2);max=min+minimumSpan;}
+ return {min,max};
+}
 export function sparkPoints(points,key,scale){
- const max=scale||(key==='cpu'?100:Math.max(1024,...points.map(p=>n(p[key]))));let previous=null;const result=[];
- points.forEach((p,i)=>{if(!numeric(p[key])||n(p[key])<0){result.push(null);previous=null;return;}if(previous&&p.ts-previous.ts>300000)result.push(null);result.push({ts:p.ts,x:2+(60-points.length+i)/59*116,y:30-Math.min(max,n(p[key]))/max*26});previous=p;});return result;
+ let min=0,max;
+ if(scale&&typeof scale==='object'){min=n(scale.min);max=n(scale.max);}
+ else max=scale||(key==='cpu'?100:Math.max(1024,...points.map(p=>n(p[key]))));
+ if(!Number.isFinite(max)||max<=min)max=min+1;
+ let previous=null;const result=[],span=max-min;
+ points.forEach((p,i)=>{if(!numeric(p[key])||n(p[key])<0){result.push(null);previous=null;return;}if(previous&&p.ts-previous.ts>300000)result.push(null);const value=Math.max(min,Math.min(max,n(p[key])));result.push({ts:p.ts,x:2+(60-points.length+i)/59*116,y:30-(value-min)/span*26});previous=p;});return result;
 }
 export function sparkPath(points,key,scale){if(points.filter(p=>numeric(p[key])&&n(p[key])>=0).length<2)return '';return plotPaths(sparkPoints(points,key,scale)).line;}
 export function recentSamples(history){const exact=new Map();for(const p of history)if(Number.isFinite(p?.ts)){const old=exact.get(p.ts)||{};const point={...old,ts:p.ts,loss:{...old.loss}};for(const k of ['cu','ct','cm','bd']){if(p[k]!==undefined)point[k]=p[k];if(p.loss?.[k]!==undefined)point.loss[k]=p.loss[k];}exact.set(p.ts,point);}return [...exact.values()].sort((a,b)=>a.ts-b.ts).slice(-60);}
@@ -48,9 +71,12 @@ export function renderTrendBox(box,id){
   const track=box.querySelector('.node-sample-track');for(let i=0;i<60;i++)track.append(document.createElement('span'));
  }
  const resourceKey=String(store.resourceVersion||0);if(box.dataset.resourceVersion!==resourceKey){box.dataset.resourceVersion=resourceKey;
- const rateMax=Math.max(1024,...points.flatMap(p=>[n(p.net_in_speed),n(p.net_out_speed)]));
- for(const key of keys){const el=box.querySelector(`[data-metric="${key}"]`),scale=key==='cpu'?100:rateMax;el.plot.update(sparkPoints(points,key,scale));const latest=points.at(-1)?.[key];el.querySelector('.spark-value').textContent=numeric(latest)?key==='cpu'?n(latest).toFixed(1)+'%':bytes(latest,true):'—';const label=(key==='cpu'?'CPU 0–100%':(key==='net_in_speed'?'下行':'上行')+' 0–'+bytes(rateMax,true))+' · 最近 '+points.length+' 次上报';el.title=label;el.querySelector('svg').setAttribute('aria-label',label);}
-
+  for(const key of keys){
+   const el=box.querySelector(`[data-metric="${key}"]`),range=sparkRange(points,key);el.plot.update(sparkPoints(points,key,range));const latest=points.at(-1)?.[key];
+   el.querySelector('.spark-value').textContent=numeric(latest)?key==='cpu'?n(latest).toFixed(1)+'%':bytes(latest,true):'—';
+   const rangeText=key==='cpu'?`${range.min.toFixed(1)}–${range.max.toFixed(1)}%`:`${bytes(range.min,true)}–${bytes(range.max,true)}`;
+   const label=(key==='cpu'?'CPU':key==='net_in_speed'?'下行':'上行')+' '+rangeText+' · 最近 '+points.length+' 次上报';el.title=label;el.querySelector('svg').setAttribute('aria-label',label);
+  }
  }
  const selected=selections.get(id),networkKey=[store.networkVersion||0,enabled,selected?.ts??''].join(':');if(box.dataset.networkVersion===networkKey)return;box.dataset.networkVersion=networkKey;
  const track=box.querySelector('.node-sample-track');

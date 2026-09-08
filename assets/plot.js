@@ -28,7 +28,23 @@ export class Plot{
   this.fullSingle=svg.classList.contains('kpi-spark');
   const id='atlas-wash-'+ ++serial,defs=document.createElementNS(ns,'defs');defs.innerHTML=`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".16"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>`;svg.prepend(defs);
   this.area=document.createElementNS(ns,'path');attr(this.area,'fill',`url(#${id})`);attr(this.area,'class','plot-area');line.before(this.area);
-  this.dot=document.createElementNS(ns,'circle');attr(this.dot,'class','plot-end');attr(this.dot,'r',2.3);svg.append(this.dot);
+
+  // v0.3.17: preserveAspectRatio="none" stretches ordinary SVG circles into tiny ellipses.
+  // Use an ellipse whose radii are compensated from the rendered SVG size so every chart
+  // gets the same ~6 px round endpoint on desktop and mobile.
+  this.dot=document.createElementNS(ns,'ellipse');attr(this.dot,'class','plot-end');attr(this.dot,'vector-effect','non-scaling-stroke');svg.append(this.dot);
+  this.dotRadiusPx=3;
+  this.syncDotShape=()=>{
+   const vb=this.svg.viewBox?.baseVal,rect=this.svg.getBoundingClientRect();
+   if(!vb||vb.width<=0||vb.height<=0||rect.width<=0||rect.height<=0)return;
+   attr(this.dot,'rx',this.dotRadiusPx*vb.width/rect.width);
+   attr(this.dot,'ry',this.dotRadiusPx*vb.height/rect.height);
+  };
+  if(typeof ResizeObserver!=='undefined'){
+   this.dotObserver=new ResizeObserver(()=>this.syncDotShape());
+   this.dotObserver.observe(svg);
+  }
+  queueMicrotask(()=>this.syncDotShape());
  }
  paint(points){
   this.current=points;
@@ -39,7 +55,10 @@ export class Plot{
   }
   const p=plotPaths(draw,this.baseline,this.smooth);attr(this.line,'d',p.line);attr(this.area,'d',p.area);
   const last=[...points].reverse().find(Boolean)||null;
-  if(last){this.dot.removeAttribute('hidden');attr(this.dot,'cx',last.x);attr(this.dot,'cy',last.y);}else this.dot.setAttribute('hidden','');
+  if(last){
+   if(!this.dot.hasAttribute('rx'))this.syncDotShape();
+   this.dot.removeAttribute('hidden');attr(this.dot,'cx',last.x);attr(this.dot,'cy',last.y);
+  }else this.dot.setAttribute('hidden','');
  }
  update(points,{animate=true}={}){
   const signature=points.map(p=>p?`${p.ts}:${Number(p.x).toFixed(2)}:${Number(p.y).toFixed(2)}`:'_').join('|');
@@ -56,6 +75,6 @@ export class Plot{
   this.started=performance.now();running.add(this);this.svg.setAttribute('data-animating','');if(!frame)frame=requestAnimationFrame(tick);
  }
  finish(){running.delete(this);this.svg.removeAttribute('data-animating');this.paint(this.target);if(!running.size&&frame){cancelAnimationFrame(frame);frame=0;}}
- destroy(){running.delete(this);this.svg.removeAttribute('data-animating');}
+ destroy(){running.delete(this);this.svg.removeAttribute('data-animating');this.dotObserver?.disconnect();}
 }
 if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const plot of [...running])plot.finish();});
