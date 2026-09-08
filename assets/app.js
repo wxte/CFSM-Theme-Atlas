@@ -1,12 +1,12 @@
 import {HistoryAPI} from './history-api.js?v=0.3.6';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.12';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.14';
 import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.6';
 import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.6';
 import {flag} from './flags.js?v=0.3.6';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.12';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.14';
 import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
 import {NodeMap} from './globe.js?v=0.3.7';
-import {Plot} from './plot.js?v=0.3.12';
+import {Plot} from './plot.js?v=0.3.14';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -25,10 +25,18 @@ const severity = value => {
   const v=Math.max(0,n(value));
   return v>=95?'critical':v>=80?'hot':v>=60?'warn':'safe';
 };
+const meterColor=value=>{
+  if(!numeric(value))return 'var(--muted)';
+  const p=Math.min(100,Math.max(0,n(value)));
+  // Keep low/normal load green, then move smoothly through yellow/orange to pure red at 100%.
+  const hue=p<=50?145-p*.5:120-(p-50)*2.4;
+  return p>=100?'#ef4444':`hsl(${Math.max(0,Math.round(hue))} 72% 45%)`;
+};
 const markSeverity = (el,value) => {
   if(!el)return;
   el.classList.remove('safe','warn','hot','critical','unknown','zero');
   const level=severity(value);el.classList.add(level);
+  el.style.setProperty('--meter-color',meterColor(value));
   if(numeric(value)&&n(value)<=0)el.classList.add('zero');
 };
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
@@ -74,13 +82,16 @@ const label=key=>state.sys[`custom_${key}_name`]||names[key];
 const allowed=key=>state.sys[key]!==false&&state.sys[key]!=='false';
 const all=()=>[...state.servers.values()];
 const trafficSeries={in:[],out:[]},trafficPlots={};
+const trafficSampleMs=2000;
 function updateTrafficSparks(live){
   const now=Date.now();
   for(const [key,field] of [['in','net_in_speed'],['out','net_out_speed']]){
-    const value=live.length?total(live,field):null,series=trafficSeries[key],last=series.at(-1);
-    if(last&&now-last.ts<8000){last.ts=now;last.value=numeric(value)?n(value):null;}
-    else series.push({ts:now,value:numeric(value)?n(value):null});
-    trafficSeries[key]=series.slice(-48);
+    const value=live.length?total(live,field):null,series=trafficSeries[key],last=series.at(-1),sample={ts:now,value:numeric(value)?n(value):null};
+    // Important: do NOT move last.ts while coalescing. The old code reset the timestamp on every render,
+    // so frequent live updates could keep the series at one point forever.
+    if(last&&now-last.ts<trafficSampleMs)last.value=sample.value;
+    else series.push(sample);
+    trafficSeries[key]=series.slice(-60);
     const points=trafficSeries[key],maximum=Math.max(1024,...points.map(p=>numeric(p.value)?n(p.value):0));
     const divisor=Math.max(1,points.length-1),xAt=(i)=>points.length===1?118:2+i/divisor*116;
     trafficPlots[key]?.update(points.map((p,i)=>numeric(p.value)?{ts:p.ts,x:xAt(i),y:30-Math.min(maximum,n(p.value))/maximum*26}:null));
@@ -203,7 +214,7 @@ function connect(){
   if(state.stopped||document.hidden||state.ws)return;connection('连接中');let ws;
   try{ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/ws?subscribe=all`);}catch{reconnect();return;}
   state.ws=ws;const timeout=setTimeout(()=>{if(ws.readyState===WebSocket.CONNECTING)ws.close();},15000);
-  ws.onopen=()=>{clearTimeout(timeout);state.attempt=0;state.lastMessage=Date.now();connection('LIVE · 实时',true);subscribe();state.heartbeat=setInterval(()=>{if(Date.now()-state.lastMessage>65000){ws.close();return;}if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},25000);};
+  ws.onopen=()=>{clearTimeout(timeout);state.attempt=0;state.lastMessage=Date.now();connection('LIVE · 实时',true);subscribe();state.heartbeat=setInterval(()=>{if(Date.now()-state.lastMessage>45000){ws.close();return;}if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},20000);};
   ws.onmessage=event=>{state.lastMessage=Date.now();let msg;try{msg=JSON.parse(event.data);}catch{return;}if(msg.type!=='batchUpdate'||!Array.isArray(msg.updates))return;const touched=new Set();
     for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload??sample.metrics,sample.ts)){touched.add(s.id);record(s,n(sample.ts),sample.data??sample.payload??sample.metrics);}}
     if(document.hidden)return;
@@ -247,10 +258,16 @@ chartSetup();
 new ViewRouter(showPage);
 json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);if(state.ready)renderAggregates();}).catch(()=>{});
 refresh().then(()=>{if(all().length)map.focus(region(all()[0].region).code);map.init();});
-const poll=setInterval(()=>{if(!document.hidden)refresh();},30000);
-const age=setInterval(()=>{if(document.hidden||!state.ready)return;if(state.status!=='all'||state.quick)renderRows();else for(const s of all())updateRow(s);renderRegions();renderAggregates();},15000);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(state.retry);state.retry=null;clearInterval(state.heartbeat);state.ws?.close();return;}if(!document.hidden){for(const s of all())updateRow(s);renderRegions();renderAggregates();refresh();if(!state.ws&&!state.retry)connect();}});
-addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInterval(age);clearInterval(state.heartbeat);clearTimeout(state.retry);state.ws?.close();});
+// WebSocket remains primary. Polling is only a fallback, but 15s keeps a stalled public tab from looking frozen.
+const poll=setInterval(()=>{if(!document.hidden)refresh();},15000);
+const age=setInterval(()=>{if(document.hidden||!state.ready)return;if(state.status!=='all'||state.quick)renderRows();else for(const s of all())updateRow(s);renderRegions();renderAggregates();},5000);
+const watchdog=setInterval(()=>{
+ if(document.hidden||state.stopped)return;
+ if(state.ws?.readyState===WebSocket.OPEN&&Date.now()-state.lastMessage>45000){state.ws.close();refresh();return;}
+ if(!state.ws&&!state.retry)connect();
+},5000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(state.retry);state.retry=null;clearInterval(state.heartbeat);state.ws?.close();return;}if(!document.hidden){state.lastMessage=Date.now();for(const s of all())updateRow(s);renderRegions();renderAggregates();refresh();if(!state.ws&&!state.retry)connect();}});
+addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInterval(age);clearInterval(watchdog);clearInterval(state.heartbeat);clearTimeout(state.retry);state.ws?.close();});
 addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
