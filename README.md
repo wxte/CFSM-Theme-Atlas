@@ -1,3 +1,7 @@
+## v0.3.2
+
+修复采样选中被更新清空及活动命令失效，新增刷新恢复、服务端24H/7D历史与时间格高亮，整理节点折线。[完整说明](docs/RELEASE-v0.3.2.md)。
+
 ## v0.3.1
 
 修复 Drawer 网格与首次打开，新增节点趋势、60 格真实网络观测及 1H/2H 范围。[完整说明](docs/RELEASE-v0.3.1.md)。直接覆盖，无需执行旧版应用脚本。
@@ -140,5 +144,6 @@ Atlas 布局与交互为独立实现，未引入这些参考项目的应用框�
 - [Geist Tabs](https://vercel.com/geist/tabs)：同级视图即时切换并保留可分享 URL。
 - [Geist Empty State](https://vercel.com/geist/empty-state)：区分无数据、无搜索结果和请求失败，提供明确恢复操作。
 - [next-view-transitions](https://github.com/shuding/next-view-transitions)：借鉴简短的内容过渡；Atlas 使用浏览器原生动画，不安装该 Next.js 包。
+
 
 
