@@ -3,7 +3,7 @@ import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.14';
 import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.6';
 import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.6';
 import {flag} from './flags.js?v=0.3.6';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.14';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.16';
 import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
 import {NodeMap} from './globe.js?v=0.3.7';
 import {Plot} from './plot.js?v=0.3.14';
@@ -25,24 +25,30 @@ const severity = value => {
   const v=Math.max(0,n(value));
   return v>=95?'critical':v>=80?'hot':v>=60?'warn':'safe';
 };
-const meterColor=value=>{
+const meterColor=(value,kind='quota')=>{
   if(!numeric(value))return 'var(--muted)';
-  const p=Math.min(100,Math.max(0,n(value)));
-  // Keep low/normal load green, then move smoothly through yellow/orange to pure red at 100%.
-  const hue=p<=50?145-p*.5:120-(p-50)*2.4;
-  return p>=100?'#ef4444':`hsl(${Math.max(0,Math.round(hue))} 72% 45%)`;
+  const actual=Math.min(100,Math.max(0,n(value)));
+  // Resource pressure is intentionally about 20 points more sensitive than a traffic quota:
+  // 80% CPU/RAM/DISK reaches the same danger color as 100% monthly traffic usage.
+  const p=kind==='resource'?Math.min(100,actual+20):actual;
+  if(p>=100)return '#ef4444';
+  const hue=142*(1-Math.pow(p/100,.72));
+  const saturation=76+p*.10,lightness=42+p*.07;
+  return `hsl(${hue.toFixed(1)} ${saturation.toFixed(1)}% ${lightness.toFixed(1)}%)`;
 };
-const markSeverity = (el,value) => {
+const markSeverity = (el,value,kind='quota') => {
   if(!el)return;
   el.classList.remove('safe','warn','hot','critical','unknown','zero');
-  const level=severity(value);el.classList.add(level);
-  el.style.setProperty('--meter-color',meterColor(value));
+  const visualValue=kind==='resource'&&numeric(value)?Math.min(100,n(value)+20):value;
+  const level=severity(visualValue);el.classList.add(level);
+  el.style.setProperty('--meter-color',meterColor(value,kind));
+  el.dataset.meterKind=kind;
   if(numeric(value)&&n(value)<=0)el.classList.add('zero');
 };
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
 const map=new NodeMap(selectRegion);
 const charts=new NetworkCharts(),historyAPI=new HistoryAPI();
-const liveRangeMs=15*60000,serverHistoryHours=[1,6,24,168];
+const liveRangeMs=5*60000,serverHistoryHours=[1,6,24,168];
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 charts.live=true;charts.rangeMs=liveRangeMs;
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){charts.live=true;charts.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){charts.live=false;charts.rangeMs=hours*3600000;}else{charts.live=false;charts.rangeMs=24*3600000;}}catch{charts.live=false;charts.rangeMs=86400000;}
@@ -137,7 +143,7 @@ function updateRow(s){
   f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
   f('price',allowed('show_price')?(numeric(s.price)?`${s.currency||''}${Math.max(0,n(s.price))} / ${cycles[s.billing_cycle]||'?'} 个月`:'未配置'):'未公开');f('expire',allowed('show_expire')?(s.expire_date||'未配置'):'未公开');
-  for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;markSeverity(bar,value);}
+  for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;markSeverity(bar,value,'resource');}
   f('download',`${live?bytes(s.net_in_speed,true):'—'}`);f('upload',`${live?bytes(s.net_out_speed,true):'—'}`);f('net-note',live&&(numeric(s.net_in_speed)||numeric(s.net_out_speed))?`实时速率 · ${s.interface||'自动网卡'}`:live?'已连接 · 等待网卡上报':'离线 · 保留最后上报');
   f('month',allowed('show_tf')?bytes(month(s)):'未公开');f('uptime',uptime(s));
   const quota=trafficQuota(s),quotaBar=quotaTrack.firstElementChild,quotaVisible=allowed('show_tf')&&quota.limit!==null;
@@ -145,7 +151,7 @@ function updateRow(s){
   if(quotaVisible){
     const usedPercent=numeric(quota.percent)?Math.max(0,quota.percent):0,width=`${Math.min(100,usedPercent)}%`;
     if(quotaBar.style.width!==width)quotaBar.style.width=width;
-    markSeverity(quotaBar,usedPercent);quotaBar.classList.toggle('over',usedPercent>100);
+    markSeverity(quotaBar,usedPercent,'quota');quotaBar.classList.toggle('over',usedPercent>100);
     quotaTrack.setAttribute('aria-valuenow',String(Math.min(100,usedPercent)));
     quotaTrack.setAttribute('aria-valuetext',numeric(quota.percent)?`已用 ${quota.percent.toFixed(1)}%，余量 ${bytes(quota.remaining)}`:'等待流量上报');
     f('traffic-remaining',numeric(quota.percent)?`${quota.percent>100?'超额':'余'} ${bytes(quota.remaining)} · ${quota.percent.toFixed(1)}% 已用`:'等待流量上报');
@@ -186,7 +192,7 @@ function renderNetwork(){
  if(state.page==='network'){
   const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,result?.error?[]:[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>latest)]);}
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
-  if(charts.live)set($('#network-history-note'),'实时窗口 · 使用当前页面收到的采样');
+  if(charts.live)set($('#network-history-note'),'实时窗口 · 最近约 5 分钟 · 从首个页面快照铺满');
   else if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
   else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 可点击重试':'点击锁定采样 · Esc 返回实时');}
   loadNetworkHistory();

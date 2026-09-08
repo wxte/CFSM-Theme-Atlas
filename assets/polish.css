@@ -1,7 +1,7 @@
-/* WXT Atlas v0.3.14 — live motion, continuous load colors, denser mobile layout. */
+/* WXT Atlas v0.3.16 — live motion, continuous load colors, denser mobile layout. */
 
-/* Resource / quota bars: the whole fill changes continuously from green to red. */
-.meters i,.quota-track{background:color-mix(in srgb,var(--line) 88%,var(--panel));overflow:visible}
+/* Resource and quota fills are separate: resource pressure advances about 20 points earlier in JS. */
+.meters i,.quota-track{background:color-mix(in srgb,var(--line) 92%,var(--panel));overflow:visible}
 .meters b,.quota-track>b{
   --meter-color:var(--accent);
   background:var(--meter-color)!important;
@@ -43,18 +43,20 @@
   .section-heading{margin:14px 0 8px}.section-heading h2{font-size:16px}.table-toolbar{margin-bottom:8px}.quick-filters,.active-filters{margin-bottom:8px;gap:5px}.quick-filters button,.active-filters button{padding:4px 7px;font-size:10px}.quick-filters small{font-size:9px}
 }
 
-/* On phones each server stays one short horizontal carousel instead of 3 tall charts. */
+/* On phones use explicit carrier buttons; no horizontal chart swiping. */
+.network-mobile-tabs{display:none}
 @media(max-width:700px){
   #network{min-height:0}.network-explainer{margin-bottom:7px;gap:5px 8px;font-size:10px}.network-explainer button{padding:4px 7px;font-size:10px}.network-explainer>small{font-size:9px;line-height:1.35}.history-note{font-size:10px;padding-bottom:6px}
-  .network-server{margin-bottom:8px;border-radius:8px;contain-intrinsic-size:auto 205px}.network-server-heading{min-height:38px;padding:7px 9px;gap:6px;flex-wrap:nowrap}.network-server-heading h3{font-size:12px;line-height:1.25;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.network-server-heading small{font-size:9px;margin-left:0}.network-server-status{font-size:9px}
-  .network-server .analytics-grid{display:grid!important;grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:88%;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:none}.network-server .analytics-grid::-webkit-scrollbar{display:none}
-  .network-server .analysis-card{scroll-snap-align:start;border-right:1px solid var(--line)!important;border-bottom:0!important;padding:7px 9px!important}.network-server .analysis-card:last-child{border-right:0!important}.network-server .analysis-top{font-size:10px}.network-server .analysis-top strong{font-size:17px}.network-server .chart{height:54px;margin-top:2px}.network-server .network-tracker{min-height:16px;margin-top:1px;gap:2px!important}.network-server .network-tracker button{height:18px}.network-tracker button::before{inset-block:6px}.network-tracker button:hover::before,.network-tracker button[aria-pressed=true]::before{inset-block:5px}.network-server .chart-tooltip{min-height:22px;margin-top:3px;padding:3px 5px;font-size:9px;line-height:1.35}.network-server .chart-note{font-size:9px;line-height:1.2;margin-top:0;gap:4px}.tracker-caption,.tracker-tooltip{font-size:9px}
+  .network-server{margin-bottom:8px;border-radius:8px;contain-intrinsic-size:auto 235px}.network-server-heading{min-height:38px;padding:7px 9px;gap:6px;flex-wrap:nowrap}.network-server-heading h3{font-size:12px;line-height:1.25;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.network-server-heading small{font-size:9px;margin-left:0}.network-server-status{font-size:9px}
+  .network-mobile-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px 9px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--soft) 55%,var(--panel))}.network-mobile-tabs button{min-width:0;padding:4px 6px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:10px;line-height:1.25;touch-action:manipulation}.network-mobile-tabs button[aria-pressed=true]{background:var(--panel);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+  .network-server .analytics-grid{display:block!important;overflow:visible!important}.network-server .analysis-card{display:none;border-right:0!important;border-bottom:0!important;padding:7px 9px!important}.network-server[data-mobile-carrier=cu] .analysis-card[data-chart=cu],.network-server[data-mobile-carrier=ct] .analysis-card[data-chart=ct],.network-server[data-mobile-carrier=cm] .analysis-card[data-chart=cm]{display:block}
+  .network-server .analysis-top{font-size:10px}.network-server .analysis-top strong{font-size:17px}.network-server .chart{height:58px;margin-top:2px;touch-action:pan-y}.network-server .network-tracker{min-height:16px;margin-top:1px;gap:2px!important}.network-server .network-tracker button{height:18px}.network-tracker button::before{inset-block:6px}.network-tracker button:hover::before,.network-tracker button[aria-pressed=true]::before{inset-block:5px}.network-server .chart-tooltip{min-height:22px;margin-top:3px;padding:3px 5px;font-size:9px;line-height:1.35}.network-server .chart-note{font-size:9px;line-height:1.2;margin-top:0;gap:4px}.tracker-caption,.tracker-tooltip{font-size:9px}
 }
 
 @media(max-width:430px){
   .shell{width:calc(100% - 18px)}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{padding:7px 8px 8px}.kpi>strong{font-size:19px!important}.kpi #stat-in,.kpi #stat-out,.kpi #stat-month,.kpi #stat-cost{font-size:17px!important}.kpi small{font-size:8.5px}
   .node-row{padding:9px 9px!important;gap:6px 8px}.node-row>.status-cell{left:9px;top:13px}.node-row>.detail-cell{right:6px;top:6px}.node-main{padding-left:21px;padding-right:36px}.node-row>.node-region{padding-left:21px}.rate-cell strong{font-size:14px}.meters{gap:5px}.node-pings{font-size:9px}.node-row>.transfer-cell,.node-row>.uptime-cell{font-size:9px}
-  .network-server .analytics-grid{grid-auto-columns:92%}.network-server .chart{height:50px}
+  .network-server .chart{height:54px}
 }
 
 @media(prefers-reduced-motion:reduce){

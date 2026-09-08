@@ -13,9 +13,10 @@ export function windowSamples(samples,now=Date.now(),duration=windowMs){
   for(const key of historyLines){if(p[key]!==undefined)merged[key]=p[key];if(p.loss?.[key]!==undefined)merged.loss={...merged.loss,[key]:p.loss[key]};}
   exact.set(ts,merged);
  }
+ const bucketMs=duration<=7200000?5000:30000;
  const buckets=new Map();
  for(const p of [...exact.values()].sort((a,b)=>a.ts-b.ts)){
-  const bucket=Math.floor(p.ts/30000);if(!buckets.has(bucket))buckets.set(bucket,new Map());
+  const bucket=Math.floor(p.ts/bucketMs);if(!buckets.has(bucket))buckets.set(bucket,new Map());
   for(const key of historyLines){
    if(p[key]!==undefined)buckets.get(bucket).set(key,p);
    if(p.loss?.[key]!==undefined)buckets.get(bucket).set('loss.'+key,p);
@@ -57,16 +58,16 @@ const time=ts=>timeFormatter.format(ts);
 const statusNames={healthy:'正常',warning:'高延迟或丢包',failed:'完全丢包',unknown:'指标缺失'};
 const svgNS='http://www.w3.org/2000/svg';
 export class NetworkCharts{
- constructor(){this.rangeMs=7200000;this.rows=new Map();this.now=Date.now();}
+ constructor(){this.rangeMs=7200000;this.rows=new Map();this.now=Date.now();try{const saved=sessionStorage.getItem('atlas-mobile-carrier');this.mobileCarrier=lines.includes(saved)?saved:'cu';}catch{this.mobileCarrier='cu';}}
  createCard(key){
   const el=document.createElement('article');el.className='analysis-card';el.dataset.chart=key;
-  el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="83">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">点选查看 · 方向键切换</div>';
+  el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text axis-min" x="0" y="83"></text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">点选查看 · 方向键切换</div>';
   const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,signature:null,buttons:[]};
   c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');c.plot=new Plot(c.svg,c.path,{baseline:80,smooth:true});
-  c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.now-this.rangeMs+Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*360-30)/324))*this.rangeMs);});
+  c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.timeAt(c,e.clientX,r));});
   c.svg.addEventListener('pointerleave',()=>{c.inspecting=null;this.restoreInspection(c);});
   c.tracker.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=c.buttons.indexOf(document.activeElement);const next=e.key==='Home'?0:e.key==='End'?c.buttons.length-1:Math.max(0,Math.min(c.buttons.length-1,i+(e.key==='ArrowLeft'?-1:1)));c.buttons[next]?.focus();c.buttons[next]?.click();});
-  c.svg.addEventListener('click',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.now-this.rangeMs+Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*360-30)/324))*this.rangeMs,true);});
+  c.svg.addEventListener('click',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.timeAt(c,e.clientX,r),true);});
   const resume=document.createElement('button');resume.className='chart-resume';resume.type='button';resume.textContent='返回实时';resume.hidden=true;el.append(resume);resume.addEventListener('click',()=>this.clearPin(c));
   el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();this.clearPin(c);}});
   c.svg.addEventListener('keydown',e=>{
@@ -75,22 +76,39 @@ export class NetworkCharts{
   });
   return c;
  }
+ setMobileCarrier(key){
+  if(!lines.includes(key))return;this.mobileCarrier=key;try{sessionStorage.setItem('atlas-mobile-carrier',key);}catch{}
+  for(const row of this.rows.values()){row.el.dataset.mobileCarrier=key;for(const [carrier,button] of row.tabs||[])button.setAttribute('aria-pressed',String(carrier===key));}
+ }
  update(list,histories,names,enabled){
   this.now=Date.now();this.enabled=enabled;const keep=new Set(),root=document.querySelector('#network-grid');let cursor=root.firstElementChild;
   for(const s of list){
    keep.add(s.id);let row=this.rows.get(s.id);
    if(!row){
-    const el=document.createElement('section');el.className='network-server';el.innerHTML='<header class="network-server-heading"><i class="status-dot" aria-hidden="true"></i><h3></h3><small></small><span class="network-server-status"></span></header><div class="analytics-grid"></div>';
-    row={el,cards:lines.map(key=>this.createCard(key))};row.cards.forEach(c=>el.querySelector('.analytics-grid').append(c.el));this.rows.set(s.id,row);root.append(el);
+    const el=document.createElement('section');el.className='network-server';el.dataset.mobileCarrier=this.mobileCarrier;el.innerHTML='<header class="network-server-heading"><i class="status-dot" aria-hidden="true"></i><h3></h3><small></small><span class="network-server-status"></span></header><div class="network-mobile-tabs" role="group" aria-label="三网图表切换"></div><div class="analytics-grid"></div>';
+    row={el,cards:lines.map(key=>this.createCard(key)),tabs:new Map()};
+    const tabs=el.querySelector('.network-mobile-tabs');for(const key of lines){const button=document.createElement('button');button.type='button';button.dataset.carrier=key;button.setAttribute('aria-pressed',String(key===this.mobileCarrier));button.addEventListener('click',()=>this.setMobileCarrier(key));tabs.append(button);row.tabs.set(key,button);}
+    row.cards.forEach(c=>el.querySelector('.analytics-grid').append(c.el));this.rows.set(s.id,row);root.append(el);
    }
    if(row.el!==cursor)root.insertBefore(row.el,cursor);cursor=row.el.nextElementSibling;
-   const live=online(s);row.el.classList.toggle('offline',!live);set(row.el.querySelector('h3'),s.name||'未命名节点');set(row.el.querySelector('header small'),region(s.region).name);set(row.el.querySelector('.network-server-status'),live?'在线':'离线 · 保留历史');
-   const source=histories.get(s.id)||[];const sourceKey=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/30000),source]);if(row.sourceKey!==sourceKey){row.sourceKey=sourceKey;row.history=enabled?windowSamples(source,this.now,this.rangeMs):[];}const history=row.history;
+   const live=online(s);row.el.classList.toggle('offline',!live);set(row.el.querySelector('h3'),s.name||'未命名节点');set(row.el.querySelector('header small'),region(s.region).name);set(row.el.querySelector('.network-server-status'),live?'在线':'离线 · 保留历史');row.el.dataset.mobileCarrier=this.mobileCarrier;for(const key of lines){const button=row.tabs?.get(key);if(button){set(button,names[key]);button.setAttribute('aria-pressed',String(key===this.mobileCarrier));}}
+   const base=histories.get(s.id)||[],tickMs=this.live?5000:30000;
+   row.liveSnapshots??=[];
+   if(this.live&&live){
+    const tick=Math.floor(this.now/tickMs);
+    if(row.liveTick!==tick){
+     row.liveTick=tick;const snapshot={ts:this.now,loss:{}};let has=false;
+     for(const key of lines){if(valid(s['ping_'+key])){snapshot[key]=n(s['ping_'+key]);has=true;}if(valid(s['loss_'+key])){snapshot.loss[key]=n(s['loss_'+key]);has=true;}}
+     if(has)row.liveSnapshots.push(snapshot);
+     row.liveSnapshots=row.liveSnapshots.filter(p=>p.ts>=this.now-this.rangeMs-30000).slice(-90);
+    }
+   }else if(!this.live)row.liveSnapshots=[];
+   const source=this.live?[...base,...row.liveSnapshots]:base,sourceKey=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/tickMs),source]);if(row.sourceKey!==sourceKey){row.sourceKey=sourceKey;row.history=enabled?windowSamples(source,this.now,this.rangeMs):[];}const history=row.history;
    for(const c of row.cards){
     set(c.el.querySelector('.analysis-top span'),names[c.key]);set(c.el.querySelector('.analysis-top strong'),live?ping(s['ping_'+c.key]):'—');set(c.el.querySelector('.chart-note span:last-child'),'当前丢包 '+(live?loss(s['loss_'+c.key]):'—'));
     const samples=history.filter(p=>p[c.key]!==undefined||p.loss?.[c.key]!==undefined);
-    // CPU-only updates do not rebuild the other charts.
-    const signature=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/30000),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
+    // Live mode also keeps lightweight five-second page snapshots so the curve visibly moves.
+    const signature=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/tickMs),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
     const selectionKey=s.id+':'+c.key+':'+this.rangeMs;if(c.selectionKey!==selectionKey){c.selectionKey=selectionKey;c.pin=null;try{const saved=JSON.parse(sessionStorage.getItem('atlas-chart-v2:'+selectionKey)||'null');if(saved&&numeric(saved.ts)&&typeof saved.text==='string')c.pin=saved;}catch{}}
     if(!enabled){c.pin=null;try{sessionStorage.removeItem('atlas-chart-v2:'+c.selectionKey);}catch{}}
     if(c.signature===signature)continue;c.signature=signature;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=timeGroups(samples,c.key,this.now,this.rangeMs);this.draw(c,s.name||'未命名节点',names[c.key]);
@@ -99,23 +117,33 @@ export class NetworkCharts{
   for(const [id,row] of this.rows)if(!keep.has(id)){row.cards.forEach(c=>c.plot.destroy());row.el.remove();this.rows.delete(id);}
   document.querySelector('#network-empty').hidden=list.length>0;set(document.querySelector('#network-count'),list.length+' 台节点');
  }
- x(ts){return 30+Math.max(0,Math.min(1,(ts-(this.now-this.rangeMs))/this.rangeMs))*324;}
+ x(c,ts){const start=Number.isFinite(c.viewStart)?c.viewStart:this.now-this.rangeMs,end=Number.isFinite(c.viewEnd)?c.viewEnd:this.now,span=Math.max(1,end-start);return 30+Math.max(0,Math.min(1,(ts-start)/span))*324;}
+ timeAt(c,clientX,rect){const start=Number.isFinite(c.viewStart)?c.viewStart:this.now-this.rangeMs,end=Number.isFinite(c.viewEnd)?c.viewEnd:this.now,ratio=Math.max(0,Math.min(1,((clientX-rect.left)/rect.width*360-30)/324));return start+ratio*Math.max(1,end-start);}
  draw(c,serverName,name){
   c.inspecting=null;
   if(!c.points.length){c.inspecting=null;c.el.querySelector('.cursor').setAttribute('hidden','');}
-  const {el,key}=c,max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);
-  let previous=null;const geometry=[];for(const p of c.samples){if(!valid(p[key])){geometry.push(null);previous=null;continue;}if(previous&&p.ts-previous.ts>=Math.max(900000,this.rangeMs/40))geometry.push(null);geometry.push({ts:p.ts,x:this.x(p.ts),y:80-n(p[key])/max*68});previous=p;}c.plot.update(geometry,{animate:true});
+  const {el,key}=c,values=c.points.map(p=>n(p[key]));
+  c.viewEnd=this.now;c.viewStart=this.live&&c.samples.length?Math.min(this.now,c.samples[0].ts):this.now-this.rangeMs;
+  if(!Number.isFinite(c.viewStart))c.viewStart=this.now-this.rangeMs;
+  let min=0,max=Math.max(50,Math.ceil(Math.max(0,...values)/50)*50);
+  if(this.live&&values.length){
+   const rawMin=Math.min(...values),rawMax=Math.max(...values),span=rawMax-rawMin,pad=span<2?2:Math.max(1,span*.55);
+   min=Math.max(0,Math.floor(rawMin-pad));max=Math.ceil(rawMax+pad);
+   if(max-min<4){const mid=(max+min)/2;min=Math.max(0,Math.floor(mid-2));max=Math.ceil(mid+2);}
+  }
+  const y=value=>80-(n(value)-min)/Math.max(1,max-min)*68,gapLimit=this.live?Math.max(45000,this.rangeMs/7):Math.max(900000,this.rangeMs/40);
+  let previous=null;const geometry=[];for(const p of c.samples){if(!valid(p[key])){geometry.push(null);previous=null;continue;}if(previous&&p.ts-previous.ts>=gapLimit)geometry.push(null);geometry.push({ts:p.ts,x:this.x(c,p.ts),y:y(p[key])});previous=p;}c.plot.update(geometry,{animate:true});
   // Reuse a single path for all loss marks instead of recreating a rect per sample.
   const dots=el.querySelector('.samples');dots.replaceChildren();
-  if(c.points.length===1){const p=c.points[0],dot=document.createElementNS(svgNS,'circle');attr(dot,'cx',this.x(p.ts));attr(dot,'cy',80-n(p[key])/max*68);attr(dot,'r',2);attr(dot,'class','sample-dot');dots.append(dot);}
+  if(c.points.length===1){const p=c.points[0],dot=document.createElementNS(svgNS,'circle');attr(dot,'cx',this.x(c,p.ts));attr(dot,'cy',y(p[key]));attr(dot,'r',2);attr(dot,'class','sample-dot');dots.append(dot);}
   if(!c.lossPath){c.lossPath=document.createElementNS(svgNS,'path');attr(c.lossPath,'class','loss-mark');el.querySelector('.losses').append(c.lossPath);}
-  attr(c.lossPath,'d',c.samples.filter(p=>valid(p.loss?.[key])&&n(p.loss[key])>0).map(p=>'M'+this.x(p.ts).toFixed(1)+' 85h2v5h-2z').join(' '));
-  set(el.querySelector('.axis-max'),max);set(el.querySelector('.axis-start'),time(this.now-this.rangeMs));set(el.querySelector('.axis-end'),time(this.now));attr(c.svg,'aria-label',`${serverName} · ${name}延迟，单位毫秒，${c.points.length}个采样；方向键查看`);
+  attr(c.lossPath,'d',c.samples.filter(p=>valid(p.loss?.[key])&&n(p.loss[key])>0).map(p=>'M'+this.x(c,p.ts).toFixed(1)+' 85h2v5h-2z').join(' '));
+  set(el.querySelector('.axis-max'),max);set(el.querySelector('.axis-min'),min);set(el.querySelector('.axis-start'),time(c.viewStart));set(el.querySelector('.axis-end'),time(c.viewEnd));attr(c.svg,'aria-label',`${serverName} · ${name}延迟，单位毫秒，纵轴 ${min}–${max}，${c.points.length}个采样；方向键查看`);
   c.tracker.style.gridTemplateColumns=`repeat(${Math.max(1,c.groups.length)},minmax(0,1fr))`;
   while(c.buttons.length>c.groups.length)c.buttons.pop().remove();
   while(c.buttons.length<c.groups.length){const b=document.createElement('button'),i=c.buttons.length;b.type='button';b.addEventListener('click',()=>{const group=c.groups[i];const p=group?.samples.reduce((best,p)=>!best||n(p.loss?.[c.key])>n(best.loss?.[c.key])||(n(p.loss?.[c.key])===n(best.loss?.[c.key])&&n(p[c.key])>n(best[c.key]))?p:best,null);if(p&&valid(p[c.key]))this.inspect(c,p.ts,true);else if(group){c.pin={ts:(group.start+group.end)/2,value:null,text:time(group.start)+' · '+(group.samples.length?'仅丢包数据 · '+loss(group.maxLoss):'无数据')};try{sessionStorage.setItem('atlas-chart-v2:'+c.selectionKey,JSON.stringify(c.pin));}catch{}this.restoreInspection(c);}});c.buttons.push(b);c.tracker.append(b);}
   c.groups.forEach((group,i)=>{const b=c.buttons[i];b.className=group.state;const title=time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+group.samples.length+' 次采样 · '+statusNames[group.state];attr(b,'title',title);attr(b,'aria-label',title);});
-  set(el.querySelector('.chart-note span'),!this.enabled?'历史未公开':!c.samples.length?'暂无历史采样':c.samples.length+' 次采样 · '+c.groups.length+' 段'+(c.samples.length>24?'（保留异常）':''));
+  set(el.querySelector('.chart-note span'),!this.enabled?'历史未公开':!c.samples.length?'暂无历史采样':c.samples.length+(this.live?' 次页面快照 · ':' 次采样 · ')+c.groups.length+' 段'+(c.samples.length>24?'（保留异常）':''));
   this.restoreInspection(c);
  }
  inspectGroup(c){
@@ -125,14 +153,14 @@ export class NetworkCharts{
  clearPin(c){c.pin=null;c.inspecting=null;try{sessionStorage.removeItem('atlas-chart-v2:'+c.selectionKey);}catch{}this.restoreInspection(c);}
  restoreInspection(c){
   c.el.querySelector('.chart-resume').hidden=!c.pin;
-  if(c.pin){const cursor=c.el.querySelector('.cursor');if(c.pin.ts>=this.now-this.rangeMs&&c.pin.ts<=this.now){cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(c.pin.ts)} 12V83`);}else cursor.setAttribute('hidden','');set(c.tip,'已锁定 · '+c.pin.text);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',c.pin.ts>=g.start&&c.pin.ts<=g.end));}
+  if(c.pin){const cursor=c.el.querySelector('.cursor');if(c.pin.ts>=(c.viewStart??this.now-this.rangeMs)&&c.pin.ts<=(c.viewEnd??this.now)){cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(c,c.pin.ts)} 12V83`);}else cursor.setAttribute('hidden','');set(c.tip,'已锁定 · '+c.pin.text);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',c.pin.ts>=g.start&&c.pin.ts<=g.end));}
   else{c.el.querySelector('.cursor').setAttribute('hidden','');this.inspectGroup(c);}
  }
  inspect(c,ts,lock=false){
   const p=nearestPoint(c.points,ts);if(!p||(!lock&&c.inspecting===p.ts))return;c.inspecting=p.ts;
   const text=`${time(p.ts)} · ${ping(p[c.key])} · 丢包 ${loss(p.loss?.[c.key])}`;
   if(lock){c.pin={ts:p.ts,value:p[c.key],text};try{sessionStorage.setItem('atlas-chart-v2:'+c.selectionKey,JSON.stringify(c.pin));}catch{}this.restoreInspection(c);return;}
-  const cursor=c.el.querySelector('.cursor');cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(p.ts)} 12V83`);set(c.tip,text);
+  const cursor=c.el.querySelector('.cursor');cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(c,p.ts)} 12V83`);set(c.tip,text);
  }
 }
 
