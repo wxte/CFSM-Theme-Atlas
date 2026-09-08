@@ -282,3 +282,313 @@ html[data-theme=dark]{
   .node-row,.network-server,.detail-cell .detail-button::before{transition:none!important}
   .node-row:hover{transform:none!important}
 }
+
+/* v0.3.19 — stacked shell + Catalyst-like navigation, badges and segmented controls.
+   Keep the independent v0.3.18 node surfaces and the dense HomeDash information layout. */
+:root{
+  --atlas-control-bg:color-mix(in srgb,var(--soft) 82%,var(--panel));
+  --atlas-control-border:color-mix(in srgb,var(--line) 88%,var(--panel));
+  --atlas-control-shadow:0 1px 1px rgba(15,23,42,.035);
+  --atlas-badge-online-bg:color-mix(in srgb,var(--signal) 10%,var(--panel));
+  --atlas-badge-online-border:color-mix(in srgb,var(--signal) 24%,var(--line));
+  --atlas-badge-offline-bg:color-mix(in srgb,var(--bad) 9%,var(--panel));
+  --atlas-badge-offline-border:color-mix(in srgb,var(--bad) 22%,var(--line));
+}
+html[data-theme=dark]{
+  --atlas-control-shadow:0 1px 1px rgba(0,0,0,.16);
+  --atlas-badge-online-bg:color-mix(in srgb,var(--signal) 9%,var(--panel));
+  --atlas-badge-offline-bg:color-mix(in srgb,var(--bad) 10%,var(--panel));
+}
+
+/* Shared control language. */
+.status-filter,
+.network-explainer [role=group][aria-label="网络历史范围"]{
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  padding:2px;
+  border:1px solid var(--atlas-control-border);
+  border-radius:9px;
+  background:var(--atlas-control-bg);
+  box-shadow:var(--atlas-control-shadow);
+}
+.status-filter button,
+.network-explainer [role=group][aria-label="网络历史范围"] button{
+  min-height:29px;
+  padding:5px 9px!important;
+  border:0!important;
+  border-radius:6px!important;
+  background:transparent!important;
+  color:var(--muted);
+  box-shadow:none!important;
+  font-size:11.5px;
+  line-height:1.2;
+}
+.status-filter button:hover,
+.network-explainer [role=group][aria-label="网络历史范围"] button:hover{
+  color:var(--text);
+  background:color-mix(in srgb,var(--panel) 70%,transparent)!important;
+}
+.status-filter button[aria-pressed=true],
+.network-explainer [role=group][aria-label="网络历史范围"] button[aria-pressed=true]{
+  background:var(--panel)!important;
+  color:var(--text)!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.07),inset 0 0 0 1px color-mix(in srgb,var(--line) 82%,transparent)!important;
+}
+html[data-theme=dark] .status-filter button[aria-pressed=true],
+html[data-theme=dark] .network-explainer [role=group][aria-label="网络历史范围"] button[aria-pressed=true]{
+  box-shadow:0 1px 2px rgba(0,0,0,.22),inset 0 0 0 1px color-mix(in srgb,var(--line) 90%,transparent)!important;
+}
+.status-filter .status-dot{box-shadow:none!important;width:5px!important;height:5px!important;margin:0 5px 0 1px!important}
+
+/* Filters are chips, not a second segmented navigation row. */
+.quick-filters button,
+.active-filters button,
+#clear-region{
+  min-height:30px;
+  border:1px solid var(--atlas-control-border)!important;
+  border-radius:7px!important;
+  background:var(--panel)!important;
+  color:var(--muted);
+  box-shadow:var(--atlas-control-shadow);
+}
+.quick-filters button:hover,#clear-region:hover{color:var(--text);border-color:color-mix(in srgb,var(--line) 55%,var(--muted))!important}
+.quick-filters button[aria-pressed=true],
+.active-filters button{
+  color:var(--accent)!important;
+  border-color:color-mix(in srgb,var(--accent) 24%,var(--line))!important;
+  background:color-mix(in srgb,var(--tint) 68%,var(--panel))!important;
+  box-shadow:none!important;
+}
+.quick-filters small{color:color-mix(in srgb,var(--muted) 86%,transparent)}
+
+/* Search/select controls follow the same quiet inset treatment. */
+.table-toolbar .search,
+.activity-toolbar .search{
+  border-color:var(--atlas-control-border)!important;
+  background:color-mix(in srgb,var(--soft) 56%,var(--panel));
+  box-shadow:inset 0 1px 1px rgba(15,23,42,.018);
+  transition:border-color .14s ease,background-color .14s ease,box-shadow .14s ease;
+}
+.table-toolbar .search:focus-within,
+.activity-toolbar .search:focus-within{
+  border-color:color-mix(in srgb,var(--accent) 48%,var(--line))!important;
+  background:var(--panel);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 9%,transparent);
+}
+.table-toolbar select,.activity-toolbar select{
+  border-color:var(--atlas-control-border)!important;
+  background-color:var(--panel);
+  box-shadow:var(--atlas-control-shadow);
+}
+
+/* Status / region badges: use them only where they improve scanability. */
+@media(min-width:801px){
+  .status-cell{
+    gap:5px!important;
+    width:max-content;
+    min-width:0;
+    padding:4px 7px 4px 5px;
+    border:1px solid var(--atlas-badge-online-border);
+    border-radius:999px;
+    background:var(--atlas-badge-online-bg);
+    color:color-mix(in srgb,var(--accent) 82%,var(--text));
+    font-size:10.5px!important;
+    line-height:1;
+  }
+  .status-cell .status-dot{width:5px!important;height:5px!important;margin:0 2px 0 0!important;box-shadow:none!important}
+  .offline .status-cell{
+    border-color:var(--atlas-badge-offline-border);
+    background:var(--atlas-badge-offline-bg);
+    color:var(--bad);
+  }
+  .node-region{
+    width:max-content;
+    max-width:100%;
+    gap:6px!important;
+    padding:4px 7px;
+    border:1px solid var(--atlas-control-border);
+    border-radius:7px;
+    background:color-mix(in srgb,var(--soft) 58%,var(--panel));
+    color:var(--muted);
+    line-height:1;
+  }
+  .node-region .flag{width:20px;height:14px}
+
+  .network-server-status{
+    display:inline-flex;
+    align-items:center;
+    min-height:23px;
+    padding:3px 7px;
+    border:1px solid var(--atlas-badge-online-border);
+    border-radius:999px;
+    background:var(--atlas-badge-online-bg);
+    color:color-mix(in srgb,var(--accent) 80%,var(--text));
+    font-size:10.5px;
+    line-height:1;
+  }
+  .network-server.offline .network-server-status{
+    border-color:var(--atlas-badge-offline-border);
+    background:var(--atlas-badge-offline-bg);
+    color:var(--bad);
+  }
+  .live-label{
+    padding:4px 8px 4px 5px;
+    border:1px solid var(--atlas-badge-online-border);
+    border-radius:999px;
+    background:var(--atlas-badge-online-bg);
+  }
+  .live-label .status-dot{width:5px;height:5px;margin:0 3px 0 0;box-shadow:none}
+}
+
+/* Stacked desktop shell: compact top row, then a distinct navigation row. */
+@media(min-width:801px){
+  .masthead{
+    box-shadow:0 1px 0 color-mix(in srgb,var(--line) 82%,transparent);
+  }
+  .header-inner{
+    min-height:92px!important;
+    padding-top:11px!important;
+    align-content:start;
+  }
+  .brand{font-size:21px;letter-spacing:-.45px}
+  .atlas-mark{width:28px;height:28px}
+  .brand-subtitle{
+    margin-left:13px!important;
+    padding-left:13px!important;
+    color:color-mix(in srgb,var(--muted) 84%,transparent);
+    font-size:10.5px!important;
+    letter-spacing:.02em;
+  }
+  .header-actions{gap:6px!important}
+  .header-actions .icon-button{
+    width:31px!important;
+    height:31px!important;
+    border:1px solid transparent!important;
+    border-radius:7px!important;
+    background:transparent!important;
+    color:var(--muted);
+    transition:color .14s ease,background-color .14s ease,border-color .14s ease;
+  }
+  .header-actions .icon-button:hover{
+    color:var(--text);
+    border-color:var(--atlas-control-border)!important;
+    background:var(--atlas-control-bg)!important;
+  }
+  #connection{
+    display:inline-flex;
+    align-items:center;
+    min-height:27px;
+    margin-right:4px!important;
+    padding:3px 8px;
+    border:1px solid color-mix(in srgb,var(--warn) 22%,var(--line));
+    border-radius:999px;
+    background:color-mix(in srgb,var(--warn) 7%,var(--panel));
+    color:var(--warn);
+    font-size:10.5px!important;
+    line-height:1;
+  }
+  #connection:before{width:5px!important;height:5px!important;margin-right:6px!important;box-shadow:none!important}
+  #connection.live{
+    border-color:var(--atlas-badge-online-border);
+    background:var(--atlas-badge-online-bg);
+    color:color-mix(in srgb,var(--accent) 80%,var(--text));
+  }
+  .admin-link{
+    display:inline-flex;
+    align-items:center;
+    min-height:31px;
+    margin-left:2px!important;
+    padding:0 9px;
+    border:1px solid var(--atlas-control-border);
+    border-radius:7px;
+    background:var(--panel);
+    color:var(--muted);
+    box-shadow:var(--atlas-control-shadow);
+    transition:color .14s ease,border-color .14s ease,background-color .14s ease;
+  }
+  .admin-link:hover{color:var(--text);border-color:color-mix(in srgb,var(--line) 55%,var(--muted));background:var(--soft)}
+
+  nav{
+    gap:3px!important;
+    width:auto!important;
+    margin-top:9px!important;
+    padding:2px;
+    border:1px solid var(--atlas-control-border);
+    border-radius:9px;
+    background:var(--atlas-control-bg);
+    box-shadow:var(--atlas-control-shadow);
+  }
+  nav a{
+    padding:6px 11px!important;
+    border:0!important;
+    border-radius:6px;
+    color:var(--muted)!important;
+    font-size:11.5px!important;
+    line-height:1.25;
+    transition:color .14s ease,background-color .14s ease,box-shadow .14s ease;
+  }
+  nav a:hover{color:var(--text)!important;background:color-mix(in srgb,var(--panel) 58%,transparent)}
+  nav a.active{
+    color:var(--text)!important;
+    background:var(--panel)!important;
+    box-shadow:0 1px 2px rgba(15,23,42,.07),inset 0 0 0 1px color-mix(in srgb,var(--line) 82%,transparent);
+  }
+  html[data-theme=dark] nav a.active{box-shadow:0 1px 2px rgba(0,0,0,.22),inset 0 0 0 1px color-mix(in srgb,var(--line) 90%,transparent)}
+
+  .page-heading{padding-top:18px!important;padding-bottom:13px!important}
+  .page-heading h1{font-size:20px;letter-spacing:-.25px}
+  .section-heading h2{letter-spacing:-.15px}
+}
+
+/* Network legend becomes a compact status key instead of a loose sentence row. */
+.tracker-key{gap:5px 8px!important}
+.tracker-key span{
+  display:inline-flex;
+  align-items:center;
+  min-height:23px;
+  padding:3px 7px;
+  border:1px solid var(--atlas-control-border);
+  border-radius:999px;
+  background:color-mix(in srgb,var(--soft) 58%,var(--panel));
+  color:var(--muted);
+  white-space:nowrap;
+}
+.tracker-key span:before{margin-right:5px!important;width:5px!important;height:5px!important;border-radius:50%!important}
+
+/* Mobile keeps the proven compact composition, but shares the refined segmented controls. */
+@media(max-width:800px){
+  .status-filter{gap:1px;padding:2px;border-radius:8px}
+  .status-filter button{min-height:27px;padding:4px 7px!important;font-size:10px}
+  .network-explainer [role=group][aria-label="网络历史范围"]{gap:1px;padding:2px;border-radius:8px}
+  .network-explainer [role=group][aria-label="网络历史范围"] button{min-height:27px;padding:4px 7px!important;font-size:10px}
+  .quick-filters button,.active-filters button,#clear-region{min-height:27px}
+  .tracker-key span{min-height:21px;padding:2px 6px;font-size:9px}
+}
+
+@media(max-width:700px){
+  .network-mobile-tabs{
+    gap:2px!important;
+    padding:5px 8px!important;
+    background:var(--atlas-control-bg)!important;
+  }
+  .network-mobile-tabs button{
+    min-height:27px;
+    border:0!important;
+    border-radius:6px!important;
+    background:transparent!important;
+    color:var(--muted)!important;
+    box-shadow:none!important;
+  }
+  .network-mobile-tabs button[aria-pressed=true]{
+    background:var(--panel)!important;
+    color:var(--text)!important;
+    box-shadow:0 1px 2px rgba(15,23,42,.07),inset 0 0 0 1px color-mix(in srgb,var(--line) 82%,transparent)!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  nav a,.header-actions .icon-button,.admin-link,.table-toolbar .search,.activity-toolbar .search,
+  .status-filter button,.network-explainer [role=group][aria-label="网络历史范围"] button,
+  .quick-filters button{transition:none!important}
+}

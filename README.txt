@@ -1,14 +1,16 @@
-WXT Atlas v0.3.18 desktop surface refresh
+WXT Atlas v0.3.19 — stacked shell + Catalyst controls
 
-直接覆盖：
+覆盖文件：
 - index.html
 - assets/polish.css
 
-其余 assets/*.js 是 v0.3.17 当前曲线/实时逻辑的完整副本，方便整包覆盖时保持一致。
+其余 v0.3.17 JS 文件随包保留，功能不变。
 
-本版重点：
-1. 桌面端概览/节点页服务器恢复为独立圆角卡片，不再全部粘成一张长表。
-2. 手机端节点布局不改。
-3. 详情继续卡片内展开，不恢复弹窗/抽屉。
-4. 详情趋势图做成轻量 inset surfaces；系统/账单信息改成 Catalyst 风格 description list。
-5. KPI、网络服务器卡片、控件圆角/边框/阴影统一到更克制的 Vercel/Catalyst 视觉语言。
+本版：
+- 桌面顶部改为更紧凑的 stacked shell
+- 主导航统一成 Catalyst 风格 segmented navigation
+- LIVE/在线/地区/网络状态使用克制 badge
+- 节点状态、网络时间范围、手机三网切换统一交互语言
+- 搜索/排序/快捷筛选统一控件边框与 focus 状态
+- 网络图例压成状态 chips
+- 保留 v0.3.18 独立服务器卡片和手机端布局
