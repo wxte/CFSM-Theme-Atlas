@@ -14,7 +14,7 @@ const svg={
  chart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg>'
 };
 
-document.documentElement.dataset.atlasEnhanced='0.3.6';
+document.documentElement.dataset.atlasEnhanced='0.3.7';
 
 /* ---------- Toasts ---------- */
 const toastHost=document.createElement('div');
@@ -60,7 +60,6 @@ function staticCommands(){return [
  {title:'跳到网络',meta:'页面',keywords:'network latency ping',icon:svg.arrow,run:()=>navigate('#network')},
  {title:'刷新节点数据',meta:'操作',keywords:'refresh reload',icon:svg.refresh,run:()=>clickSelector('#refresh')},
  {title:'切换明暗主题',meta:'外观',keywords:'theme dark light 夜间 日间',icon:svg.moon,run:()=>clickSelector('#theme')},
- {title:'切换动态效果',meta:'外观',keywords:'motion 动画 reduced',icon:svg.activity,run:()=>clickSelector('#motion-toggle')},
  {title:'查看最近活动',meta:'观测',keywords:'activity event 活动',icon:svg.activity,run:()=>clickSelector('#activity-toggle')},
  {title:'只看在线节点',meta:'筛选',keywords:'online',icon:svg.filter,run:()=>{clickSelector('[data-status="online"]');navigate('#nodes');}},
  {title:'只看离线节点',meta:'筛选',keywords:'offline',icon:svg.filter,run:()=>{clickSelector('[data-status="offline"]');navigate('#nodes');}},

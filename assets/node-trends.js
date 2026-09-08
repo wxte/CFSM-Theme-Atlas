@@ -1,3 +1,4 @@
+import {Plot,plotPaths} from './plot.js?v=0.3.7';
 import {numeric,n,bytes} from './data.js?v=0.3.6';
 import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.6';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
@@ -11,13 +12,11 @@ export function recordResources(id,ts,metrics){
  if(points.at(-1)?.ts===point.ts)Object.assign(points.at(-1),point);else points.push(point);
  state.resources=points.slice(-60);state.resourceVersion=(state.resourceVersion||0)+1;scheduleSave();
 }
-export function sparkPath(points,key,scale){
- const valid=points.filter(p=>numeric(p[key])&&n(p[key])>=0);if(valid.length<2)return '';
- const max=scale||(key==='cpu'?Math.max(100,...valid.map(p=>n(p[key]))):Math.max(1024,...valid.map(p=>n(p[key]))));let previous=null;
- return points.map((p,i)=>{if(!numeric(p[key])||n(p[key])<0){previous=null;return '';}
- const command=previous&&p.ts-previous.ts<=300000?'L':'M';previous=p;
- return `${command}${(2+(60-points.length+i)/59*116).toFixed(2)},${(30-Math.min(max,n(p[key]))/max*26).toFixed(2)}`;}).join(' ');
+export function sparkPoints(points,key,scale){
+ const max=scale||(key==='cpu'?100:Math.max(1024,...points.map(p=>n(p[key]))));let previous=null;const result=[];
+ points.forEach((p,i)=>{if(!numeric(p[key])||n(p[key])<0){result.push(null);previous=null;return;}if(previous&&p.ts-previous.ts>300000)result.push(null);result.push({ts:p.ts,x:2+(60-points.length+i)/59*116,y:30-Math.min(max,n(p[key]))/max*26});previous=p;});return result;
 }
+export function sparkPath(points,key,scale){if(points.filter(p=>numeric(p[key])&&n(p[key])>=0).length<2)return '';return plotPaths(sparkPoints(points,key,scale)).line;}
 export function recentSamples(history){const exact=new Map();for(const p of history)if(Number.isFinite(p?.ts)){const old=exact.get(p.ts)||{};const point={...old,ts:p.ts,loss:{...old.loss}};for(const k of ['cu','ct','cm','bd']){if(p[k]!==undefined)point[k]=p[k];if(p.loss?.[k]!==undefined)point.loss[k]=p.loss[k];}exact.set(p.ts,point);}return [...exact.values()].sort((a,b)=>a.ts-b.ts).slice(-60);}
 export function sampleState(p){
  const pairs=['cu','ct','cm'].map(k=>[p[k],p.loss?.[k]]);
@@ -45,12 +44,13 @@ export function renderTrendBox(box,id){
  if(!box.querySelector('.node-sample-track')){
   box.innerHTML='<div class="node-sparks"></div><div class="node-sample-track" role="slider" tabindex="0" aria-label="最近60次网络采样；方向键查看，Esc返回实时" aria-valuemin="1" aria-valuemax="60" aria-valuenow="60"></div><small class="node-sample-note"></small><button class="trend-live" type="button" hidden>返回实时</button>';
   const row=box.querySelector('.node-sparks');
-  for(const [key,label] of [['cpu','CPU'],['net_in_speed','↓ 下行'],['net_out_speed','↑ 上行']]){const el=document.createElement('span');el.className='node-spark';el.dataset.metric=key;el.innerHTML='<small></small><svg viewBox="0 0 120 34" role="img" preserveAspectRatio="none"><path class="spark-baseline" d="M2 30H118"/><path class="spark-series"/></svg>';el.firstChild.textContent=label;row.append(el);}
+  for(const [key,label] of [['cpu','CPU'],['net_in_speed','↓ 下行'],['net_out_speed','↑ 上行']]){const el=document.createElement('span');el.className='node-spark';el.dataset.metric=key;el.innerHTML='<small></small><strong class="spark-value">—</strong><svg viewBox="0 0 120 34" role="img" preserveAspectRatio="none"><path class="spark-baseline" d="M2 30H118"/><path class="spark-series"/></svg>';el.firstChild.textContent=label;row.append(el);el.plot=new Plot(el.querySelector('svg'),el.querySelector('.spark-series'));}
   const track=box.querySelector('.node-sample-track');for(let i=0;i<60;i++)track.append(document.createElement('span'));
  }
  const resourceKey=String(store.resourceVersion||0);if(box.dataset.resourceVersion!==resourceKey){box.dataset.resourceVersion=resourceKey;
  const rateMax=Math.max(1024,...points.flatMap(p=>[n(p.net_in_speed),n(p.net_out_speed)]));
- for(const key of keys){const el=box.querySelector(`[data-metric="${key}"]`),path=sparkPath(points,key,key==='cpu'?100:rateMax);el.querySelector('.spark-series').setAttribute('d',path);const label=(key==='cpu'?'CPU 0–100%':(key==='net_in_speed'?'下行':'上行')+' 0–'+bytes(rateMax,true))+' · 最近60次资源上报'+(path?'':' · 等待两次有效上报');el.title=label;el.querySelector('svg').setAttribute('aria-label',label);}
+ for(const key of keys){const el=box.querySelector(`[data-metric="${key}"]`),scale=key==='cpu'?100:rateMax;el.plot.update(sparkPoints(points,key,scale));const latest=points.at(-1)?.[key];el.querySelector('.spark-value').textContent=numeric(latest)?key==='cpu'?n(latest).toFixed(1)+'%':bytes(latest,true):'—';const label=(key==='cpu'?'CPU 0–100%':(key==='net_in_speed'?'下行':'上行')+' 0–'+bytes(rateMax,true))+' · 最近 '+points.length+' 次上报';el.title=label;el.querySelector('svg').setAttribute('aria-label',label);}
+
  }
  const selected=selections.get(id),networkKey=[store.networkVersion||0,enabled,selected?.ts??''].join(':');if(box.dataset.networkVersion===networkKey)return;box.dataset.networkVersion=networkKey;
  const track=box.querySelector('.node-sample-track');

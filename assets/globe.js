@@ -2,7 +2,7 @@ import {coordinate,region,online,bytes,ping} from './data.js?v=0.3.6';
 import {placeLabel} from './map-layout.js?v=0.3.6';
 const $=s=>document.querySelector(s);
 export class NodeMap{
- constructor(onRegion){this.onRegion=onRegion;this.servers=[];this.options={};this.groups=[];this.labels=new Map();this.phi=0;this.theta=.2;this.pending=0;this.signature='';this.dirty=true;this.hoverKey=null;this.active=true;this.mode='auto';this.reduced=false;this.inView=typeof IntersectionObserver==='undefined';this.readyToInit=false;this.mobile=matchMedia('(max-width:800px)').matches;
+ constructor(onRegion){this.onRegion=onRegion;this.servers=[];this.options={};this.groups=[];this.labels=new Map();this.phi=0;this.theta=.2;this.pending=0;this.signature='';this.dirty=true;this.hoverKey=null;this.active=true;this.mode='auto';this.inView=typeof IntersectionObserver==='undefined';this.readyToInit=false;this.mobile=matchMedia('(max-width:800px)').matches;
   const canvas=$('#globe');
   canvas.addEventListener('pointerdown',e=>{this.drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
   canvas.addEventListener('pointermove',e=>{if(!this.drag)return;this.phi+=(e.clientX-this.drag.x)*.008;this.theta=Math.max(-1.2,Math.min(1.2,this.theta+(e.clientY-this.drag.y)*.005));this.drag={x:e.clientX,y:e.clientY};this.requestDraw();});
@@ -12,7 +12,7 @@ export class NodeMap{
   new ResizeObserver(()=>{for(const button of this.labels.values()){button._width=0;button._height=0;}this.requestDraw();}).observe($('#map-stage'));
   if(typeof IntersectionObserver!=='undefined')new IntersectionObserver(entries=>{this.inView=entries[0].isIntersecting;if(this.inView)this.requestDraw();},{threshold:0}).observe($('#map-stage'));
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  this.rotation=setInterval(()=>{if(this.mode!=='auto'||this.reduced||!this.active||!this.inView||document.hidden||this.drag||this.hoverKey||this.failed||!this.globe||reduced.matches||Date.now()<this.pauseUntil)return;this.phi+=.0048;this.requestDraw();},80);
+  this.rotation=setInterval(()=>{if(this.mode!=='auto'||!this.active||!this.inView||document.hidden||this.drag||this.hoverKey||this.failed||!this.globe||reduced.matches||Date.now()<this.pauseUntil)return;this.phi+=.0048;this.requestDraw();},80);
   addEventListener('pagehide',()=>{clearInterval(this.rotation);this.globe?.destroy();});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)this.requestDraw();});
  }

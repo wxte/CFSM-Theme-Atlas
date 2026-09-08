@@ -1,3 +1,4 @@
+import {Plot} from './plot.js?v=0.3.7';
 import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.6';
 export const lines=['cu','ct','cm'];
 const historyLines=[...lines,'bd'],windowMs=7200000;
@@ -61,7 +62,7 @@ export class NetworkCharts{
   const el=document.createElement('article');el.className='analysis-card';el.dataset.chart=key;
   el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text" x="10" y="83">0</text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">点选查看 · 方向键切换</div>';
   const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,signature:null,buttons:[]};
-  c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');
+  c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');c.plot=new Plot(c.svg,c.path,{baseline:80,smooth:false});
   c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.now-this.rangeMs+Math.max(0,Math.min(1,((e.clientX-r.left)/r.width*360-30)/324))*this.rangeMs);});
   c.svg.addEventListener('pointerleave',()=>{c.inspecting=null;this.restoreInspection(c);});
   c.tracker.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=c.buttons.indexOf(document.activeElement);const next=e.key==='Home'?0:e.key==='End'?c.buttons.length-1:Math.max(0,Math.min(c.buttons.length-1,i+(e.key==='ArrowLeft'?-1:1)));c.buttons[next]?.focus();c.buttons[next]?.click();});
@@ -95,7 +96,7 @@ export class NetworkCharts{
     if(c.signature===signature)continue;c.signature=signature;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=timeGroups(samples,c.key,this.now,this.rangeMs);this.draw(c,s.name||'未命名节点',names[c.key]);
    }
   }
-  for(const [id,row] of this.rows)if(!keep.has(id)){row.el.remove();this.rows.delete(id);}
+  for(const [id,row] of this.rows)if(!keep.has(id)){row.cards.forEach(c=>c.plot.destroy());row.el.remove();this.rows.delete(id);}
   document.querySelector('#network-empty').hidden=list.length>0;set(document.querySelector('#network-count'),list.length+' 台节点');
  }
  x(ts){return 30+Math.max(0,Math.min(1,(ts-(this.now-this.rangeMs))/this.rangeMs))*324;}
@@ -103,7 +104,7 @@ export class NetworkCharts{
   c.inspecting=null;
   if(!c.points.length){c.inspecting=null;c.el.querySelector('.cursor').setAttribute('hidden','');}
   const {el,key}=c,max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);
-  let previous=null;const path=[];for(const p of c.samples){if(!valid(p[key])){previous=null;continue;}path.push(`${previous&&p.ts-previous.ts<Math.max(900000,this.rangeMs/40)?'L':'M'}${this.x(p.ts).toFixed(1)},${(80-n(p[key])/max*68).toFixed(1)}`);previous=p;}attr(c.path,'d',path.join(' '));
+  let previous=null;const geometry=[];for(const p of c.samples){if(!valid(p[key])){geometry.push(null);previous=null;continue;}if(previous&&p.ts-previous.ts>=Math.max(900000,this.rangeMs/40))geometry.push(null);geometry.push({ts:p.ts,x:this.x(p.ts),y:80-n(p[key])/max*68});previous=p;}c.plot.update(geometry,{animate:false});
   // Reuse a single path for all loss marks instead of recreating a rect per sample.
   const dots=el.querySelector('.samples');dots.replaceChildren();
   if(c.points.length===1){const p=c.points[0],dot=document.createElementNS(svgNS,'circle');attr(dot,'cx',this.x(p.ts));attr(dot,'cy',80-n(p[key])/max*68);attr(dot,'r',2);attr(dot,'class','sample-dot');dots.append(dot);}

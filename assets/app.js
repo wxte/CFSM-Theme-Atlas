@@ -1,11 +1,11 @@
 import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.6';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.6';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.7';
 import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.6';
 import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.6';
 import {flag} from './flags.js?v=0.3.6';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.6';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.7';
 import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
-import {NodeMap} from './globe.js?v=0.3.6';
+import {NodeMap} from './globe.js?v=0.3.7';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -92,7 +92,7 @@ function updateRow(s){
   const row=state.rows.get(s.id);if(!row)return;const live=online(s),r=region(s.region);row.classList.toggle('offline',!live);row.querySelector('.status-cell').setAttribute('aria-label',live?'在线':'离线');
   const quotaCell=row.querySelector('.transfer-cell');
   let quotaTrack=quotaCell.querySelector('.quota-track'),quotaNote=quotaCell.querySelector('[data-field="traffic-remaining"]');
-  if(!quotaTrack){quotaTrack=document.createElement('div');quotaTrack.className='quota-track';quotaTrack.setAttribute('role','progressbar');quotaTrack.setAttribute('aria-label','本月流量已用比例');quotaTrack.setAttribute('aria-valuemin','0');quotaTrack.setAttribute('aria-valuemax','100');const fill=document.createElement('b');quotaTrack.append(fill);quotaNote=document.createElement('small');quotaNote.className='quota-remaining';quotaNote.dataset.field='traffic-remaining';quotaCell.append(quotaTrack,quotaNote);row.fields['traffic-remaining']=quotaNote;}
+  if(!quotaTrack){quotaTrack=document.createElement('div');quotaTrack.className='quota-track';quotaTrack.setAttribute('role','progressbar');quotaTrack.setAttribute('aria-label','本周期流量已用比例');quotaTrack.setAttribute('aria-valuemin','0');quotaTrack.setAttribute('aria-valuemax','100');const fill=document.createElement('b');quotaTrack.append(fill);quotaNote=document.createElement('small');quotaNote.className='quota-remaining';quotaNote.dataset.field='traffic-remaining';quotaCell.append(quotaTrack,quotaNote);row.fields['traffic-remaining']=quotaNote;}
   renderNodeTrends(row,s,state.history.get(s.id)||[],allowed('show_three_net_details'));
   const f=(key,value)=>set(row.fields[key],value);
   f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
@@ -191,13 +191,12 @@ function connect(){
   ws.onclose=()=>{clearTimeout(timeout);clearInterval(state.heartbeat);if(state.ws===ws)state.ws=null;reconnect();};ws.onerror=()=>ws.close();
 }
 function reconnect(){if(state.stopped||document.hidden||state.retry)return;connection('重连中 · 定时刷新');state.retry=setTimeout(()=>{state.retry=null;connect();},Math.min(30000,1000*2**Math.min(state.attempt++,5)));}
-const settings={appearance:'system',globe:'auto',motion:'normal'};try{Object.assign(settings,JSON.parse(localStorage.getItem('wxt-atlas-settings')||'{}'));}catch{}
+const settings={appearance:'system',globe:'auto'};try{const saved=JSON.parse(localStorage.getItem('wxt-atlas-settings')||'{}');for(const key of ['appearance','globe'])if(saved[key])settings[key]=saved[key];}catch{}
 const systemTheme=matchMedia('(prefers-color-scheme: dark)');
-function applySettings(){const theme=settings.appearance==='system'?(systemTheme.matches?'dark':'light'):settings.appearance==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;document.documentElement.dataset.motion=settings.motion;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#15191d':'#ffffff';$('#theme').innerHTML=theme==='dark'?icons.sun:icons.moon;$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');$('#theme').title=theme==='dark'?'切换日间主题':'切换夜间主题';const reduced=settings.motion==='reduced';$('#motion-toggle').innerHTML=icons.spark;$('#motion-toggle').setAttribute('aria-pressed',String(reduced));$('#motion-toggle').setAttribute('aria-label',reduced?'启用动态效果':'减少动态效果');$('#motion-toggle').title=reduced?'启用动态效果':'减少动态效果';map.mode=settings.globe;map.reduced=reduced;$('.map-panel').hidden=settings.globe==='off';$('.observatory').classList.toggle('no-globe',settings.globe==='off');map.requestDraw();}
+function applySettings(){const theme=settings.appearance==='system'?(systemTheme.matches?'dark':'light'):settings.appearance==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#15191d':'#ffffff';$('#theme').innerHTML=theme==='dark'?icons.sun:icons.moon;$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');$('#theme').title=theme==='dark'?'切换日间主题':'切换夜间主题';map.mode=settings.globe;$('.map-panel').hidden=settings.globe==='off';$('.observatory').classList.toggle('no-globe',settings.globe==='off');map.requestDraw();}
 function saveSettings(){try{localStorage.setItem('wxt-atlas-settings',JSON.stringify(settings));}catch{}applySettings();}
 systemTheme.addEventListener?.('change',()=>{if(settings.appearance==='system')applySettings();});
 $('#theme').addEventListener('click',()=>{settings.appearance=document.documentElement.dataset.theme==='dark'?'light':'dark';saveSettings();});
-$('#motion-toggle').addEventListener('click',()=>{settings.motion=settings.motion==='reduced'?'normal':'reduced';saveSettings();});
 $('#activity-toggle').addEventListener('click',()=>{const button=$('#activity-toggle'),panel=$('#activity-popover'),open=panel.hidden;panel.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open)renderActivity();});
 document.addEventListener('click',event=>{const panel=$('#activity-popover'),button=$('#activity-toggle');if(!panel.hidden&&!panel.contains(event.target)&&event.target!==button&&!button.contains(event.target)){panel.hidden=true;button.setAttribute('aria-expanded','false');}});
 applySettings();
@@ -219,7 +218,7 @@ function showPage(key,animate=false){
  for(const id of Object.keys(pages))if($('#'+id))$('#'+id).hidden=id!==displayPage&&!(id==='nodes'&&displayPage==='overview');set($('#page-title'),pages[displayPage]);map.active=displayPage==='overview';
  document.querySelectorAll('nav a').forEach(a=>{const active=a.getAttribute('href')==='#'+displayPage;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
  if(map.active)map.requestDraw();if(state.servers.size){if(['overview','nodes','resources'].includes(page))renderRows();renderAggregates();}
- if(animate&&settings.motion!=='reduced'&&!matchMedia('(prefers-reduced-motion: reduce)').matches)$('main').animate?.([{opacity:.55,transform:'translateY(3px)'},{opacity:1,transform:'none'}],{duration:130,easing:'ease-out'});
+ if(animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches)$('main').animate?.([{opacity:.55,transform:'translateY(3px)'},{opacity:1,transform:'none'}],{duration:130,easing:'ease-out'});
 }
 function saveViewState(){try{sessionStorage.setItem('atlas-view-v1',JSON.stringify(Object.fromEntries(['search','status','quick','sort','selected'].map(k=>[k,state[k]]))));}catch{}}
 try{const view=JSON.parse(sessionStorage.getItem('atlas-view-v1')||'{}');for(const [key,values] of Object.entries({status:['all','online','offline'],quick:['','load','expiry'],sort:['default','cpu','traffic','name']}))if(values.includes(view[key]))state[key]=view[key];if(typeof view.search==='string')state.search=view.search.slice(0,200);if(typeof view.selected==='string'&&/^[A-Z]{2}$/.test(view.selected))state.selected=view.selected;$('#search').value=state.search;$('#sort').value=state.sort;document.querySelectorAll('[data-status]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.status===state.status)));}catch{}
