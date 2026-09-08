@@ -1,9 +1,9 @@
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.2.9';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.2.9';
-import {flag} from './flags.js?v=0.2.9';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.2.9';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.2.9';
-import {NodeMap} from './globe.js?v=0.2.9';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.0';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.0';
+import {flag} from './flags.js?v=0.3.0';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.0';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.0';
+import {NodeMap} from './globe.js?v=0.3.0';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -65,7 +65,7 @@ function renderSummary(){
 function renderRegions(){
   observeStatus();
   const groups=new Map();for(const server of all()){const code=region(server.region).code;if(!groups.has(code))groups.set(code,[]);groups.get(code).push(server);}
-  set($('#region-count'),groups.size);set($('#all-count'),state.servers.size);$('#all-regions').classList.toggle('active',!state.selected);$('#all-regions').setAttribute('aria-pressed',String(!state.selected));$('#clear-region').hidden=true;
+  set($('#region-count'),groups.size);set($('#all-count'),state.servers.size);$('#all-regions').classList.toggle('active',!state.selected);$('#all-regions').setAttribute('aria-pressed',String(!state.selected));$('#clear-region').hidden=!state.selected;
   for(const [code,list]of [...groups].sort((a,b)=>b[1].length-a[1].length)){
     let button=state.regions.get(code);if(!button){button=document.createElement('button');button.className='region';button.innerHTML='<span class="flag"></span><span class="region-info"><strong></strong><small></small></span><span class="region-count"><b></b><small></small></span>';button.querySelector('.flag').innerHTML=flag(code);button.addEventListener('click',()=>selectRegion(code));state.regions.set(code,button);$('#region-list').append(button);}
     set(button.querySelector('strong'),region(code).name);const samples=list.filter(s=>online(s)).flatMap(s=>carriers.map(k=>s['ping_'+k])).filter(v=>numeric(v)&&n(v)>=0).map(Number);set(button.querySelector('.region-info small'),samples.length?'均值 '+Math.round(samples.reduce((a,b)=>a+b,0)/samples.length)+' ms · 最低 '+Math.min(...samples)+' ms':'暂无延迟数据');set(button.querySelector('b'),list.length+' 台');set(button.querySelector('.region-count small'),Math.round(list.length/state.servers.size*100)+'%');button.setAttribute('aria-pressed',String(state.selected===code));
