@@ -1,4 +1,4 @@
-/* WXT Atlas v0.3.20 — unified surfaces, traffic context, network/activity states. */
+/* WXT Atlas v0.3.21 — navigation hierarchy and final visual polish. */
 
 /* Resource and quota fills are separate: resource pressure advances about 20 points earlier in JS. */
 .meters i,.quota-track{background:color-mix(in srgb,var(--line) 92%,var(--panel));overflow:visible}
@@ -759,4 +759,152 @@ html[data-theme=dark] .network-explainer [role=group][aria-label="网络历史�
 @media(prefers-reduced-motion:reduce){
   .activity-list li{transition:none!important}
   .skeleton-row i,.skeleton-row span{animation:none!important}
+}
+
+
+/* v0.3.21 — restore a true stacked navigation hierarchy and finish visual polish.
+   Desktop: actions stay in the top utility row, primary navigation owns a separate row.
+   Mobile keeps the proven compact header from the base layout. */
+@media(min-width:801px){
+  .masthead{
+    border-bottom:1px solid color-mix(in srgb,var(--line) 88%,transparent)!important;
+    box-shadow:none!important;
+  }
+  .header-inner{
+    display:grid!important;
+    grid-template-columns:auto auto minmax(18px,1fr) auto;
+    grid-template-areas:
+      "brand subtitle spacer actions"
+      "nav nav nav nav";
+    align-items:center;
+    column-gap:0;
+    row-gap:0;
+    min-height:94px!important;
+    padding-top:10px!important;
+  }
+  .brand{grid-area:brand;align-self:center}
+  .brand-subtitle{grid-area:subtitle;align-self:center}
+  .header-actions{grid-area:actions;margin-left:0!important;justify-self:end;align-self:center}
+  #activity-popover{z-index:40}
+  nav{
+    grid-area:nav;
+    justify-self:stretch;
+    width:100%!important;
+    gap:22px!important;
+    margin:8px 0 0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+  nav a{
+    position:relative;
+    padding:7px 1px 9px!important;
+    border:0!important;
+    border-bottom:2px solid transparent!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    color:var(--muted)!important;
+    font-size:12px!important;
+    font-weight:500;
+    line-height:1.2;
+  }
+  nav a:hover{
+    color:var(--text)!important;
+    background:transparent!important;
+  }
+  nav a.active{
+    color:var(--text)!important;
+    background:transparent!important;
+    border-bottom-color:var(--text)!important;
+    box-shadow:none!important;
+  }
+  html[data-theme=dark] nav a.active{box-shadow:none!important}
+
+  /* Keep the page title subordinate to the global navigation. */
+  .page-heading{padding:15px 0 11px!important}
+  .page-heading h1{font-size:19px!important;font-weight:600;letter-spacing:-.22px}
+  #site-title{font-size:11px}
+  #last-update{font-size:11px;color:color-mix(in srgb,var(--muted) 90%,transparent)}
+  .section-heading{margin-top:21px!important;margin-bottom:10px!important}
+  .section-heading h2{font-size:18px!important;font-weight:600;letter-spacing:-.14px}
+  .section-heading h2 small{font-size:10.5px!important;font-weight:500}
+
+  /* Slightly calmer density: hierarchy comes from weight and spacing, not bigger type. */
+  .node-columns{font-size:10.5px!important}
+  .node-name h3{font-weight:600}
+  .node-main>small,.node-pings,.uptime-cell{color:color-mix(in srgb,var(--muted) 92%,transparent)}
+  .node-detail .details dt{color:color-mix(in srgb,var(--muted) 90%,transparent)}
+  .node-detail .details dd{font-weight:450}
+
+  /* Network charts stay legible without making the grid compete with the data. */
+  .network-server .chart .gridline{opacity:.48}
+  .network-server .chart .series{stroke-width:1.55}
+  .network-server .chart .axis-text{opacity:.88}
+  .network-server .chart-tooltip{color:color-mix(in srgb,var(--text) 92%,var(--muted))}
+  .spark-baseline,.kpi-spark-baseline{opacity:.72}
+}
+
+/* Dark mode should feel like the same product, not a heavier dashboard theme. */
+html[data-theme=dark] .kpi,
+html[data-theme=dark] .resource-card,
+html[data-theme=dark] .observatory,
+html[data-theme=dark] .node-row,
+html[data-theme=dark] .network-server,
+html[data-theme=dark] .activity-list li,
+html[data-theme=dark] .network-explainer,
+html[data-theme=dark] .skeleton-row{
+  border-color:color-mix(in srgb,var(--line) 88%,var(--panel))!important;
+}
+html[data-theme=dark] .kpi,
+html[data-theme=dark] .resource-card,
+html[data-theme=dark] .node-row,
+html[data-theme=dark] .network-server,
+html[data-theme=dark] .activity-list li,
+html[data-theme=dark] .skeleton-row{
+  box-shadow:0 1px 2px rgba(0,0,0,.16)!important;
+}
+html[data-theme=dark] .node-row:hover,
+html[data-theme=dark] .network-server:hover,
+html[data-theme=dark] .activity-list li:hover{
+  border-color:color-mix(in srgb,var(--line) 58%,var(--muted))!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.20)!important;
+}
+html[data-theme=dark] .network-server .chart .gridline{opacity:.38}
+html[data-theme=dark] .network-server-heading,
+html[data-theme=dark] .network-explainer,
+html[data-theme=dark] #activity>.activity-note:first-of-type{
+  background:color-mix(in srgb,var(--soft) 42%,var(--panel))!important;
+}
+html[data-theme=dark] .network-server .chart-tooltip,
+html[data-theme=dark] #empty,
+html[data-theme=dark] #network-empty,
+html[data-theme=dark] #activity-empty{
+  background:color-mix(in srgb,var(--soft) 52%,var(--panel))!important;
+}
+
+/* Final focus/interaction pass. */
+nav a:focus-visible{outline-offset:4px}
+.detail-cell .detail-button:focus-visible,
+.network-mobile-tabs button:focus-visible,
+.status-filter button:focus-visible,
+.network-explainer button:focus-visible{outline-offset:2px}
+.activity-list time{font-variant-numeric:tabular-nums}
+#network-count,#activity-count,#node-count{font-variant-numeric:tabular-nums}
+
+@media(max-width:800px){
+  /* Do not turn the mobile header into a two-line desktop copy; only refine rhythm. */
+  .masthead{box-shadow:none!important}
+  .page-heading{padding-top:10px!important;padding-bottom:7px!important}
+  .page-heading h1{letter-spacing:-.15px}
+  .section-heading{margin-top:13px!important}
+  .network-server .chart .gridline{opacity:.45}
+  .network-server .chart .axis-text{opacity:.86}
+}
+
+@media(prefers-reduced-motion:reduce){
+  nav a{transition:none!important}
 }
