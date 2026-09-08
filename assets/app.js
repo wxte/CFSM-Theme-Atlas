@@ -1,12 +1,12 @@
-import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.6';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.10';
+import {HistoryAPI} from './history-api.js?v=0.3.6';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.12';
 import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.6';
 import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.6';
 import {flag} from './flags.js?v=0.3.6';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.10';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.12';
 import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
 import {NodeMap} from './globe.js?v=0.3.7';
-import {Plot} from './plot.js?v=0.3.10';
+import {Plot} from './plot.js?v=0.3.12';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -34,12 +34,15 @@ const markSeverity = (el,value) => {
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
 const map=new NodeMap(selectRegion);
 const charts=new NetworkCharts(),historyAPI=new HistoryAPI();
+const liveRangeMs=15*60000,serverHistoryHours=[1,6,24,168];
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
-try{const hours=Number(sessionStorage.getItem('atlas-network-hours'));charts.rangeMs=(historyRanges.includes(hours)?hours:24)*3600000;}catch{charts.rangeMs=86400000;}
-function syncRangeButtons(){document.querySelectorAll('[data-network-range]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.networkRange)===charts.rangeMs)));}
+charts.live=true;charts.rangeMs=liveRangeMs;
+try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){charts.live=true;charts.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){charts.live=false;charts.rangeMs=hours*3600000;}else{charts.live=false;charts.rangeMs=24*3600000;}}catch{charts.live=false;charts.rangeMs=86400000;}
+function syncRangeButtons(){document.querySelectorAll('[data-network-range]').forEach(b=>{const value=b.dataset.networkRange;b.setAttribute('aria-pressed',String(value==='live'?charts.live:Number(value)===charts.rangeMs&&!charts.live));});}
 syncRangeButtons();
-document.querySelectorAll('[data-network-range]').forEach(button=>button.addEventListener('click',()=>{charts.rangeMs=Number(button.dataset.networkRange);try{sessionStorage.setItem('atlas-network-hours',charts.rangeMs/3600000);}catch{}historyGeneration++;historyLoading=false;historyLoadedAt=0;historyResults=new Map();syncRangeButtons();renderNetwork();}));
+document.querySelectorAll('[data-network-range]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.networkRange;charts.live=value==='live';charts.rangeMs=charts.live?liveRangeMs:Number(value);try{sessionStorage.setItem('atlas-network-range',value);if(!charts.live)sessionStorage.setItem('atlas-network-hours',String(charts.rangeMs/3600000));}catch{}historyGeneration++;historyLoading=false;historyLoadedAt=0;historyResults=new Map();syncRangeButtons();renderNetwork();}));
 async function loadNetworkHistory(){
+ if(charts.live){historyLoading=false;return;}
  if(historyLoading||Date.now()-historyLoadedAt<300000||state.page!=='network'||!allowed('show_three_net_details')||!state.servers.size)return;
  const generation=++historyGeneration,hours=charts.rangeMs/3600000;historyLoading=true;set($('#network-history-note'),'正在读取 '+(hours===168?'7 天':hours+' 小时')+' 服务端历史…');
  const ids=[...state.servers.keys()];
@@ -79,8 +82,8 @@ function updateTrafficSparks(live){
     else series.push({ts:now,value:numeric(value)?n(value):null});
     trafficSeries[key]=series.slice(-48);
     const points=trafficSeries[key],maximum=Math.max(1024,...points.map(p=>numeric(p.value)?n(p.value):0));
-    const divisor=Math.max(1,points.length-1);
-    trafficPlots[key]?.update(points.map((p,i)=>numeric(p.value)?{ts:p.ts,x:2+i/divisor*116,y:30-Math.min(maximum,n(p.value))/maximum*26}:null));
+    const divisor=Math.max(1,points.length-1),xAt=(i)=>points.length===1?118:2+i/divisor*116;
+    trafficPlots[key]?.update(points.map((p,i)=>numeric(p.value)?{ts:p.ts,x:xAt(i),y:30-Math.min(maximum,n(p.value))/maximum*26}:null));
   }
 }
 function visible(){return all().filter(s=>(state.status==='all'||(state.status==='online')===online(s))&&(!state.quick||(state.quick==='load'?highLoad(s):allowed('show_expire')&&expiring(s)))&&(!state.selected||region(s.region).code===state.selected)&&(!state.search||`${s.name} ${region(s.region).name} ${s.region} ${s.server_group||''}`.toLowerCase().includes(state.search)));}
@@ -172,7 +175,8 @@ function renderNetwork(){
  if(state.page==='network'){
   const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,result?.error?[]:[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>latest)]);}
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
-  if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
+  if(charts.live)set($('#network-history-note'),'实时窗口 · 使用当前页面收到的采样');
+  else if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
   else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 可点击重试':'点击锁定采样 · Esc 返回实时');}
   loadNetworkHistory();
  }

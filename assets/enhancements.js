@@ -14,7 +14,7 @@ const svg={
  chart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg>'
 };
 
-document.documentElement.dataset.atlasEnhanced='0.3.10';
+document.documentElement.dataset.atlasEnhanced='0.3.12';
 
 /* ---------- Toasts ---------- */
 const toastHost=document.createElement('div');

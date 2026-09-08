@@ -3,13 +3,13 @@ export function plotPaths(points,baseline=30,smooth=true){
  const segments=[];let segment=[];
  for(const p of points){if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)){if(segment.length)segments.push(segment);segment=[];}else segment.push(p);}if(segment.length)segments.push(segment);
  const fmt=v=>Number(v.toFixed(2));let line='',area='';
- for(const ps of segments){let d=`M${fmt(ps[0].x)},${fmt(ps[0].y)}`;for(let i=1;i<ps.length;i++){const a=ps[i-1],b=ps[i],mid=fmt((a.x+b.x)/2);d+=smooth?` C${mid},${fmt(a.y)} ${mid},${fmt(b.y)} ${fmt(b.x)},${fmt(b.y)}`:` L${fmt(b.x)},${fmt(b.y)}`;}line+=d+' ';if(ps.length>1)area+=d+` L${fmt(ps.at(-1).x)},${baseline} L${fmt(ps[0].x)},${baseline} Z `;}
+ for(const ps of segments){let d=`M${fmt(ps[0].x)},${fmt(ps[0].y)}`;if(ps.length===1){const mid=fmt(ps[0].x+1.25),end=fmt(ps[0].x+2.5);d+=` C${mid},${fmt(ps[0].y)} ${mid},${fmt(ps[0].y)} ${end},${fmt(ps[0].y)}`;}else for(let i=1;i<ps.length;i++){const a=ps[i-1],b=ps[i],mid=fmt((a.x+b.x)/2);d+=smooth?` C${mid},${fmt(a.y)} ${mid},${fmt(b.y)} ${fmt(b.x)},${fmt(b.y)}`:` L${fmt(b.x)},${fmt(b.y)}`;}line+=d+' ';if(ps.length>1)area+=d+` L${fmt(ps.at(-1).x)},${baseline} L${fmt(ps[0].x)},${baseline} Z `;}
  return {line:line.trim(),area:area.trim(),last:points.at(-1)||null};
 }
 const ns='http://www.w3.org/2000/svg',running=new Set();let frame=0,serial=0;
 const attr=(el,k,v)=>{v=String(v);if(el.getAttribute(k)!==v)el.setAttribute(k,v);};
 function visible(svg){if(document.hidden||!svg.isConnected||svg.closest('[hidden]')||svg.closest('details:not([open])'))return false;const r=svg.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;}
-function tick(now){frame=0;for(const plot of running){if(!visible(plot.svg)){plot.finish();continue;}const t=Math.min(1,(now-plot.started)/420),e=1-(1-t)**3;plot.paint(plot.target.map((p,i)=>p?{...p,x:plot.from[i].x+(p.x-plot.from[i].x)*e,y:plot.from[i].y+(p.y-plot.from[i].y)*e}:null));if(t===1){running.delete(plot);plot.svg.removeAttribute('data-animating');}}if(running.size)frame=requestAnimationFrame(tick);}
+function tick(now){frame=0;for(const plot of running){if(!visible(plot.svg)){plot.finish();continue;}const t=Math.min(1,(now-plot.started)/760),e=1-(1-t)**3;plot.paint(plot.target.map((p,i)=>p?{...p,x:plot.from[i].x+(p.x-plot.from[i].x)*e,y:plot.from[i].y+(p.y-plot.from[i].y)*e}:null));if(t===1){running.delete(plot);plot.svg.removeAttribute('data-animating');}}if(running.size)frame=requestAnimationFrame(tick);}
 export class Plot{
  constructor(svg,line,{baseline=30,smooth=true}={}){
   this.svg=svg;this.line=line;this.baseline=baseline;this.smooth=smooth;this.target=[];this.current=[];
