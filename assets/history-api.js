@@ -1,4 +1,4 @@
-import {numeric,n} from './data.js?v=0.3.3';
+import {numeric,n} from './data.js?v=0.3.4';
 export const historyRanges=[1,2,6,24,168];
 export function parseHistory(rows,now=Date.now(),hours=24){
  if(!Array.isArray(rows))throw Error('历史数据格式不正确');

@@ -1,11 +1,11 @@
-import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.3';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.3';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.3';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.3';
-import {flag} from './flags.js?v=0.3.3';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.3';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.3';
-import {NodeMap} from './globe.js?v=0.3.3';
+import {HistoryAPI,historyRanges} from './history-api.js?v=0.3.4';
+import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.4';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.4';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.4';
+import {flag} from './flags.js?v=0.3.4';
+import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.4';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.4';
+import {NodeMap} from './globe.js?v=0.3.4';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',

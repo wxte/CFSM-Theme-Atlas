@@ -1,4 +1,4 @@
-import {renderTrendBox} from './node-trends.js?v=0.3.3';
+import {renderTrendBox} from './node-trends.js?v=0.3.4';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
@@ -15,7 +15,7 @@ const svg={
  chart:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg>'
 };
 
-document.documentElement.dataset.atlasEnhanced='0.3.3';
+document.documentElement.dataset.atlasEnhanced='0.3.4';
 
 /* ---------- Toasts ---------- */
 const toastHost=document.createElement('div');

@@ -1,5 +1,5 @@
-import {sampleGroups} from './insights.js?v=0.3.3';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.3';
+import {sampleGroups} from './insights.js?v=0.3.4';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.4';
 export const lines=['cu','ct','cm'];
 const historyLines=[...lines,'bd'],windowMs=7200000;
 const valid=v=>numeric(v)&&n(v)>=0;
@@ -52,7 +52,8 @@ export function aggregateHistory(ids,histories,key,now=Date.now()){
 export function nearestPoint(points,ts){return points.reduce((best,p)=>!best||Math.abs(p.ts-ts)<Math.abs(best.ts-ts)?p:best,null);}
 const set=(el,value)=>{const text=String(value??'—');if(el.textContent!==text)el.textContent=text;};
 const attr=(el,key,value)=>{value=String(value);if(el.getAttribute(key)!==value)el.setAttribute(key,value);};
-const time=ts=>new Date(ts).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+const timeFormatter=new Intl.DateTimeFormat('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+const time=ts=>timeFormatter.format(ts);
 const statusNames={healthy:'正常',warning:'高延迟或丢包',failed:'丢包100%',unknown:'指标缺失'};
 const svgNS='http://www.w3.org/2000/svg';
 export class NetworkCharts{
@@ -83,14 +84,14 @@ export class NetworkCharts{
    }
    if(row.el!==cursor)root.insertBefore(row.el,cursor);cursor=row.el.nextElementSibling;
    const live=online(s);row.el.classList.toggle('offline',!live);set(row.el.querySelector('h3'),s.name||'未命名节点');set(row.el.querySelector('header small'),region(s.region).name);set(row.el.querySelector('.network-server-status'),live?'在线':'离线 · 保留历史');
-   const history=enabled?windowSamples(histories.get(s.id)||[],this.now,this.rangeMs).filter(p=>p.ts>=this.now-this.rangeMs):[];
+   const source=histories.get(s.id)||[];const sourceKey=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/30000),source]);if(row.sourceKey!==sourceKey){row.sourceKey=sourceKey;row.history=enabled?windowSamples(source,this.now,this.rangeMs):[];}const history=row.history;
    for(const c of row.cards){
     set(c.el.querySelector('.analysis-top span'),names[c.key]);set(c.el.querySelector('.analysis-top strong'),live?ping(s['ping_'+c.key]):'—');set(c.el.querySelector('.chart-note span:last-child'),'当前丢包 '+(live?loss(s['loss_'+c.key]):'—'));
     const samples=history.filter(p=>p[c.key]!==undefined||p.loss?.[c.key]!==undefined);
     // CPU-only updates do not rebuild the other charts.
     const signature=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/30000),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
-    const selectionKey=s.id+':'+c.key+':'+this.rangeMs;if(c.selectionKey!==selectionKey){c.selectionKey=selectionKey;c.pin=null;try{const saved=JSON.parse(sessionStorage.getItem('atlas-chart:'+selectionKey)||'null');if(saved&&numeric(saved.ts)&&typeof saved.text==='string')c.pin=saved;}catch{}}
-    if(!enabled||!history.length){c.pin=null;try{sessionStorage.removeItem('atlas-chart:'+c.selectionKey);}catch{}}
+    const selectionKey=s.id+':'+c.key+':'+this.rangeMs;if(c.selectionKey!==selectionKey){c.selectionKey=selectionKey;c.pin=null;try{const saved=JSON.parse(sessionStorage.getItem('atlas-chart-v2:'+selectionKey)||'null');if(saved&&numeric(saved.ts)&&typeof saved.text==='string')c.pin=saved;}catch{}}
+    if(!enabled||!history.length){c.pin=null;try{sessionStorage.removeItem('atlas-chart-v2:'+c.selectionKey);}catch{}}
     if(c.signature===signature)continue;c.signature=signature;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=timeGroups(samples,c.key,this.now,this.rangeMs);this.draw(c,s.name||'未命名节点',names[c.key]);
    }
   }
@@ -101,7 +102,7 @@ export class NetworkCharts{
  draw(c,serverName,name){
   if(!c.points.length){c.inspecting=null;c.el.querySelector('.cursor').setAttribute('hidden','');}
   const {el,key}=c,max=Math.max(50,Math.ceil(Math.max(0,...c.points.map(p=>n(p[key])))/50)*50);
-  const d=c.points.map((p,i)=>`${i&&p.ts-c.points[i-1].ts<Math.max(900000,this.rangeMs/40)&&!c.samples.some(q=>q.ts>c.points[i-1].ts&&q.ts<p.ts&&!valid(q[key]))?'L':'M'}${this.x(p.ts).toFixed(1)},${(80-n(p[key])/max*68).toFixed(1)}`).join(' ');attr(c.path,'d',d);
+  let previous=null;const path=[];for(const p of c.samples){if(!valid(p[key])){previous=null;continue;}path.push(`${previous&&p.ts-previous.ts<Math.max(900000,this.rangeMs/40)?'L':'M'}${this.x(p.ts).toFixed(1)},${(80-n(p[key])/max*68).toFixed(1)}`);previous=p;}attr(c.path,'d',path.join(' '));
   const dots=el.querySelector('.samples');dots.replaceChildren();
   if(c.points.length<=30)for(const p of c.points){const dot=document.createElementNS(svgNS,'circle');attr(dot,'cx',this.x(p.ts));attr(dot,'cy',80-n(p[key])/max*68);attr(dot,'r',2);attr(dot,'class','sample-dot');dots.append(dot);}
   const marks=el.querySelector('.losses');marks.replaceChildren();
@@ -109,33 +110,34 @@ export class NetworkCharts{
   set(el.querySelector('.axis-max'),max);set(el.querySelector('.axis-start'),time(this.now-this.rangeMs));set(el.querySelector('.axis-end'),time(this.now));attr(c.svg,'aria-label',`${serverName} · ${name}延迟，单位毫秒，${c.points.length}个采样；方向键查看`);
   c.tracker.style.gridTemplateColumns=`repeat(${Math.max(1,c.groups.length)},minmax(0,1fr))`;
   while(c.buttons.length>c.groups.length)c.buttons.pop().remove();
-  while(c.buttons.length<c.groups.length){const b=document.createElement('button'),i=c.buttons.length;b.type='button';b.addEventListener('click',()=>{const group=c.groups[i];const p=group?.samples.find(p=>valid(p[c.key]));if(p)this.inspect(c,p.ts,true);else if(group){c.pin={ts:(group.start+group.end)/2,value:null,text:time(group.start)+' · '+(group.samples.length?'仅丢包数据 · '+loss(group.maxLoss):'无数据')};try{sessionStorage.setItem('atlas-chart:'+c.selectionKey,JSON.stringify(c.pin));}catch{}this.restoreInspection(c);}});c.buttons.push(b);c.tracker.append(b);}
+  while(c.buttons.length<c.groups.length){const b=document.createElement('button'),i=c.buttons.length;b.type='button';b.addEventListener('click',()=>{const group=c.groups[i];const p=group?.samples.reduce((best,p)=>!best||n(p.loss?.[c.key])>n(best.loss?.[c.key])||(n(p.loss?.[c.key])===n(best.loss?.[c.key])&&n(p[c.key])>n(best[c.key]))?p:best,null);if(p&&valid(p[c.key]))this.inspect(c,p.ts,true);else if(group){c.pin={ts:(group.start+group.end)/2,value:null,text:time(group.start)+' · '+(group.samples.length?'仅丢包数据 · '+loss(group.maxLoss):'无数据')};try{sessionStorage.setItem('atlas-chart-v2:'+c.selectionKey,JSON.stringify(c.pin));}catch{}this.restoreInspection(c);}});c.buttons.push(b);c.tracker.append(b);}
   c.groups.forEach((group,i)=>{const b=c.buttons[i];b.className=group.state;const title=time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+group.samples.length+' 次采样 · '+statusNames[group.state];attr(b,'title',title);attr(b,'aria-label',title);});
-  set(el.querySelector('.chart-note span'),!this.enabled?'历史未公开':!c.samples.length?'暂无历史采样':c.samples.length+' 个历史点 · 60 个时间段');
+  set(el.querySelector('.chart-note span'),!this.enabled?'历史未公开':!c.samples.length?'暂无历史采样':c.samples.length+' 个历史点 · '+c.groups.length+' 格'+(c.samples.length>60?'（相邻采样合并）':'（每格一次采样）'));
   this.restoreInspection(c);
  }
  inspectGroup(c){
   const group=c.groups.find(g=>g.start===c.selectedStart);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',g===group));
   set(c.tip,!this.enabled?'后台未开启三网详情':!c.samples.length?'暂无历史采样':!group?'悬停曲线 / 点选状态格':time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+(group.samples.length>1?'最高 ':'')+ping(group.maxPing)+' · 丢包 '+loss(group.maxLoss)+(group.state==='unknown'?' · 指标缺失':''));
  }
- clearPin(c){c.pin=null;c.inspecting=null;try{sessionStorage.removeItem('atlas-chart:'+c.selectionKey);}catch{}this.restoreInspection(c);}
+ clearPin(c){c.pin=null;c.inspecting=null;try{sessionStorage.removeItem('atlas-chart-v2:'+c.selectionKey);}catch{}this.restoreInspection(c);}
  restoreInspection(c){
   c.el.querySelector('.chart-resume').hidden=!c.pin;
-  if(c.pin){const cursor=c.el.querySelector('.cursor');if(c.pin.ts>=this.now-this.rangeMs&&c.pin.ts<=this.now){cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(c.pin.ts)} 12V83`);}else cursor.setAttribute('hidden','');set(c.tip,'已锁定 · '+c.pin.text);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',c.pin.ts>=g.start&&c.pin.ts<g.end));}
+  if(c.pin){const cursor=c.el.querySelector('.cursor');if(c.pin.ts>=this.now-this.rangeMs&&c.pin.ts<=this.now){cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(c.pin.ts)} 12V83`);}else cursor.setAttribute('hidden','');set(c.tip,'已锁定 · '+c.pin.text);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',c.pin.ts>=g.start&&c.pin.ts<=g.end));}
   else{c.el.querySelector('.cursor').setAttribute('hidden','');this.inspectGroup(c);}
  }
  inspect(c,ts,lock=false){
   const p=nearestPoint(c.points,ts);if(!p)return;c.inspecting=p.ts;
   const text=`${time(p.ts)} · ${ping(p[c.key])} · 丢包 ${loss(p.loss?.[c.key])}`;
-  if(lock){c.pin={ts:p.ts,value:p[c.key],text};try{sessionStorage.setItem('atlas-chart:'+c.selectionKey,JSON.stringify(c.pin));}catch{}this.restoreInspection(c);return;}
+  if(lock){c.pin={ts:p.ts,value:p[c.key],text};try{sessionStorage.setItem('atlas-chart-v2:'+c.selectionKey,JSON.stringify(c.pin));}catch{}this.restoreInspection(c);return;}
   const cursor=c.el.querySelector('.cursor');cursor.removeAttribute('hidden');attr(cursor,'d',`M${this.x(p.ts)} 12V83`);set(c.tip,text);
  }
 }
 
-// Fixed-duration buckets preserve gaps rather than stretching observations into an uptime claim.
+// Each cell contains actual observations, never an artificially empty time slot.
 export function timeGroups(samples,key,now,range){
- const step=range/60,start=now-range,groups=Array.from({length:60},(_,i)=>({start:start+i*step,end:start+(i+1)*step,samples:[],state:'unknown',maxPing:null,maxLoss:null}));
- for(const p of samples){if(p.ts<start||p.ts>now)continue;const group=groups[Math.min(59,Math.floor((p.ts-start)/step))];group.samples.push(p);if(valid(p[key]))group.maxPing=Math.max(group.maxPing??0,n(p[key]));if(valid(p.loss?.[key]))group.maxLoss=Math.max(group.maxLoss??0,n(p.loss[key]));}
- for(const g of groups)g.state=g.maxLoss>=100?'failed':g.maxPing>=200||g.maxLoss>0?'warning':g.samples.length&&g.samples.every(p=>valid(p[key])&&valid(p.loss?.[key]))?'healthy':'unknown';
+ const points=samples.filter(p=>numeric(p.ts)&&p.ts>=now-range&&p.ts<=now&&(p[key]!==undefined||p.loss?.[key]!==undefined)).sort((a,b)=>a.ts-b.ts);
+ const count=Math.min(60,points.length),groups=Array.from({length:count},()=>({samples:[],state:'unknown',maxPing:null,maxLoss:null}));
+ points.forEach((p,i)=>groups[Math.floor(i*count/points.length)].samples.push(p));
+ for(const g of groups){g.start=g.samples[0].ts;g.end=g.samples.at(-1).ts;for(const p of g.samples){if(valid(p[key]))g.maxPing=Math.max(g.maxPing??0,n(p[key]));if(valid(p.loss?.[key]))g.maxLoss=Math.max(g.maxLoss??0,n(p.loss[key]));}g.state=g.maxLoss>=100?'failed':g.maxPing>=200||g.maxLoss>0?'warning':g.samples.every(p=>valid(p[key])&&valid(p.loss?.[key]))?'healthy':'unknown';}
  return groups;
 }

@@ -1,5 +1,5 @@
-import {numeric,n,bytes} from './data.js?v=0.3.3';
-import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.3';
+import {numeric,n,bytes} from './data.js?v=0.3.4';
+import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.3.4';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
 export function recordResources(id,ts,metrics){
  if(!numeric(ts)||!metrics||!keys.some(k=>Object.hasOwn(metrics,k)))return;
@@ -7,8 +7,9 @@ export function recordResources(id,ts,metrics){
  if(points.length&&ts<points.at(-1).ts)return;
  const point={ts:Number(ts)};
  for(const k of keys)if(Object.hasOwn(metrics,k))point[k]=numeric(metrics[k])&&n(metrics[k])>=0?n(metrics[k]):null;
+ if(points.at(-1)?.ts===point.ts&&Object.keys(point).every(k=>points.at(-1)[k]===point[k]))return;
  if(points.at(-1)?.ts===point.ts)Object.assign(points.at(-1),point);else points.push(point);
- state.resources=points.slice(-60);scheduleSave();
+ state.resources=points.slice(-60);state.resourceVersion=(state.resourceVersion||0)+1;scheduleSave();
 }
 export function sparkPath(points,key,scale){
  const valid=points.filter(p=>numeric(p[key])&&n(p[key])>=0);if(valid.length<2)return '';
@@ -24,27 +25,35 @@ export function sampleState(p){
  if(pairs.some(([v,l])=>numeric(v)&&n(v)>=200||numeric(l)&&n(l)>0))return 'warning';
  return pairs.every(([v,l])=>numeric(v)&&n(v)>=0&&numeric(l)&&n(l)===0)?'healthy':'unknown';
 }
-const describe=p=>new Date(p.ts).toLocaleString('zh-CN')+' · '+['cu','ct','cm'].map((k,i)=>`${['联通','电信','移动'][i]} ${numeric(p[k])?p[k]+' ms':'—'} / 丢包 ${numeric(p.loss?.[k])?p.loss[k]+'%':'—'}`).join(' · ');
+const sampleTime=new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const describe=p=>sampleTime.format(p.ts)+' · '+['cu','ct','cm'].map((k,i)=>`${['联通','电信','移动'][i]} ${numeric(p[k])?p[k]+' ms':'—'} / 丢包 ${numeric(p.loss?.[k])?p.loss[k]+'%':'—'}`).join(' · ');
 export function renderNodeTrends(row,s,history,enabled){
  let box=row.querySelector('.node-trends');if(!box){box=document.createElement('div');box.className='node-trends';row.querySelector('.node-main').append(box);}
  const store=nodeObservations(s.id);
- store.network=enabled?recentSamples([...store.network,...history].filter(p=>p.ts>=Date.now()-7200000)):[];
+ const model=models.get(s.id);
+ if(!model||model.history!==history||model.enabled!==enabled||store.network[0]?.ts<Date.now()-7200000){
+  const network=enabled?recentSamples([...store.network,...history].filter(p=>p.ts>=Date.now()-7200000)):[];
+  const signature=JSON.stringify(network);if(signature!==store.networkSignature){store.network=network;store.networkSignature=signature;store.networkVersion=(store.networkVersion||0)+1;scheduleSave();}
+ }
  if(!enabled)selections.delete(s.id);
- models.set(s.id,{enabled});scheduleSave();renderTrendBox(box,s.id);
+ models.set(s.id,{enabled,history});renderTrendBox(box,s.id);
 }
 export function renderTrendBox(box,id){
  const store=nodeObservations(id),enabled=models.get(id)?.enabled!==false;
  const points=store.resources,samples=enabled?store.network:[];
- box.dataset.node=id;
+ if(box.dataset.node!==id)box.dataset.node=id;
  if(!box.querySelector('.node-sample-track')){
   box.innerHTML='<div class="node-sparks"></div><div class="node-sample-track" role="slider" tabindex="0" aria-label="最近60次网络采样；方向键查看，Esc返回实时" aria-valuemin="1" aria-valuemax="60" aria-valuenow="60"></div><small class="node-sample-note"></small><button class="trend-live" type="button" hidden>返回实时</button>';
   const row=box.querySelector('.node-sparks');
   for(const [key,label] of [['cpu','CPU'],['net_in_speed','↓ 下行'],['net_out_speed','↑ 上行']]){const el=document.createElement('span');el.className='node-spark';el.dataset.metric=key;el.innerHTML='<small></small><svg viewBox="0 0 120 34" role="img" preserveAspectRatio="none"><path class="spark-baseline" d="M2 30H118"/><path class="spark-series"/></svg>';el.firstChild.textContent=label;row.append(el);}
   const track=box.querySelector('.node-sample-track');for(let i=0;i<60;i++)track.append(document.createElement('span'));
  }
+ const resourceKey=String(store.resourceVersion||0);if(box.dataset.resourceVersion!==resourceKey){box.dataset.resourceVersion=resourceKey;
  const rateMax=Math.max(1024,...points.flatMap(p=>[n(p.net_in_speed),n(p.net_out_speed)]));
  for(const key of keys){const el=box.querySelector(`[data-metric="${key}"]`),path=sparkPath(points,key,key==='cpu'?100:rateMax);el.querySelector('.spark-series').setAttribute('d',path);const label=(key==='cpu'?'CPU 0–100%':(key==='net_in_speed'?'下行':'上行')+' 0–'+bytes(rateMax,true))+' · 最近60次资源上报'+(path?'':' · 等待两次有效上报');el.title=label;el.querySelector('svg').setAttribute('aria-label',label);}
- const track=box.querySelector('.node-sample-track'),selected=selections.get(id);
+ }
+ const selected=selections.get(id),networkKey=[store.networkVersion||0,enabled,selected?.ts??''].join(':');if(box.dataset.networkVersion===networkKey)return;box.dataset.networkVersion=networkKey;
+ const track=box.querySelector('.node-sample-track');
  let selectedIndex=-1;
  for(let i=0;i<60;i++){const p=samples[i-(60-samples.length)],cell=track.children[i];cell.className=p?sampleState(p):'unknown';cell.title=p?describe(p):'无数据';cell.dataset.ts=p?.ts??'';if(p&&selected?.ts===p.ts){cell.classList.add('selected');selectedIndex=i;}}
  track.setAttribute('aria-valuenow',String(selectedIndex<0?60:selectedIndex+1));track.setAttribute('aria-valuetext',selected?describe(selected):'实时 · '+samples.length+'次网络采样');
