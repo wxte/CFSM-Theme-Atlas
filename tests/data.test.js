@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {online,percent,bytes,avg,costs,mergeSample,coordinate,uptime,ping,trafficUsage,trafficQuota} from '../assets/data.js';
+test('missing metrics remain unknown; zero latency is valid',()=>{assert.equal(bytes(null),'—');assert.equal(percent(null,100),null);assert.equal(ping(null),'—');assert.equal(ping(false),'关闭');assert.equal(ping(0),'0 ms');assert.equal(avg([{p:null},{p:false},{p:0},{p:20}],'p'),10);});
+test('public API timestamps determine offline status when is_online is absent',()=>{assert.equal(online({last_updated:900000},1000000),true);assert.equal(online({last_updated:600000},1000000),false);assert.equal(online({},1000000),false);assert.equal(online({is_online:false,last_updated:999999},1000000),false);assert.equal(uptime({boot_time:1000},86401000),'1d 0h');});
+test('monthly costs normalize cycles without mixing currencies or assuming missing prices',()=>{assert.deepEqual(costs([{price:'120',currency:'$',billing_cycle:'year'},{price:'30',currency:'¥',billing_cycle:'quarter'},{price:'-1',currency:'$',billing_cycle:'month'},{price:'',currency:'$',billing_cycle:'year'}]),{text:'$10.00 · ¥10.00',missing:1,currencies:2});assert.equal(costs([{price:12,currency:'USD',billing_cycle:'month'},{price:24,currency:'EUR',billing_cycle:'year'},{price:30,currency:'CNY',billing_cycle:'quarter'}]).text,'USD12.00 · EUR2.00 · CNY10.00');});
+test('incremental samples retain unrelated metrics and reject stale updates',()=>{const s={id:'a',cpu:1,ram_total:1024,last_updated:100};assert.equal(mergeSample(s,{cpu:2,id:'b'},200),true);assert.equal(s.id,'a');assert.equal(s.ram_total,1024);assert.equal(mergeSample(s,{cpu:99},150),false);assert.equal(s.cpu,2);});
+test('location overrides validated; unknown geography is not fabricated',()=>{assert.equal(coordinate({id:'a',region:'XX'}),null);assert.deepEqual(coordinate({id:'a',region:'US'},{locations:{a:[22,114]}}),[22,114]);assert.notDeepEqual(coordinate({id:'a',region:'US'},{locations:{a:[900,114]}}),[900,114]);});
+test('monthly quota follows the backend traffic calculation mode without changing counters',()=>{
+ const s={net_rx_monthly:2*1024**3,net_tx_monthly:3*1024**3,traffic_limit:10};
+ assert.equal(trafficUsage(s),5*1024**3);assert.equal(trafficUsage({...s,traffic_calc_type:'dl'}),2*1024**3);assert.equal(trafficUsage({...s,traffic_calc_type:'ul'}),3*1024**3);assert.equal(trafficUsage({...s,traffic_calc_type:'max'}),3*1024**3);
+ const quota=trafficQuota(s);assert.equal(quota.limit,10*1024**3);assert.equal(quota.used,5*1024**3);assert.equal(quota.percent,50);assert.equal(quota.remaining,5*1024**3);
+ assert.equal(trafficQuota({net_rx_monthly:0,net_tx_monthly:0}).percent,null);assert.equal(trafficQuota({net_rx_monthly:0,net_tx_monthly:0,traffic_limit:0}).limit,null);
+});
