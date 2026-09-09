@@ -1,5 +1,5 @@
-import {Plot} from './plot.js?v=0.3.17';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.3.6';
+import {Plot} from './plot.js?v=0.4.1';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.4.1';
 export const lines=['cu','ct','cm'];
 const historyLines=[...lines,'bd'],windowMs=7200000;
 const valid=v=>numeric(v)&&n(v)>=0;

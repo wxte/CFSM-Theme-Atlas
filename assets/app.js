@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.3.6';
-import {recordResources,renderNodeTrends} from './node-trends.js?v=0.3.17';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.3.6';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.3.6';
-import {flag} from './flags.js?v=0.3.6';
-import {NetworkCharts,windowSamples,historyFromArrays,aggregateHistory} from './network.js?v=0.3.17';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.3.6';
-import {NodeMap} from './globe.js?v=0.3.7';
-import {Plot} from './plot.js?v=0.3.17';
+import {HistoryAPI} from './history-api.js?v=0.4.1';
+import {recordResources} from './resource-recorder.js?v=0.4.1';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.1';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.1';
+import {flag} from './flags.js?v=0.4.1';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.1';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.1';
+import {DeferredNodeMap} from './lazy-map.js?v=0.4.1';
+import {Plot} from './plot.js?v=0.4.1';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -46,19 +46,30 @@ const markSeverity = (el,value,kind='quota') => {
   if(numeric(value)&&n(value)<=0)el.classList.add('zero');
 };
 const state={servers:new Map(),rows:new Map(),regions:new Map(),history:new Map(),config:{},sys:{},selected:'',search:'',status:'all',quick:'',sort:'default',page:'overview',ws:null,retry:null,heartbeat:null,attempt:0,loading:false,stopped:false,lastMessage:0};
-const map=new NodeMap(selectRegion);
-const charts=new NetworkCharts(),historyAPI=new HistoryAPI();
+const map=new DeferredNodeMap(selectRegion);
 const liveRangeMs=5*60000,serverHistoryHours=[1,6,24,168];
+const chartState={live:true,rangeMs:liveRangeMs};
+let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
+const historyAPI=new HistoryAPI();
+function ensureNetworkCharts(){
+ if(charts)return Promise.resolve(charts);
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.1').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ return networkChartsPromise;
+}
+function renderNodeTrendsDeferred(row,s,history,enabled){
+ if(!row.querySelector('.node-detail')?.open)return;
+ if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
+ import('./node-trends.js?v=0.4.1').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+}
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
-charts.live=true;charts.rangeMs=liveRangeMs;
-try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){charts.live=true;charts.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){charts.live=false;charts.rangeMs=hours*3600000;}else{charts.live=false;charts.rangeMs=24*3600000;}}catch{charts.live=false;charts.rangeMs=86400000;}
-function syncRangeButtons(){document.querySelectorAll('[data-network-range]').forEach(b=>{const value=b.dataset.networkRange;b.setAttribute('aria-pressed',String(value==='live'?charts.live:Number(value)===charts.rangeMs&&!charts.live));});}
+try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
+function syncRangeButtons(){document.querySelectorAll('[data-network-range]').forEach(b=>{const value=b.dataset.networkRange;b.setAttribute('aria-pressed',String(value==='live'?chartState.live:Number(value)===chartState.rangeMs&&!chartState.live));});}
 syncRangeButtons();
-document.querySelectorAll('[data-network-range]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.networkRange;charts.live=value==='live';charts.rangeMs=charts.live?liveRangeMs:Number(value);try{sessionStorage.setItem('atlas-network-range',value);if(!charts.live)sessionStorage.setItem('atlas-network-hours',String(charts.rangeMs/3600000));}catch{}historyGeneration++;historyLoading=false;historyLoadedAt=0;historyResults=new Map();syncRangeButtons();renderNetwork();}));
+document.querySelectorAll('[data-network-range]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.networkRange;chartState.live=value==='live';chartState.rangeMs=chartState.live?liveRangeMs:Number(value);if(charts){charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;}try{sessionStorage.setItem('atlas-network-range',value);if(!chartState.live)sessionStorage.setItem('atlas-network-hours',String(chartState.rangeMs/3600000));}catch{}historyGeneration++;historyLoading=false;historyLoadedAt=0;historyResults=new Map();syncRangeButtons();renderNetwork();}));
 async function loadNetworkHistory(){
- if(charts.live){historyLoading=false;return;}
+ if(chartState.live){historyLoading=false;return;}
  if(historyLoading||Date.now()-historyLoadedAt<300000||state.page!=='network'||!allowed('show_three_net_details')||!state.servers.size)return;
- const generation=++historyGeneration,hours=charts.rangeMs/3600000;historyLoading=true;set($('#network-history-note'),'正在读取 '+(hours===168?'7 天':hours+' 小时')+' 服务端历史…');
+ const generation=++historyGeneration,hours=chartState.rangeMs/3600000;historyLoading=true;set($('#network-history-note'),'正在读取 '+(hours===168?'7 天':hours+' 小时')+' 服务端历史…');
  const ids=[...state.servers.keys()];
  await Promise.all(ids.map(async id=>{const result=await historyAPI.get(id,hours);if(generation!==historyGeneration)return;historyResults.set(id,result);}));
  if(generation!==historyGeneration)return;historyLoading=false;historyLoadedAt=Date.now();renderNetwork();
@@ -138,7 +149,7 @@ function updateRow(s){
   const quotaCell=row.querySelector('.transfer-cell');
   let quotaTrack=quotaCell.querySelector('.quota-track'),quotaNote=quotaCell.querySelector('[data-field="traffic-remaining"]');
   if(!quotaTrack){quotaTrack=document.createElement('div');quotaTrack.className='quota-track';quotaTrack.setAttribute('role','progressbar');quotaTrack.setAttribute('aria-label','本周期流量已用比例');quotaTrack.setAttribute('aria-valuemin','0');quotaTrack.setAttribute('aria-valuemax','100');const fill=document.createElement('b');quotaTrack.append(fill);quotaNote=document.createElement('small');quotaNote.className='quota-remaining';quotaNote.dataset.field='traffic-remaining';quotaCell.append(quotaTrack,quotaNote);row.fields['traffic-remaining']=quotaNote;}
-  renderNodeTrends(row,s,state.history.get(s.id)||[],allowed('show_three_net_details'));
+  renderNodeTrendsDeferred(row,s,state.history.get(s.id)||[],allowed('show_three_net_details'));
   const f=(key,value)=>set(row.fields[key],value);
   f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
@@ -193,16 +204,18 @@ function renderNetwork(){
   svg.setAttribute('aria-label',description);set(svg.querySelector('title'),description);
  }
  if(state.page==='network'){
+  if(!charts){set($('#network-history-note'),'正在加载网络图表…');ensureNetworkCharts().then(()=>{if(state.page==='network')renderNetwork();}).catch(()=>set($('#network-history-note'),'网络图表加载失败 · 点击重试'));return;}
+  charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;
   const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,result?.error?[]:[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>latest)]);}
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
-  if(charts.live)set($('#network-history-note'),'实时采样 · 约 5 分钟窗口 · 5 秒快照');
+  if(chartState.live)set($('#network-history-note'),'实时采样 · 约 5 分钟窗口 · 5 秒快照');
   else if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
   else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 点击重试':'历史采样 · 点击图表锁定 · Esc 返回实时');}
   loadNetworkHistory();
  }
 }
 function renderAggregates(){observeStatus();renderNetwork();if(state.page==='overview'||state.page==='resources'){renderSummary();map.update(visible(),state.config.theme_options||{},state.selected);}}
-async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
+async function json(url){const response=await fetch(url,{cache:'no-cache',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000),priority:url==='/api/servers'?'high':'auto'});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
 async function refresh(){
   if(state.loading)return;state.loading=true;if(!state.ready)loading(true);$('#refresh').disabled=true;
   try{
@@ -266,7 +279,13 @@ try{const view=JSON.parse(sessionStorage.getItem('atlas-view-v1')||'{}');for(con
 chartSetup();
 new ViewRouter(showPage);
 json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);if(state.ready)renderAggregates();}).catch(()=>{});
-refresh().then(()=>{if(all().length)map.focus(region(all()[0].region).code);map.init();});
+refresh().then(()=>{
+ document.documentElement.classList.add('map-deferred');
+ const startMap=()=>{if(all().length)map.focus(region(all()[0].region).code);Promise.resolve(map.init()).finally(()=>document.documentElement.classList.remove('map-deferred'));};
+ // Give KPI/node text and the first paint priority. The WebGL globe is decorative
+ // context, so it enters after the dashboard is already interactive.
+ setTimeout(()=>{if('requestIdleCallback' in window)requestIdleCallback(startMap,{timeout:1600});else startMap();},1100);
+});
 // WebSocket remains primary. Polling is only a fallback, but 15s keeps a stalled public tab from looking frozen.
 const poll=setInterval(()=>{if(!document.hidden)refresh();},15000);
 const age=setInterval(()=>{if(document.hidden||!state.ready)return;if(state.status!=='all'||state.quick)renderRows();else for(const s of all())updateRow(s);renderRegions();renderAggregates();},5000);
@@ -280,3 +299,7 @@ addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInt
 addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
+
+// Non-critical command palette/toast enhancements load after the dashboard is interactive.
+const loadEnhancements=()=>import('./enhancements.js?v=0.4.1').catch(()=>{});
+if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);

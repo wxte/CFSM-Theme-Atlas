@@ -908,3 +908,43 @@ nav a:focus-visible{outline-offset:4px}
 @media(prefers-reduced-motion:reduce){
   nav a{transition:none!important}
 }
+
+/* v0.4.0 — performance cleanup without changing the v0.3.21 visual language. */
+/* Vercel/Parallel direction: keep the already self-hosted Geist Sans for Latin and
+   numbers, but let each OS render CJK natively. This prevents the two Atlas CJK
+   WOFF2 subsets from entering the public dashboard's critical font path. */
+:root{
+  font-family:"Atlas Latin",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+}
+
+/* Collapsed desktop rows below the viewport should not participate in initial
+   layout/paint. Opening a detail restores normal visibility immediately. */
+@media(min-width:801px){
+  .node-row:not(:has(.node-detail[open])){
+    content-visibility:auto;
+    contain-intrinsic-size:auto 76px;
+  }
+  .node-row:has(.node-detail[open]){content-visibility:visible}
+  #network-grid .network-server{contain-intrinsic-size:auto 248px}
+}
+
+/* Avoid spending paint work on decorative transitions while the first snapshot
+   is still being assembled. Normal interactions return as soon as loading ends. */
+.is-loading .node-row,
+.is-loading .network-server,
+.is-loading .kpi,
+.is-loading .resource-card{transition:none!important}
+
+/* Hold the existing lightweight globe silhouette while WebGL is intentionally deferred. */
+.map-deferred #map-stage:before{
+  content:"";
+  position:absolute;
+  inset:15px calc(50% - 126px);
+  width:252px;height:252px;
+  border-radius:50%;
+  border:1px solid var(--line);
+  background:radial-gradient(circle at 35% 30%,var(--panel),var(--soft));
+  pointer-events:none;
+}
+.map-deferred #globe-holder,.map-deferred #map-labels{visibility:hidden}
+@media(max-width:800px){.map-deferred #map-stage:before{width:194px;height:194px;inset:9px calc(50% - 97px)}}

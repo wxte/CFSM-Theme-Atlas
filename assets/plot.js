@@ -10,12 +10,12 @@ export function plotPaths(points,baseline=30,smooth=true){
 const ns='http://www.w3.org/2000/svg',running=new Set();let frame=0,serial=0;
 const duration=320;
 const attr=(el,k,v)=>{v=String(v);if(el.getAttribute(k)!==v)el.setAttribute(k,v);};
-function visible(svg){if(document.hidden||!svg.isConnected||svg.closest('[hidden]')||svg.closest('details:not([open])'))return false;const r=svg.getBoundingClientRect();return r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth;}
+function visible(plot){const svg=plot.svg;return !document.hidden&&svg.isConnected&&!svg.closest('[hidden]')&&!svg.closest('details:not([open])')&&plot.inView&&plot.width>0&&plot.height>0;}
 function tick(now){
  frame=0;
  for(const plot of [...running]){
-  // Avoid a layout read on every animation frame. Visibility is checked once in update().
-  if(document.hidden||!plot.svg.isConnected||plot.svg.closest('[hidden]')||plot.svg.closest('details:not([open])')){plot.finish();continue;}
+  // Visibility and dimensions come from observer caches; no synchronous layout reads.
+  if(!visible(plot)){plot.finish();continue;}
   const t=Math.min(1,(now-plot.started)/duration),e=1-(1-t)**3;
   plot.paint(plot.target.map((p,i)=>p?{...p,x:plot.from[i].x+(p.x-plot.from[i].x)*e,y:plot.from[i].y+(p.y-plot.from[i].y)*e}:null));
   if(t===1){running.delete(plot);plot.svg.removeAttribute('data-animating');}
@@ -33,18 +33,40 @@ export class Plot{
   // Use an ellipse whose radii are compensated from the rendered SVG size so every chart
   // gets the same ~6 px round endpoint on desktop and mobile.
   this.dot=document.createElementNS(ns,'ellipse');attr(this.dot,'class','plot-end');attr(this.dot,'vector-effect','non-scaling-stroke');svg.append(this.dot);
-  this.dotRadiusPx=3;
+  this.dotRadiusPx=3;this.width=0;this.height=0;
+  this.inView=typeof IntersectionObserver==='undefined';
   this.syncDotShape=()=>{
-   const vb=this.svg.viewBox?.baseVal,rect=this.svg.getBoundingClientRect();
-   if(!vb||vb.width<=0||vb.height<=0||rect.width<=0||rect.height<=0)return;
-   attr(this.dot,'rx',this.dotRadiusPx*vb.width/rect.width);
-   attr(this.dot,'ry',this.dotRadiusPx*vb.height/rect.height);
+   const vb=this.svg.viewBox?.baseVal;
+   if(!vb||vb.width<=0||vb.height<=0||this.width<=0||this.height<=0)return;
+   attr(this.dot,'rx',this.dotRadiusPx*vb.width/this.width);
+   attr(this.dot,'ry',this.dotRadiusPx*vb.height/this.height);
   };
   if(typeof ResizeObserver!=='undefined'){
-   this.dotObserver=new ResizeObserver(()=>this.syncDotShape());
+   this.dotObserver=new ResizeObserver(entries=>{
+    for(const entry of entries)if(entry.target===svg){
+     this.width=entry.contentRect.width;this.height=entry.contentRect.height;
+     this.syncDotShape();
+     if((!this.width||!this.height)&&running.has(this))this.finish();
+    }
+   });
    this.dotObserver.observe(svg);
   }
-  queueMicrotask(()=>this.syncDotShape());
+  if(typeof IntersectionObserver!=='undefined'){
+   this.visibilityObserver=new IntersectionObserver(entries=>{
+    for(const entry of entries)if(entry.target===svg){
+     this.inView=entry.isIntersecting&&entry.intersectionRect.width>0&&entry.intersectionRect.height>0;
+     // Intersection entries also provide an asynchronous fallback size without ResizeObserver.
+     if(!this.dotObserver){this.width=entry.boundingClientRect.width;this.height=entry.boundingClientRect.height;this.syncDotShape();}
+     if(!this.inView&&running.has(this))this.finish();
+    }
+   });
+   this.visibilityObserver.observe(svg);
+  }
+  if(!this.dotObserver&&!this.visibilityObserver){
+   // Legacy browsers render static curves using declared SVG dimensions.
+   const vb=svg.viewBox?.baseVal;this.width=svg.width?.baseVal?.value||vb?.width||0;this.height=svg.height?.baseVal?.value||vb?.height||0;
+   this.inView=false;this.syncDotShape();
+  }
  }
  paint(points){
   this.current=points;
@@ -65,7 +87,7 @@ export class Plot{
   if(signature===this.signature)return;this.signature=signature;
   const old=new Map(this.current.filter(Boolean).map(p=>[p.ts,p])),previousLast=[...this.current].reverse().find(Boolean)||null;
   this.target=points;
-  if(!animate||points.length>240||!visible(this.svg)||matchMedia('(prefers-reduced-motion: reduce)').matches){this.finish();return;}
+  if(!animate||points.length>240||!visible(this)||matchMedia('(prefers-reduced-motion: reduce)').matches){this.finish();return;}
   this.from=points.map((p,i)=>{
    if(!p)return null;
    const same=old.get(p.ts);if(same)return same;
@@ -75,6 +97,6 @@ export class Plot{
   this.started=performance.now();running.add(this);this.svg.setAttribute('data-animating','');if(!frame)frame=requestAnimationFrame(tick);
  }
  finish(){running.delete(this);this.svg.removeAttribute('data-animating');this.paint(this.target);if(!running.size&&frame){cancelAnimationFrame(frame);frame=0;}}
- destroy(){running.delete(this);this.svg.removeAttribute('data-animating');this.dotObserver?.disconnect();}
+ destroy(){running.delete(this);this.svg.removeAttribute('data-animating');this.dotObserver?.disconnect();this.visibilityObserver?.disconnect();if(!running.size&&frame){cancelAnimationFrame(frame);frame=0;}}
 }
 if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const plot of [...running])plot.finish();});
