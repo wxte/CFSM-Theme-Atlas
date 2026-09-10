@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.4.9';
-import {recordResources} from './resource-recorder.js?v=0.4.9';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.9';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.9';
-import {flag} from './flags.js?v=0.4.9';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.9';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.9';
-import {DeferredNodeMap} from './lazy-map.js?v=0.4.9';
-import {Plot} from './plot.js?v=0.4.9';
+import {HistoryAPI} from './history-api.js?v=0.4.10';
+import {recordResources} from './resource-recorder.js?v=0.4.10';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.10';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.10';
+import {flag} from './flags.js?v=0.4.10';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.10';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.10';
+import {DeferredNodeMap} from './lazy-map.js?v=0.4.10';
+import {Plot} from './plot.js?v=0.4.10';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -38,7 +38,7 @@ const syncBrandIcon=()=>{
 };
 syncBrandIcon();
 
-document.title='Atlas · Cloudflare Server Monitor';
+const injectedSiteTitle=document.title||'CF-Server-Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
 const setNodeMeta=(el,s)=>{
   if(!el)return;
@@ -93,13 +93,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.9').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.10').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.4.9').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.4.10').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -287,7 +287,7 @@ function connect(){
 function reconnect(){if(state.stopped||document.hidden||state.retry)return;connection('重连中 · 定时刷新');state.retry=setTimeout(()=>{state.retry=null;connect();},Math.min(30000,1000*2**Math.min(state.attempt++,5)));}
 const settings={appearance:'system',globe:'auto'};try{const saved=JSON.parse(localStorage.getItem('wxt-atlas-settings')||'{}');for(const key of ['appearance','globe'])if(saved[key])settings[key]=saved[key];}catch{}
 const systemTheme=matchMedia('(prefers-color-scheme: dark)');
-function applySettings(){const theme=settings.appearance==='system'?(systemTheme.matches?'dark':'light'):settings.appearance==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#15191d':'#ffffff';$('#theme').innerHTML=theme==='dark'?icons.sun:icons.moon;$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');$('#theme').title=theme==='dark'?'切换日间主题':'切换夜间主题';map.mode=settings.globe;$('.map-panel').hidden=settings.globe==='off';$('.observatory').classList.toggle('no-globe',settings.globe==='off');map.requestDraw();}
+function applySettings(){const theme=settings.appearance==='system'?(systemTheme.matches?'dark':'light'):settings.appearance==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#050608':'#ececeb';$('#theme').innerHTML=theme==='dark'?icons.sun:icons.moon;$('#theme').setAttribute('aria-label',theme==='dark'?'切换日间主题':'切换夜间主题');$('#theme').title=theme==='dark'?'切换日间主题':'切换夜间主题';map.mode=settings.globe;$('.map-panel').hidden=settings.globe==='off';$('.observatory').classList.toggle('no-globe',settings.globe==='off');map.requestDraw();}
 function saveSettings(){try{localStorage.setItem('wxt-atlas-settings',JSON.stringify(settings));}catch{}applySettings();}
 systemTheme.addEventListener?.('change',()=>{if(settings.appearance==='system')applySettings();});
 $('#theme').addEventListener('click',()=>{settings.appearance=document.documentElement.dataset.theme==='dark'?'light':'dark';saveSettings();});
@@ -318,7 +318,25 @@ function saveViewState(){try{sessionStorage.setItem('atlas-view-v1',JSON.stringi
 try{const view=JSON.parse(sessionStorage.getItem('atlas-view-v1')||'{}');for(const [key,values] of Object.entries({status:['all','online','offline'],quick:['','load','expiry'],sort:['default','cpu','traffic','name']}))if(values.includes(view[key]))state[key]=view[key];if(typeof view.search==='string')state.search=view.search.slice(0,200);if(typeof view.selected==='string'&&/^[A-Z]{2}$/.test(view.selected))state.selected=view.selected;$('#search').value=state.search;$('#sort').value=state.sort;document.querySelectorAll('[data-status]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.status===state.status)));}catch{}
 chartSetup();
 new ViewRouter(showPage);
-json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);document.title=title+' · Atlas';if(state.ready)renderAggregates();}).catch(()=>{});
+json('/api/config').then(config=>{
+ state.config=config||{};
+ const title=String(config.site_title||injectedSiteTitle||'CF-Server-Monitor').trim();
+ set($('#site-title'),title);
+ document.title=title;
+ const preferred=String(config.preferred_theme||'auto').toLowerCase();
+ let hasLocalAppearance=false;
+ try{hasLocalAppearance=Boolean(JSON.parse(localStorage.getItem('wxt-atlas-settings')||'{}').appearance);}catch{}
+ if(!hasLocalAppearance){
+   settings.appearance=preferred==='dark'?'dark':preferred==='light'?'light':'system';
+   applySettings();
+ }
+ const backend=$('#backend-version'),version=String(config.version||'').trim();
+ if(backend)set(backend,version?'Powered by CF-Server-Monitor '+version:'Powered by CF-Server-Monitor');
+ if(state.ready)renderAggregates();
+}).catch(()=>{
+ set($('#site-title'),injectedSiteTitle);
+ document.title=injectedSiteTitle;
+});
 refresh().then(()=>{
  document.documentElement.classList.add('map-deferred');
  const startMap=()=>{if(all().length)map.focus(region(all()[0].region).code);Promise.resolve(map.init()).finally(()=>document.documentElement.classList.remove('map-deferred'));};
@@ -341,5 +359,5 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.4.9').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.4.10').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
