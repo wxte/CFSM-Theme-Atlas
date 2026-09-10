@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {windowSamples,nearestPoint,historyFromArrays,aggregateHistory,NetworkCharts} from '../assets/network.js';
+
 test('range changes map the full selected interval onto the chart',()=>{
  const chart=new NetworkCharts();chart.now=9000000;
- for(const range of [3600000,7200000]){chart.rangeMs=range;assert.equal(chart.x(chart.now-range),30);assert.equal(chart.x(chart.now-range/2),192);assert.equal(chart.x(chart.now),354);}
+ for(const range of [3600000,7200000]){
+  chart.rangeMs=range;
+  assert.equal(chart.x({},chart.now-range),30);
+  assert.equal(chart.x({},chart.now-range/2),192);
+  assert.equal(chart.x({},chart.now),354);
+ }
 });
+
 test('live downsampling retains a full two-hour window and actual timestamps',()=>{
  const now=9000000;
  const input=Array.from({length:3601},(_,i)=>({ts:now-7200000+i*2000,cu:i,loss:{cu:0}}));
@@ -34,6 +41,7 @@ test('overview uses existing history immediately and weights nodes equally',()=>
  assert.equal(aggregateHistory(['a'],histories,'cu',now).points[0].value,100);
  assert.deepEqual(aggregateHistory(['a'],histories,'bd',now).points,[]);
 });
+
 test('unknown metrics and actual loss values survive without fabricated samples',()=>{
  const now=9000000,a={ts:now-60000,cu:null,loss:{cu:20}},b={ts:now,cu:0};
  const result=windowSamples([a,b,{ts:0,cu:5},{ts:now+10000,cu:5}],now);

@@ -13,7 +13,7 @@ export function windowSamples(samples,now=Date.now(),duration=windowMs){
   for(const key of historyLines){if(p[key]!==undefined)merged[key]=p[key];if(p.loss?.[key]!==undefined)merged.loss={...merged.loss,[key]:p.loss[key]};}
   exact.set(ts,merged);
  }
- const bucketMs=duration<=7200000?5000:30000;
+ const bucketMs=Math.max(5000,Math.ceil(duration/240/5000)*5000);
  const buckets=new Map();
  for(const p of [...exact.values()].sort((a,b)=>a.ts-b.ts)){
   const bucket=Math.floor(p.ts/bucketMs);if(!buckets.has(bucket))buckets.set(bucket,new Map());

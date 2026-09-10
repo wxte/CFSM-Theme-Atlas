@@ -10,7 +10,9 @@ export function windowSamples(samples,now=Date.now(),duration=windowMs){
   for(const key of historyLines){if(p[key]!==undefined)merged[key]=p[key];if(p.loss?.[key]!==undefined)merged.loss={...merged.loss,[key]:p.loss[key]};}
   exact.set(ts,merged);
  }
- const bucketMs=duration<=7200000?5000:30000,buckets=new Map();
+ // Keep charts bounded to roughly 240 real samples at every range while
+ // preserving the original timestamp/value of the newest report in each bucket.
+ const bucketMs=Math.max(5000,Math.ceil(duration/240/5000)*5000),buckets=new Map();
  for(const p of [...exact.values()].sort((a,b)=>a.ts-b.ts)){
   const bucket=Math.floor(p.ts/bucketMs);if(!buckets.has(bucket))buckets.set(bucket,new Map());
   for(const key of historyLines){if(p[key]!==undefined)buckets.get(bucket).set(key,p);if(p.loss?.[key]!==undefined)buckets.get(bucket).set('loss.'+key,p);}

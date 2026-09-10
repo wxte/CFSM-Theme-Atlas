@@ -5,12 +5,12 @@ import path from 'node:path';
 
 const root = path.resolve('.');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const css = fs.readFileSync(path.join(root, 'assets/style.css'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'assets/atlas.css'), 'utf8');
 
-test('v0.2.9 uses same-origin fonts only', () => {
+test('v0.4.6 keeps font requests same-origin and CJK subsets off the critical preload path', () => {
   assert.doesNotMatch(html, /cdn\.jsdelivr|fonts\.googleapis|fonts\.gstatic/);
-  assert.match(html, /assets\/vendor\/fonts\/atlas-ui-core\.woff2/);
-  assert.match(html, /assets\/vendor\/geist-sans\.woff2/);
+  assert.match(html, /rel="preload" href="\/assets\/vendor\/geist-sans\.woff2"/);
+  assert.doesNotMatch(html, /rel="preload"[^>]+atlas-ui-(?:core|semibold)\.woff2/);
   assert.match(css, /font-family:"Atlas UI"/);
   assert.match(css, /font-family:"Atlas Latin"/);
   assert.match(css, /font-display:swap/);
