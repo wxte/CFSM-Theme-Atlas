@@ -2047,3 +2047,306 @@ html:not(.is-loading) .node-meta .meta-tag{animation:atlas-tag-enter 220ms var(-
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
+
+/* Atlas v0.5.1 — overview harmony + ThreeUI detail polish */
+:root{
+  --atlas-overview-ink:color-mix(in srgb,var(--text) 88%, transparent);
+  --atlas-overview-muted-ink:color-mix(in srgb,var(--text) 56%, transparent);
+  --atlas-meter-neutral:color-mix(in srgb,var(--text) 74%, transparent);
+  --atlas-meter-soft:color-mix(in srgb,var(--text) 12%, transparent);
+}
+html[data-theme=dark]{
+  --atlas-overview-ink:color-mix(in srgb,var(--text) 90%, transparent);
+  --atlas-overview-muted-ink:color-mix(in srgb,var(--text) 62%, transparent);
+  --atlas-meter-neutral:color-mix(in srgb,var(--text) 78%, transparent);
+  --atlas-meter-soft:color-mix(in srgb,var(--text) 16%, transparent);
+}
+
+/* Overview balance */
+.observatory{
+  grid-template-columns:minmax(198px,.92fr) minmax(460px,2.4fr) minmax(214px,.88fr);
+  gap:10px;
+}
+.regions-panel,.quality-panel,.map-panel{
+  border-color:color-mix(in srgb,var(--text) 6%, transparent)!important;
+}
+.quality-panel{
+  padding-top:13px;
+}
+.quality-panel>summary{
+  min-height:18px;
+  margin-bottom:3px;
+  justify-content:flex-end;
+}
+.quality-panel h2,
+.quality-panel>summary h2{
+  display:none!important;
+}
+.quality-panel .live-label{
+  margin-left:auto;
+  opacity:.82;
+}
+#carrier-summary{
+  margin-top:4px;
+}
+.carrier-line{
+  gap:3px 8px;
+  padding:9px 1px;
+}
+.carrier-line strong{
+  color:var(--atlas-overview-ink);
+  font-size:13px;
+}
+.carrier-line small{
+  color:var(--muted);
+  font-size:9.5px;
+}
+.availability{
+  margin-top:12px;
+  padding:10px;
+  background:color-mix(in srgb,var(--panel) 76%, var(--atlas-surface) 24%);
+}
+.availability strong{
+  color:var(--atlas-overview-ink);
+  font-size:12px;
+}
+#availability-track{
+  height:5px;
+  gap:2px;
+}
+#availability-track i{
+  background:color-mix(in srgb,var(--signal) 72%, var(--panel) 28%);
+  opacity:.92;
+}
+
+/* KPI cards: quieter sparks, more neutral rhythm */
+.kpis{
+  gap:0;
+  border-color:color-mix(in srgb,var(--text) 6%, transparent);
+}
+.kpi{
+  min-height:106px;
+  padding:14px 15px;
+}
+.kpi-label{
+  color:var(--muted);
+}
+.kpi>strong{
+  color:var(--atlas-overview-ink);
+}
+#stat-in,#stat-out{
+  color:var(--atlas-overview-ink)!important;
+}
+.kpi-track{
+  left:15px;
+  right:15px;
+  bottom:7px;
+  height:2px;
+  background:transparent;
+}
+.kpi-track b{
+  background:var(--atlas-meter-neutral)!important;
+  opacity:.9;
+}
+.kpi:first-child .kpi-track{
+  background:color-mix(in srgb,var(--signal) 10%, transparent);
+}
+.kpi:first-child .kpi-track b{
+  background:color-mix(in srgb,var(--signal) 88%, var(--text) 12%)!important;
+}
+.kpi-live-traffic .kpi-spark{
+  left:47%;
+  right:9px;
+  bottom:11px;
+  height:32px;
+  opacity:.46;
+  color:var(--atlas-overview-muted-ink)!important;
+}
+.kpi-live-traffic[data-live-traffic=out] .kpi-spark{
+  opacity:.56;
+  color:var(--atlas-overview-ink)!important;
+}
+.kpi-live-traffic .kpi-spark-baseline{
+  stroke:color-mix(in srgb,var(--text) 8%, transparent);
+}
+.kpi-live-traffic .kpi-spark-series{
+  stroke-width:1.15;
+}
+.kpi-live-traffic .plot-area{
+  opacity:.38;
+}
+.kpi-live-traffic .plot-end{
+  r:1.7;
+}
+
+/* Map / region panel subtle cleanup */
+.region-reset{
+  margin-top:11px;
+}
+.region{
+  min-height:42px;
+}
+.region-info strong{
+  font-size:11.5px;
+}
+.region-info small,
+.region-count,
+.region-count small{
+  font-size:10px;
+}
+.map-panel{
+  padding-top:14px;
+}
+#map-stage{
+  height:316px;
+}
+#globe-holder{
+  width:388px;
+  height:388px;
+}
+#map-latency,
+.panel-heading .eyebrow,
+.live-label{
+  background:color-mix(in srgb,var(--panel) 62%, var(--atlas-surface) 38%);
+}
+
+/* Node resource meters: calmer, less rainbow */
+.meters span,
+.meters strong,
+.quota-remaining{
+  color:var(--muted);
+}
+.meters i,
+.quota-track{
+  background:var(--atlas-meter-soft)!important;
+}
+.meters b,
+.quota-track>b{
+  --meter-color:var(--atlas-meter-neutral);
+  background:var(--meter-color)!important;
+}
+.meters b.hot,
+.quota-track>b.hot{
+  --meter-color:var(--warn);
+  background:var(--warn)!important;
+}
+.meters b.over,
+.quota-track>b.over{
+  --meter-color:var(--bad);
+  background:var(--bad)!important;
+}
+.meters b.zero::after,
+.quota-track>b.zero::after{
+  display:none!important;
+}
+.node-row{
+  border-color:color-mix(in srgb,var(--text) 6%, transparent)!important;
+}
+.node-row:hover{
+  background:color-mix(in srgb,var(--panel) 98%, var(--text) 2%)!important;
+}
+.node-main>small.node-meta{
+  gap:3px;
+}
+.node-meta .meta-tag{
+  background:color-mix(in srgb,var(--panel) 58%, var(--atlas-surface) 42%);
+}
+
+/* Table controls and section headers */
+.section-heading{
+  margin:24px 0 10px!important;
+}
+.section-heading h2{
+  font-size:18px!important;
+}
+.table-toolbar{
+  min-height:44px;
+}
+.quick-filters{
+  margin-bottom:8px;
+}
+#filter-explainer{
+  opacity:.82;
+}
+
+/* Network page cards: closer to ThreeUI document modules */
+.network-explainer{
+  margin-bottom:11px!important;
+}
+.network-server{
+  margin-bottom:10px;
+  border-color:color-mix(in srgb,var(--text) 6%, transparent)!important;
+}
+.network-server-heading{
+  min-height:42px;
+  padding:10px 13px;
+}
+.network-server .analysis-card{
+  padding:10px 13px!important;
+}
+.network-server .analysis-top strong{
+  font-size:17px;
+}
+.network-server .chart{
+  height:88px;
+}
+.network-server .chart .gridline{
+  opacity:.34;
+}
+.network-server .chart .series{
+  stroke-width:1.3;
+}
+.network-server .chart-tooltip{
+  background:color-mix(in srgb,var(--panel) 58%, var(--atlas-surface) 42%);
+}
+.network-tracker button::before{
+  opacity:.86;
+}
+
+/* Mobile */
+@media(max-width:1180px){
+  .observatory{
+    grid-template-columns:minmax(188px,.88fr) minmax(360px,1.8fr);
+  }
+  .quality-panel{
+    grid-column:1/-1;
+  }
+}
+@media(max-width:800px){
+  .observatory{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .quality-panel{
+    padding-top:11px;
+  }
+  .quality-panel>summary{
+    min-height:14px;
+    margin-bottom:0;
+  }
+  #map-stage{
+    height:262px;
+  }
+  #globe-holder{
+    width:320px;
+    height:320px;
+  }
+  .kpi{
+    min-height:92px;
+    padding:10px 11px;
+  }
+  .kpi-live-traffic .kpi-spark{
+    left:44%;
+    right:8px;
+    bottom:10px;
+    height:28px;
+  }
+  .carrier-line strong{
+    font-size:12px;
+  }
+  .availability{
+    margin-top:10px;
+    padding:9px;
+  }
+}
