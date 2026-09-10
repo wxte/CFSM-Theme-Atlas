@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.4.8';
-import {recordResources} from './resource-recorder.js?v=0.4.8';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.8';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.8';
-import {flag} from './flags.js?v=0.4.8';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.8';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.8';
-import {DeferredNodeMap} from './lazy-map.js?v=0.4.8';
-import {Plot} from './plot.js?v=0.4.8';
+import {HistoryAPI} from './history-api.js?v=0.4.9';
+import {recordResources} from './resource-recorder.js?v=0.4.9';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.9';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.9';
+import {flag} from './flags.js?v=0.4.9';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.9';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.9';
+import {DeferredNodeMap} from './lazy-map.js?v=0.4.9';
+import {Plot} from './plot.js?v=0.4.9';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -18,7 +18,27 @@ const icons={
 };
 if($('#activity-toggle'))$('#activity-toggle').innerHTML=icons.activity;
 if(!$('#activity-badge')){const badge=document.createElement('span');badge.id='activity-badge';badge.hidden=true;$('#activity-toggle')?.append(badge);}
-document.title='WXT Atlas · Cloudflare Server Monitor';
+const syncBrandIcon=()=>{
+  const image=$('#brand-logo'),fallback=$('#brand-mark-fallback');
+  if(!image||!fallback)return;
+  const icon=document.querySelector('link[rel~="icon"]');
+  const source=icon?.href;
+  if(!source)return;
+  image.addEventListener('load',()=>{
+    image.hidden=false;
+    image.classList.add('brand-logo-ready');
+    fallback.hidden=true;
+  },{once:true});
+  image.addEventListener('error',()=>{
+    image.hidden=true;
+    image.classList.remove('brand-logo-ready');
+    fallback.hidden=false;
+  },{once:true});
+  image.src=source;
+};
+syncBrandIcon();
+
+document.title='Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
 const setNodeMeta=(el,s)=>{
   if(!el)return;
@@ -73,13 +93,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.8').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.9').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.4.8').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.4.9').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -298,7 +318,7 @@ function saveViewState(){try{sessionStorage.setItem('atlas-view-v1',JSON.stringi
 try{const view=JSON.parse(sessionStorage.getItem('atlas-view-v1')||'{}');for(const [key,values] of Object.entries({status:['all','online','offline'],quick:['','load','expiry'],sort:['default','cpu','traffic','name']}))if(values.includes(view[key]))state[key]=view[key];if(typeof view.search==='string')state.search=view.search.slice(0,200);if(typeof view.selected==='string'&&/^[A-Z]{2}$/.test(view.selected))state.selected=view.selected;$('#search').value=state.search;$('#sort').value=state.sort;document.querySelectorAll('[data-status]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.status===state.status)));}catch{}
 chartSetup();
 new ViewRouter(showPage);
-json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);if(state.ready)renderAggregates();}).catch(()=>{});
+json('/api/config').then(config=>{state.config=config||{};const title=config.site_title||'CFSM';set($('#site-title'),title);document.title=title+' · Atlas';if(state.ready)renderAggregates();}).catch(()=>{});
 refresh().then(()=>{
  document.documentElement.classList.add('map-deferred');
  const startMap=()=>{if(all().length)map.focus(region(all()[0].region).code);Promise.resolve(map.init()).finally(()=>document.documentElement.classList.remove('map-deferred'));};
@@ -321,5 +341,5 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.4.8').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.4.9').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
