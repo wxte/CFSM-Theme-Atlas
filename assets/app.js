@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.4.6';
-import {recordResources} from './resource-recorder.js?v=0.4.6';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.6';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.6';
-import {flag} from './flags.js?v=0.4.6';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.6';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.6';
-import {DeferredNodeMap} from './lazy-map.js?v=0.4.6';
-import {Plot} from './plot.js?v=0.4.6';
+import {HistoryAPI} from './history-api.js?v=0.4.7';
+import {recordResources} from './resource-recorder.js?v=0.4.7';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.4.7';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.4.7';
+import {flag} from './flags.js?v=0.4.7';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.4.7';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.4.7';
+import {DeferredNodeMap} from './lazy-map.js?v=0.4.7';
+import {Plot} from './plot.js?v=0.4.7';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -20,6 +20,26 @@ if($('#activity-toggle'))$('#activity-toggle').innerHTML=icons.activity;
 if(!$('#activity-badge')){const badge=document.createElement('span');badge.id='activity-badge';badge.hidden=true;$('#activity-toggle')?.append(badge);}
 document.title='WXT Atlas · Cloudflare Server Monitor';
 const set = (el,value) => { const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
+const setNodeMeta=(el,s)=>{
+  if(!el)return;
+  const items=[
+    s.server_group||'',
+    s.arch||'—',
+    numeric(s.cpu_cores)?String(n(s.cpu_cores))+'C':'—C',
+    bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)
+  ].filter(Boolean);
+  const signature=items.join('\x1f');
+  if(el.dataset.signature===signature)return;
+  el.dataset.signature=signature;
+  el.classList.add('node-meta');
+  el.replaceChildren(...items.map(text=>{
+    const tag=document.createElement('span');
+    tag.className='meta-tag';
+    tag.textContent=text;
+    return tag;
+  }));
+};
+
 const severity = value => {
   if(!numeric(value))return 'unknown';
   const v=Math.max(0,n(value));
@@ -53,13 +73,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.6').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.4.7').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.4.6').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.4.7').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -151,7 +171,7 @@ function updateRow(s){
   if(!quotaTrack){quotaTrack=document.createElement('div');quotaTrack.className='quota-track';quotaTrack.setAttribute('role','progressbar');quotaTrack.setAttribute('aria-label','本周期流量已用比例');quotaTrack.setAttribute('aria-valuemin','0');quotaTrack.setAttribute('aria-valuemax','100');const fill=document.createElement('b');quotaTrack.append(fill);quotaNote=document.createElement('small');quotaNote.className='quota-remaining';quotaNote.dataset.field='traffic-remaining';quotaCell.append(quotaTrack,quotaNote);row.fields['traffic-remaining']=quotaNote;}
   renderNodeTrendsDeferred(row,s,state.history.get(s.id)||[],allowed('show_three_net_details'));
   const f=(key,value)=>set(row.fields[key],value);
-  f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');f('meta',`${s.server_group?s.server_group+' · ':''}${s.arch||'—'} · ${s.cpu_cores||'—'} 核 · ${bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)}`);
+  f('region',r.code);const emblem=row.querySelector('[data-flag]');if(emblem.dataset.code!==r.code){emblem.dataset.code=r.code;emblem.innerHTML=flag(r.code);}f('name',s.name||'未命名节点');f('status',live?'在线':'离线');setNodeMeta(row.fields.meta,s);
   f('cpu_info',s.cpu_info);f('os',`${s.os||'—'} · ${s.kernel_version||'—'}`);f('load',`${s.load_avg||'—'} / ${numeric(s.processes)?s.processes:'—'}`);f('connections',`${numeric(s.tcp_conn)?s.tcp_conn:'—'} / ${numeric(s.udp_conn)?s.udp_conn:'—'}`);
   f('price',allowed('show_price')?(numeric(s.price)?`${s.currency||''}${Math.max(0,n(s.price))} / ${cycles[s.billing_cycle]||'?'} 个月`:'未配置'):'未公开');f('expire',allowed('show_expire')?(s.expire_date||'未配置'):'未公开');
   for(const [key,value] of [['cpu',numeric(s.cpu)?n(s.cpu):null],['ram',percent(s.ram_used,s.ram_total)],['disk',percent(s.disk_used,s.disk_total)]]){f(key,fmtPct(value));const bar=row.bars[key],width=`${Math.min(100,Math.max(0,n(value)))}%`;if(bar.style.width!==width)bar.style.width=width;markSeverity(bar,value,'resource');}
@@ -301,5 +321,5 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.4.6').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.4.7').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
