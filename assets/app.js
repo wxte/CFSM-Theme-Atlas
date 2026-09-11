@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.5.4';
-import {recordResources} from './resource-recorder.js?v=0.5.4';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.4';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.4';
-import {flag} from './flags.js?v=0.5.4';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.4';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.4';
-import {DeferredNodeMap} from './lazy-map.js?v=0.5.4';
-import {Plot} from './plot.js?v=0.5.4';
+import {HistoryAPI} from './history-api.js?v=0.5.5';
+import {recordResources} from './resource-recorder.js?v=0.5.5';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.5';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.5';
+import {flag} from './flags.js?v=0.5.5';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.5';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.5';
+import {DeferredNodeMap} from './lazy-map.js?v=0.5.5';
+import {Plot} from './plot.js?v=0.5.5';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -40,19 +40,48 @@ syncBrandIcon();
 
 const injectedSiteTitle=document.title||'CF-Server-Monitor';
 const set = (el,value) => { if(!el)return; const text=String(value??'—'); if(el.textContent!==text)el.textContent=text; };
+const osFamily=value=>{
+ const text=String(value||'').toLowerCase();
+ if(/windows|win32|win64/.test(text))return 'windows';
+ if(/freebsd|openbsd|netbsd/.test(text))return 'bsd';
+ if(/openwrt/.test(text))return 'openwrt';
+ return 'linux';
+};
+const osIcon=family=>family==='windows'
+ ?'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.7 7.2 2v5.3H2V2.7Zm6.1-.8L14 1v6.3H8.1V1.9ZM2 8.2h5.2V14L2 13.3V8.2Zm6.1 0H14V15l-5.9-.8v-6Z"/></svg>'
+ :family==='openwrt'
+ ?'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 9c2.2-2 4.3-2 6.2 0s3.8 2 5.8 0M3.5 6.2c1.6-1.4 3-1.4 4.5 0s3 1.4 4.5 0"/></svg>'
+ :family==='bsd'
+ ?'<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5"/><path d="M5 3.8 3.6 2.2M11 3.8l1.4-1.6"/></svg>'
+ :'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 5 3 3-3 3M8.5 11h4"/></svg>';
+const osTitle=s=>{
+ const text=String(s.os||'').trim();
+ if(!text)return 'Linux';
+ const known=text.match(/Debian|Ubuntu|Alpine|Rocky|CentOS|Fedora|Arch|OpenWrt|FreeBSD|OpenBSD|NetBSD|Windows/i);
+ return known?known[0]:text.split(/[·,(]/)[0].trim().slice(0,32)||'System';
+};
 const setNodeMeta=(el,s)=>{
   if(!el)return;
+  const group=String(s.server_group||'').trim();
+  const groupTag=group&&!/^default$/i.test(group)?group:'';
   const items=[
-    s.server_group||'',
+    groupTag,
     s.arch||'—',
     numeric(s.cpu_cores)?String(n(s.cpu_cores))+'C':'—C',
     bytes(numeric(s.ram_total)?n(s.ram_total)*1048576:null)
   ].filter(Boolean);
-  const signature=items.join('\x1f');
+  const system=osTitle(s),family=osFamily(s.os);
+  const signature=[system,family,...items].join('\x1f');
   if(el.dataset.signature===signature)return;
   el.dataset.signature=signature;
   el.classList.add('node-meta');
-  el.replaceChildren(...items.map(text=>{
+  const mark=document.createElement('span');
+  mark.className='os-mark';
+  mark.dataset.os=family;
+  mark.title=system;
+  mark.setAttribute('aria-label','系统：'+system);
+  mark.innerHTML=osIcon(family);
+  el.replaceChildren(mark,...items.map(text=>{
     const tag=document.createElement('span');
     tag.className='meta-tag';
     tag.textContent=text;
@@ -93,13 +122,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.4').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.5').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.5.4').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.5.5').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -384,5 +413,5 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.5.4').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.5.5').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);

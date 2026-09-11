@@ -2658,3 +2658,63 @@ nav a{
   background:var(--bad)!important;
   color:var(--bad)!important;
 }
+.shell{
+  width:min(1240px,calc(100% - 40px))!important;
+}
+.node-meta .os-mark{
+  display:inline-grid;
+  place-items:center;
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+  border:.5px solid var(--atlas-border);
+  border-radius:var(--atlas-r-sm);
+  background:color-mix(in srgb,var(--panel) 60%,var(--atlas-surface) 40%);
+  color:var(--muted);
+}
+.node-meta .os-mark svg{
+  width:13px;
+  height:13px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.node-meta .os-mark[data-os=windows] svg{
+  fill:currentColor;
+  stroke:none;
+}
+.node-meta .os-mark:hover{
+  border-color:var(--atlas-ring);
+  color:var(--text);
+  background:var(--atlas-hover);
+}
+@media(max-width:1300px){
+  .shell{
+    width:min(1240px,calc(100% - 32px))!important;
+  }
+}
+@media(max-width:800px){
+  .shell{
+    width:calc(100% - 20px)!important;
+  }
+  .header-actions .admin-link svg{
+    width:19px!important;
+    height:19px!important;
+  }
+  .node-meta .os-mark{
+    width:19px;
+    height:19px;
+    flex-basis:19px;
+  }
+  .node-meta .os-mark svg{
+    width:12px;
+    height:12px;
+  }
+}
+@media(max-width:430px){
+  .shell{
+    width:calc(100% - 16px)!important;
+  }
+}
