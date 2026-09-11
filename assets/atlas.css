@@ -3422,3 +3422,115 @@ nav,
     font-size:12px!important;
   }
 }
+
+/* Atlas v0.5.9 compact hotfix */
+/* Keep v0.5.8 alignment, restore v0.5.7-like density. */
+.node-meta .os-tag{
+  min-height:23px!important;
+  padding:3px 7px!important;
+  gap:6px!important;
+  font-size:10.5px!important;
+  line-height:1!important;
+}
+.node-meta .os-logo{
+  width:16px!important;
+  height:16px!important;
+  flex:0 0 16px!important;
+}
+.node-meta .os-logo svg{
+  width:16px!important;
+  height:16px!important;
+}
+.node-meta .meta-tag{
+  min-height:21px!important;
+  padding:2px 6px!important;
+  font-size:10px!important;
+  line-height:1!important;
+}
+.node-name{
+  font-size:13.5px!important;
+  line-height:1.25!important;
+}
+.rate-cell small,
+#node-list[data-view=cards] .rate-cell small{
+  font-size:10px!important;
+}
+.rate-cell strong,
+#node-list[data-view=cards] .rate-cell strong{
+  font-size:14px!important;
+  line-height:1.1!important;
+}
+.meters span,
+.meters strong,
+#node-list[data-view=cards] .meters span,
+#node-list[data-view=cards] .meters strong{
+  font-size:10px!important;
+}
+.transfer-cell,
+#node-list[data-view=cards] .transfer-cell{
+  font-size:10.5px!important;
+}
+.transfer-cell strong,
+.quota-used,
+.quota-remaining,
+#node-list[data-view=cards] .transfer-cell strong{
+  font-size:12px!important;
+}
+.node-pings,
+#node-list[data-view=cards] .node-pings{
+  font-size:10.5px!important;
+}
+.uptime-cell,
+#node-list[data-view=cards] .uptime-cell{
+  font-size:11px!important;
+}
+.node-region{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:5px!important;
+  width:max-content!important;
+  min-height:22px!important;
+  padding:2px 6px!important;
+  line-height:1!important;
+}
+.node-region img,
+.node-region .flag,
+.node-region svg{
+  flex:0 0 auto!important;
+  margin:0!important;
+}
+.node-region span,
+.node-region small{
+  margin:0!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+@media(max-width:800px){
+  .node-meta .os-tag{
+    min-height:24px!important;
+    font-size:10.5px!important;
+  }
+  .node-meta .meta-tag{
+    min-height:22px!important;
+    font-size:10px!important;
+  }
+  .node-row>.rate-cell strong,
+  #node-list[data-view=cards] .rate-cell strong{
+    font-size:16px!important;
+  }
+  .node-row>.rate-cell small,
+  #node-list[data-view=cards] .rate-cell small,
+  .node-row>.transfer-cell,
+  #node-list[data-view=cards] .transfer-cell,
+  .node-row>.node-pings,
+  #node-list[data-view=cards] .node-pings,
+  .node-row>.uptime-cell,
+  #node-list[data-view=cards] .uptime-cell,
+  .node-row>.meters span,
+  .node-row>.meters strong,
+  #node-list[data-view=cards] .meters span,
+  #node-list[data-view=cards] .meters strong{
+    font-size:10.5px!important;
+  }
+}
