@@ -3174,3 +3174,251 @@ nav,
 .node-detail dd{
   font-variant-numeric:tabular-nums;
 }
+
+/* Atlas v0.5.8 alignment polish */
+:root{
+  --atlas-band-label-size:12px;
+  --atlas-band-value-size:14px;
+  --atlas-band-meta-size:12px;
+}
+
+.kpi{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  gap:5px;
+}
+.kpi-label,
+.kpi small{
+  line-height:1.18!important;
+}
+.kpi>strong,
+.kpi #stat-in,
+.kpi #stat-out,
+.kpi #stat-month,
+.kpi #stat-cost,
+#map-latency,
+.map-label,
+.carrier-line strong{
+  font-family:var(--atlas-mono)!important;
+}
+.kpi>strong{
+  display:flex;
+  align-items:baseline;
+  gap:.18em;
+}
+.kpi-live-traffic>strong{
+  min-height:1.12em;
+}
+
+.node-columns{
+  align-items:end!important;
+}
+.node-columns>span{
+  line-height:1.18!important;
+}
+.node-row{
+  align-items:center!important;
+}
+.node-main{
+  align-self:start!important;
+}
+.node-name,
+.node-name h3{
+  line-height:1.28!important;
+}
+.node-main>small.node-meta,
+.node-meta{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:6px!important;
+}
+.node-meta .os-tag{
+  min-height:26px!important;
+  padding:4px 9px!important;
+  gap:7px!important;
+  border-radius:7px!important;
+  font-size:12px!important;
+  line-height:1!important;
+  color:var(--text)!important;
+}
+.node-meta .os-logo{
+  width:16px!important;
+  height:16px!important;
+  flex:0 0 16px!important;
+}
+.node-meta .os-logo svg{
+  width:16px!important;
+  height:16px!important;
+  stroke-width:1.75!important;
+}
+.node-meta .meta-tag{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:24px!important;
+  padding:3px 8px!important;
+  font-size:11px!important;
+  line-height:1!important;
+}
+.node-region,
+.node-region .flag{
+  align-items:center!important;
+}
+
+.rate-cell,
+#node-list[data-view=cards] .rate-cell{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  gap:5px!important;
+}
+.rate-cell small,
+#node-list[data-view=cards] .rate-cell small{
+  display:block!important;
+  margin:0!important;
+  font-size:var(--atlas-band-label-size)!important;
+  line-height:1.12!important;
+}
+.rate-cell strong,
+#node-list[data-view=cards] .rate-cell strong{
+  display:block!important;
+  margin:0!important;
+  font-family:var(--atlas-mono)!important;
+  font-size:15px!important;
+  line-height:1.12!important;
+  white-space:nowrap!important;
+}
+
+.meters,
+#node-list[data-view=cards] .meters{
+  display:grid!important;
+  gap:6px!important;
+}
+.meters>div,
+#node-list[data-view=cards] .meters>div{
+  align-items:center!important;
+}
+.meters span,
+#node-list[data-view=cards] .meters span{
+  font-size:var(--atlas-band-meta-size)!important;
+  line-height:1.08!important;
+}
+.meters strong,
+#node-list[data-view=cards] .meters strong{
+  font-family:var(--atlas-mono)!important;
+  font-size:var(--atlas-band-meta-size)!important;
+  line-height:1.08!important;
+}
+
+.transfer-cell,
+#node-list[data-view=cards] .transfer-cell{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  row-gap:3px!important;
+  column-gap:8px!important;
+  font-size:var(--atlas-band-meta-size)!important;
+  line-height:1.16!important;
+}
+.transfer-cell strong,
+.quota-used,
+.quota-remaining,
+#node-list[data-view=cards] .transfer-cell strong{
+  font-family:var(--atlas-mono)!important;
+  font-size:13px!important;
+  line-height:1.12!important;
+}
+.transfer-cell small,
+#node-list[data-view=cards] .transfer-cell small{
+  grid-column:1/-1!important;
+  margin-top:0!important;
+  line-height:1.14!important;
+}
+
+.node-pings,
+#node-list[data-view=cards] .node-pings{
+  display:grid!important;
+  gap:4px!important;
+  font-family:var(--atlas-mono)!important;
+  font-size:var(--atlas-band-meta-size)!important;
+  line-height:1.16!important;
+}
+.node-pings span,
+#node-list[data-view=cards] .node-pings span{
+  display:flex!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+}
+
+.uptime-cell,
+#node-list[data-view=cards] .uptime-cell{
+  font-family:var(--atlas-mono)!important;
+  font-size:12px!important;
+  line-height:1.16!important;
+}
+
+#node-list[data-view=cards] .node-row{
+  min-height:0!important;
+  align-content:start!important;
+  gap:10px 14px!important;
+}
+#node-list[data-view=cards] .node-main{
+  align-self:start!important;
+}
+#node-list[data-view=cards] .node-region{
+  align-self:start!important;
+}
+#node-list[data-view=cards] .transfer-cell{
+  align-self:start!important;
+}
+#node-list[data-view=cards] .uptime-cell{
+  align-self:end!important;
+}
+#node-list[data-view=cards] .node-pings{
+  padding-top:8px!important;
+}
+.node-detail .details{
+  gap:12px 20px!important;
+}
+.node-detail dt,
+.node-detail dd{
+  line-height:1.2!important;
+}
+
+@media(max-width:800px){
+  .node-meta .os-tag{
+    min-height:27px!important;
+    padding:4px 9px!important;
+    font-size:12px!important;
+  }
+  .node-meta .os-logo{
+    width:17px!important;
+    height:17px!important;
+    flex-basis:17px!important;
+  }
+  .node-meta .os-logo svg{
+    width:17px!important;
+    height:17px!important;
+  }
+  .node-row>.rate-cell strong,
+  #node-list[data-view=cards] .rate-cell strong{
+    font-size:16px!important;
+  }
+  .node-row>.rate-cell small,
+  #node-list[data-view=cards] .rate-cell small{
+    font-size:12px!important;
+  }
+  .node-row>.transfer-cell,
+  #node-list[data-view=cards] .transfer-cell,
+  .node-row>.node-pings,
+  #node-list[data-view=cards] .node-pings,
+  .node-row>.uptime-cell,
+  #node-list[data-view=cards] .uptime-cell,
+  .node-row>.meters span,
+  .node-row>.meters strong,
+  #node-list[data-view=cards] .meters span,
+  #node-list[data-view=cards] .meters strong{
+    font-size:12px!important;
+  }
+}
