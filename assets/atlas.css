@@ -2635,3 +2635,26 @@ nav a{
     padding-inline:8px!important;
   }
 }
+.quality-panel{display:none!important}
+.meters [data-bar=cpu],
+.meters [data-bar=ram],
+.meters [data-bar=disk],
+.meters b.safe,
+.meters b.warn,
+.quota-track>b.safe,
+.quota-track>b.warn{
+  --meter-color:var(--atlas-meter-neutral)!important;
+  background:var(--atlas-meter-neutral)!important;
+  color:var(--atlas-meter-neutral)!important;
+  box-shadow:none!important;
+}
+.meters b.hot,.quota-track>b.hot{
+  --meter-color:var(--warn)!important;
+  background:var(--warn)!important;
+  color:var(--warn)!important;
+}
+.meters b.critical,.quota-track>b.critical,.quota-track>b.over{
+  --meter-color:var(--bad)!important;
+  background:var(--bad)!important;
+  color:var(--bad)!important;
+}
