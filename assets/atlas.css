@@ -3091,3 +3091,86 @@ nav a{
     width:calc(100% - 16px)!important;
   }
 }
+
+@font-face{
+  font-family:"Atlas Mono";
+  src:url("./vendor/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  font-weight:400;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Atlas Mono";
+  src:url("./vendor/fonts/JetBrainsMono-Medium.woff2") format("woff2");
+  font-weight:500 600;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Atlas Mono";
+  src:url("./vendor/fonts/JetBrainsMono-Bold.woff2") format("woff2");
+  font-weight:700 800;
+  font-style:normal;
+  font-display:swap;
+}
+
+:root{
+  --atlas-mono:"Atlas Mono","JetBrains Mono","SFMono-Regular","Cascadia Code","Roboto Mono",ui-monospace,monospace;
+  --atlas-ui:"Atlas Mono","JetBrains Mono","PingFang SC","Microsoft YaHei UI","Noto Sans CJK SC",system-ui,sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.brand,
+nav,
+.kpi,
+.kpi-label,
+.kpi>strong,
+.node-name,
+.node-meta,
+.node-region,
+.rate-cell,
+.rate-cell small,
+.rate-cell strong,
+.meters,
+.meters span,
+.meters strong,
+.transfer-cell,
+.quota-used,
+.quota-remaining,
+.node-pings,
+.uptime-cell,
+.region-info,
+.region-count,
+.map-label,
+.live-label,
+#map-latency,
+.network-server,
+.analysis-card,
+.network-history-note,
+.tracker-key,
+.activity-list,
+.activity-list time,
+.node-detail,
+.node-detail dt,
+.node-detail dd{
+  font-family:var(--atlas-ui)!important;
+}
+
+.kpi>strong,
+.rate-cell strong,
+.meters strong,
+.quota-used,
+.quota-remaining,
+.node-pings,
+.uptime-cell,
+.region-count,
+#map-latency,
+.network-server .analysis-top strong,
+.activity-list time,
+.node-detail dd{
+  font-variant-numeric:tabular-nums;
+}

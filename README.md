@@ -2,7 +2,7 @@
 
 Cloudflare Server Monitor 的第三方监控主题。
 
-当前版本：**v0.5.6**
+当前版本：**v0.5.7**
 
 Atlas 使用原生 HTML / CSS / JavaScript，目标是保留 CF-Server-Monitor 的实时监控能力，同时采用更克制、紧凑的工具型界面。当前设计语言参考 ThreeUI 的中性色层级、细边框、小圆角、等宽信息标签与轻量微交互。
 
@@ -147,7 +147,7 @@ Atlas 使用 CF-Server-Monitor 提供的接口，包括：
 ## 性能与样式
 
 - 单一运行时 CSS：`assets/atlas.css`
-- 本地字体资源
+- 本地 JetBrains Mono 字体资源；中文使用系统中文字体
 - 非关键模块延迟加载
 - 地球离屏时停止不必要渲染
 - 网络历史按时间范围下采样
