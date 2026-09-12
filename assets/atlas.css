@@ -1,4 +1,3 @@
-@font-face{font-family:"Atlas Latin";src:url("./vendor/geist-sans.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap;unicode-range:U+0-FF,U+131,U+152-153,U+2BB-2BC,U+2C6,U+2DA,U+2DC,U+304,U+308,U+329,U+2000-206F,U+20AC,U+2122,U+2190-21FF,U+2212,U+2215,U+FEFF,U+FFFD}
 :root{color-scheme:light;font-synthesis:none}
 html[data-theme=dark]{color-scheme:dark}
 *{box-sizing:border-box}
@@ -423,7 +422,7 @@ input::placeholder{color:var(--muted);opacity:1}
 .icon-button{width:30px;height:30px}}
 .inline-resources{margin-top:0}
 .inline-resources .resource-overview{margin-top:0}
-.brand,.kpi>strong,.resource-card>strong{font-family:"Atlas Latin",sans-serif;font-weight:500;letter-spacing:0}
+.brand,.kpi>strong,.resource-card>strong{font-family:var(--atlas-ui-mono);font-weight:500;letter-spacing:0}
 .kpi>strong,.resource-card>strong{font-variant-numeric:tabular-nums}
 .carrier-line strong,.rate-cell strong,.node-pings,.meters strong{font-variant-numeric:tabular-nums}
 .node-name h3{font-family:inherit}
@@ -457,7 +456,7 @@ input::placeholder{color:var(--muted);opacity:1}
 .command-input-row>svg{color:var(--muted)}
 .command-input-row input{width:100%;border:0;outline:0;background:transparent;color:var(--text);font-size:15px}
 .command-input-row input::placeholder{color:var(--muted)}
-kbd{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border:1px solid var(--line);border-bottom-color:color-mix(in srgb,var(--line) 70%,var(--text));border-radius:5px;background:var(--soft);color:var(--muted);font:600 10px/1 "Atlas Latin",sans-serif;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+kbd{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border:1px solid var(--line);border-bottom-color:color-mix(in srgb,var(--line) 70%,var(--text));border-radius:5px;background:var(--soft);color:var(--muted);font:600 10px/1 var(--atlas-ui-mono);box-shadow:0 1px 0 rgba(0,0,0,.04)}
 .command-results{padding:8px;overflow:auto;overscroll-behavior:contain}
 .command-item{width:100%;display:grid;grid-template-columns:34px 1fr;align-items:center;gap:9px;background:transparent;text-align:left}
 .command-item:hover,.command-item[aria-selected=true]{color:var(--text)}
@@ -978,8 +977,7 @@ nav a:focus-visible{outline-offset:4px}
 .network-server .chart .gridline{opacity:.45}
 .network-server .chart .axis-text{opacity:.86}}
 @media (prefers-reduced-motion:reduce){nav a{transition:none!important}}
-:root{font-family:"Atlas Latin",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",sans-serif}
-@media (min-width:801px){.node-row:not(:has(.node-detail[open])){content-visibility:auto;contain-intrinsic-size:auto 76px}
+:root{font-family:var(--atlas-ui-mono);contain-intrinsic-size:auto 76px}
 .node-row:has(.node-detail[open]){content-visibility:visible}
 #network-grid .network-server{contain-intrinsic-size:auto 248px}}
 .is-loading .node-row,.is-loading .network-server,.is-loading .kpi,.is-loading .resource-card{transition:none!important}
@@ -1140,7 +1138,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,ca
   width:max-content;
   max-width:100%;
   color:var(--text);
-  font-family:"Atlas Latin",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-family:var(--atlas-ui-mono);
   font-size:20px;
   font-weight:650;
   line-height:1;
@@ -1363,7 +1361,7 @@ nav a.active{
 .kpi>strong{
   display:block;
   margin:5px 0 2px;
-  font-family:"Atlas Latin",var(--atlas-ui-mono);
+  font-family:var(--atlas-ui-mono);
   font-size:27px;
   font-weight:520;
   line-height:1.2;
@@ -2709,41 +2707,6 @@ nav a{
   align-items:center;
   gap:6px;
 }
-.node-view-switch{
-  display:inline-flex;
-  align-items:center;
-  gap:2px;
-  padding:2px;
-  border:.5px solid var(--atlas-border);
-  border-radius:var(--atlas-r-md);
-  background:var(--atlas-surface);
-}
-.node-view-switch button{
-  display:inline-grid;
-  place-items:center;
-  width:30px;
-  min-width:30px;
-  height:30px;
-  min-height:30px;
-  padding:0!important;
-  border:0!important;
-  border-radius:var(--atlas-r-sm)!important;
-  background:transparent!important;
-  color:var(--muted);
-}
-.node-view-switch button svg{
-  width:14px;
-  height:14px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:1.7;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-.node-view-switch button[aria-pressed=true]{
-  background:var(--atlas-fill)!important;
-  color:var(--atlas-onfill)!important;
-}
 .kpi-live-traffic{
   padding-bottom:39px!important;
 }
@@ -2770,137 +2733,9 @@ nav a{
   z-index:1;
   margin-bottom:0!important;
 }
-#node-list[data-view=cards]{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:8px!important;
-}
-#node-list[data-view=cards] .node-row{
-  position:relative!important;
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-  grid-template-areas:
-    "main region"
-    "down up"
-    "meters meters"
-    "transfer uptime"
-    "pings pings"
-    "node-detail node-detail"!important;
-  gap:10px 14px!important;
-  min-height:186px!important;
-  padding:14px!important;
-}
-#node-list[data-view=cards] .status-cell{
-  position:absolute!important;
-  top:19px!important;
-  left:14px!important;
-  width:7px!important;
-  min-width:7px!important;
-  height:7px!important;
-  padding:0!important;
-  border:0!important;
-  background:transparent!important;
-  color:transparent!important;
-}
-#node-list[data-view=cards] .status-cell span{
-  display:none!important;
-}
-#node-list[data-view=cards] .status-cell .status-dot{
-  width:7px!important;
-  height:7px!important;
-  margin:0!important;
-  box-shadow:none!important;
-}
-#node-list[data-view=cards] .node-main{
-  grid-area:main!important;
-  padding-left:16px!important;
-  padding-right:32px!important;
-}
-#node-list[data-view=cards] .node-region{
-  grid-area:region!important;
-  justify-self:end!important;
-  align-self:start!important;
-  margin:0!important;
-}
-#node-list[data-view=cards] .rate-cell.down{grid-area:down!important}
-#node-list[data-view=cards] .rate-cell.up{grid-area:up!important}
-#node-list[data-view=cards] .rate-cell{
-  min-width:0!important;
-  padding-top:9px!important;
-  border-top:.5px solid var(--atlas-border)!important;
-}
-#node-list[data-view=cards] .rate-cell small{
-  display:block!important;
-  margin:0 0 4px!important;
-  color:var(--muted);
-  font-size:9.5px!important;
-}
-#node-list[data-view=cards] .rate-cell strong{
-  display:block!important;
-  font-size:14px!important;
-  text-align:left!important;
-}
-#node-list[data-view=cards] .meters{
-  grid-area:meters!important;
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:8px!important;
-}
-#node-list[data-view=cards] .meters>div{
-  display:grid!important;
-  grid-template-columns:1fr auto!important;
-  gap:4px 6px!important;
-  min-width:0!important;
-}
-#node-list[data-view=cards] .meters>div>i{
-  grid-column:1/-1!important;
-  width:100%!important;
-}
-#node-list[data-view=cards] .meters span,
-#node-list[data-view=cards] .meters strong{
-  width:auto!important;
-}
-#node-list[data-view=cards] .transfer-cell{
-  grid-area:transfer!important;
-}
-#node-list[data-view=cards] .uptime-cell{
-  grid-area:uptime!important;
-  justify-self:end!important;
-  text-align:right!important;
-}
-#node-list[data-view=cards] .node-pings{
-  grid-area:pings!important;
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:6px!important;
-  padding-top:9px!important;
-  border-top:.5px solid var(--atlas-border)!important;
-}
-#node-list[data-view=cards] .node-pings span{
-  white-space:nowrap;
-}
-#node-list[data-view=cards] .detail-cell{
-  position:absolute!important;
-  top:10px!important;
-  right:10px!important;
-  width:28px!important;
-  height:28px!important;
-}
-#node-list[data-view=cards] .node-detail-cell{
-  grid-area:node-detail!important;
-  grid-column:1/-1!important;
-}
 @media(max-width:1300px){
   .shell{
     width:min(1240px,calc(100% - 32px))!important;
-  }
-}
-@media(max-width:980px){
-  .node-view-switch{
-    display:none!important;
-  }
-  #node-list[data-view=cards]{
-    grid-template-columns:1fr!important;
   }
 }
 @media(max-width:800px){
@@ -3175,45 +3010,22 @@ nav,
   font-variant-numeric:tabular-nums;
 }
 
-/* Atlas v0.5.10 canonical compact alignment */
+/* Atlas v0.5.11 list-only performance polish */
 :root{
   --atlas-quota-dot-empty:color-mix(in srgb,var(--text) 13%,transparent);
   --atlas-quota-dot-fill:color-mix(in srgb,var(--text) 72%,transparent);
 }
 
-.kpi>strong,
-.kpi #stat-in,
-.kpi #stat-out,
-.kpi #stat-month,
-.kpi #stat-cost{
-  font-family:var(--atlas-mono)!important;
-  font-variant-numeric:tabular-nums;
+/* Desktop uses one canonical long-row layout only. */
+.node-heading-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
-.kpi>strong,
-.kpi #stat-in,
-.kpi #stat-out,
-.kpi #stat-month,
-.kpi #stat-cost{
-  font-size:24px!important;
-  line-height:1.18!important;
-  letter-spacing:-.045em;
-}
-.kpi #stat-cost{
-  white-space:nowrap!important;
-  overflow:visible!important;
-}
-.kpi #stat-cost.multi-currency{
-  font-size:17px!important;
-  line-height:1.3!important;
-  white-space:normal!important;
-  letter-spacing:-.025em;
-}
-
-.node-columns{
-  align-items:end!important;
-}
-.node-columns>span{
-  line-height:1.15!important;
+#node-list{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:6px;
 }
 .node-row{
   align-items:center!important;
@@ -3282,54 +3094,45 @@ nav,
   white-space:nowrap!important;
 }
 
-.rate-cell,
-#node-list[data-view=cards] .rate-cell{
+.rate-cell{
   display:flex!important;
   flex-direction:column!important;
   justify-content:center!important;
   gap:4px!important;
   min-width:0!important;
 }
-.rate-cell small,
-#node-list[data-view=cards] .rate-cell small{
+.rate-cell small{
   display:block!important;
   margin:0!important;
   font-size:10px!important;
   line-height:1.1!important;
 }
-.rate-cell strong,
-#node-list[data-view=cards] .rate-cell strong{
+.rate-cell strong{
   display:block!important;
   margin:0!important;
-  font-family:var(--atlas-mono)!important;
+  font-family:var(--atlas-ui-mono)!important;
   font-size:14px!important;
   line-height:1.1!important;
   white-space:nowrap!important;
 }
 
-.meters,
-#node-list[data-view=cards] .meters{
+.meters{
   display:grid!important;
   gap:4px!important;
 }
-.meters>div,
-#node-list[data-view=cards] .meters>div{
+.meters>div{
   align-items:center!important;
 }
 .meters span,
-.meters strong,
-#node-list[data-view=cards] .meters span,
-#node-list[data-view=cards] .meters strong{
+.meters strong{
   font-size:10px!important;
   line-height:1.08!important;
 }
-.meters strong,
-#node-list[data-view=cards] .meters strong{
-  font-family:var(--atlas-mono)!important;
+.meters strong{
+  font-family:var(--atlas-ui-mono)!important;
 }
 
-.transfer-cell,
-#node-list[data-view=cards] .transfer-cell{
+.transfer-cell{
   display:flex!important;
   flex-direction:column!important;
   justify-content:center!important;
@@ -3339,22 +3142,20 @@ nav,
   font-size:10px!important;
   line-height:1.12!important;
 }
-.transfer-cell>strong,
-#node-list[data-view=cards] .transfer-cell>strong{
+.transfer-cell>strong{
   display:block!important;
   width:100%!important;
   margin:0!important;
   overflow:visible!important;
   text-overflow:clip!important;
   white-space:nowrap!important;
-  font-family:var(--atlas-mono)!important;
+  font-family:var(--atlas-ui-mono)!important;
   font-size:11px!important;
   font-weight:500!important;
   line-height:1.12!important;
   letter-spacing:-.035em;
 }
-.transfer-cell>small,
-#node-list[data-view=cards] .transfer-cell>small{
+.transfer-cell>small{
   margin:0!important;
   line-height:1.1!important;
 }
@@ -3374,9 +3175,7 @@ nav,
     0 0/8px 100% repeat-x!important;
   box-shadow:none!important;
 }
-.quota-track[hidden]{
-  display:none!important;
-}
+.quota-track[hidden]{display:none!important}
 .quota-track>b{
   --quota-dot-used:var(--atlas-quota-dot-fill);
   display:block!important;
@@ -3390,30 +3189,19 @@ nav,
     0 0/8px 100% repeat-x!important;
   color:var(--quota-dot-used)!important;
   box-shadow:none!important;
-  transition:width 220ms ease!important;
+  transition:width 180ms ease!important;
 }
-.quota-track>b::after{
-  display:none!important;
-}
+.quota-track>b::after{display:none!important}
 .quota-track>b.safe,
 .quota-track>b.warn{
   --quota-dot-used:var(--atlas-quota-dot-fill);
-  background:
-    radial-gradient(circle at 3px 50%,var(--quota-dot-used) 1.55px,transparent 1.75px)
-    0 0/8px 100% repeat-x!important;
 }
 .quota-track>b.hot{
   --quota-dot-used:color-mix(in srgb,var(--warn) 80%,var(--text));
-  background:
-    radial-gradient(circle at 3px 50%,var(--quota-dot-used) 1.55px,transparent 1.75px)
-    0 0/8px 100% repeat-x!important;
 }
 .quota-track>b.over,
 .quota-track>b.critical{
   --quota-dot-used:var(--bad);
-  background:
-    radial-gradient(circle at 3px 50%,var(--quota-dot-used) 1.55px,transparent 1.75px)
-    0 0/8px 100% repeat-x!important;
 }
 .quota-track>b.unknown{
   --quota-dot-used:var(--atlas-quota-dot-empty);
@@ -3425,43 +3213,65 @@ nav,
   overflow:hidden!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
-  font-family:var(--atlas-mono)!important;
+  font-family:var(--atlas-ui-mono)!important;
   font-size:9.5px!important;
   line-height:1.12!important;
   color:var(--muted)!important;
 }
 
-.node-pings,
-#node-list[data-view=cards] .node-pings{
+.node-pings{
   display:grid!important;
   gap:3px!important;
-  font-family:var(--atlas-mono)!important;
+  font-family:var(--atlas-ui-mono)!important;
   font-size:10.5px!important;
   line-height:1.15!important;
 }
-.uptime-cell,
-#node-list[data-view=cards] .uptime-cell{
-  font-family:var(--atlas-mono)!important;
+.uptime-cell{
+  font-family:var(--atlas-ui-mono)!important;
   font-size:11px!important;
   line-height:1.15!important;
 }
 
-#node-list[data-view=cards] .node-row{
-  min-height:0!important;
-  align-content:start!important;
-  gap:9px 13px!important;
+/* Same numeric face everywhere; no extra Geist/Atlas Latin request. */
+.brand,
+.kpi>strong,
+.resource-card>strong,
+.rate-cell strong,
+.transfer-cell,
+.node-pings,
+.uptime-cell,
+kbd{
+  font-family:var(--atlas-ui-mono)!important;
 }
-#node-list[data-view=cards] .node-pings{
-  padding-top:8px!important;
+.kpi>strong,
+.kpi #stat-in,
+.kpi #stat-out,
+.kpi #stat-month,
+.kpi #stat-cost{
+  font-family:var(--atlas-ui-mono)!important;
+  font-variant-numeric:tabular-nums;
 }
-.node-detail .details{
-  gap:12px 20px!important;
+.kpi>strong,
+.kpi #stat-in,
+.kpi #stat-out,
+.kpi #stat-month,
+.kpi #stat-cost{
+  font-size:24px!important;
+  line-height:1.18!important;
+  letter-spacing:-.045em;
 }
-.node-detail dt,
-.node-detail dd{
-  line-height:1.2!important;
+.kpi #stat-cost{
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+.kpi #stat-cost.multi-currency{
+  font-size:17px!important;
+  line-height:1.3!important;
+  white-space:normal!important;
+  letter-spacing:-.025em;
 }
 
+/* Long-row desktop proportions. */
 @media(min-width:1101px){
   .node-columns,
   .node-row{
@@ -3479,6 +3289,7 @@ nav,
   }
 }
 
+/* Existing mobile card-like row stays untouched in structure. */
 @media(max-width:1100px){
   .kpi>strong,
   .kpi #stat-in,
@@ -3491,7 +3302,6 @@ nav,
     font-size:15px!important;
   }
 }
-
 @media(max-width:800px){
   .kpi>strong,
   .kpi #stat-in,
@@ -3508,33 +3318,24 @@ nav,
     min-height:22px!important;
     font-size:10px!important;
   }
-  .node-row>.rate-cell strong,
-  #node-list[data-view=cards] .rate-cell strong{
+  .node-row>.rate-cell strong{
     font-size:16px!important;
   }
   .node-row>.rate-cell small,
-  #node-list[data-view=cards] .rate-cell small,
   .node-row>.transfer-cell,
-  #node-list[data-view=cards] .transfer-cell,
   .node-row>.node-pings,
-  #node-list[data-view=cards] .node-pings,
   .node-row>.uptime-cell,
-  #node-list[data-view=cards] .uptime-cell,
   .node-row>.meters span,
-  .node-row>.meters strong,
-  #node-list[data-view=cards] .meters span,
-  #node-list[data-view=cards] .meters strong{
+  .node-row>.meters strong{
     font-size:10.5px!important;
   }
-  .transfer-cell>strong,
-  #node-list[data-view=cards] .transfer-cell>strong{
+  .transfer-cell>strong{
     font-size:12px!important;
   }
   .quota-remaining{
     font-size:9.5px!important;
   }
 }
-
 @media(max-width:430px){
   .kpi>strong,
   .kpi #stat-in,
@@ -3544,9 +3345,6 @@ nav,
     font-size:17px!important;
   }
 }
-
 @media(prefers-reduced-motion:reduce){
-  .quota-track>b{
-    transition:none!important;
-  }
+  .quota-track>b{transition:none!important}
 }

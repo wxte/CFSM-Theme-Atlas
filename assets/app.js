@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.5.10';
-import {recordResources} from './resource-recorder.js?v=0.5.10';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.10';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.10';
-import {flag} from './flags.js?v=0.5.10';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.10';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.10';
-import {DeferredNodeMap} from './lazy-map.js?v=0.5.10';
-import {Plot} from './plot.js?v=0.5.10';
+import {HistoryAPI} from './history-api.js?v=0.5.11';
+import {recordResources} from './resource-recorder.js?v=0.5.11';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.11';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.11';
+import {flag} from './flags.js?v=0.5.11';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.11';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.11';
+import {DeferredNodeMap} from './lazy-map.js?v=0.5.11';
+import {Plot} from './plot.js?v=0.5.11';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -119,13 +119,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.10').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.11').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.5.10').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.5.11').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -321,8 +321,34 @@ async function refresh(){
 }
 function subscribe(){const ids=[...state.servers.keys()].filter(id=>/^[a-zA-Z0-9._:-]{1,64}$/.test(id)).slice(0,500);state.ws.send(JSON.stringify({type:'subscribe',scope:'all',ids}));if(state.servers.size>500)notice('超过 500 台的节点通过定时刷新更新。');}
 // Coalesce bursts from multiple agents into one render per animation frame.
-const pendingRows=new Set();let liveFrame=0;
-function scheduleLiveRender(){if(liveFrame)return;liveFrame=requestAnimationFrame(()=>{liveFrame=0;if(document.hidden){pendingRows.clear();return;}if(['overview','nodes','resources'].includes(state.page)){if(state.sort!=='default'||state.status!=='all'||state.quick)renderRows();else for(const id of pendingRows){const s=state.servers.get(id);if(s)updateRow(s);}renderRegions();}pendingRows.clear();renderAggregates();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);});}
+const pendingRows=new Set();let liveFrame=0,summaryTimer=0,lastUpdateSecond=-1;
+function scheduleOverviewSummary(){
+  if(summaryTimer||document.hidden||state.page!=='overview')return;
+  summaryTimer=setTimeout(()=>{
+    summaryTimer=0;
+    if(document.hidden||state.page!=='overview')return;
+    renderRegions();
+    renderAggregates();
+  },180);
+}
+function scheduleLiveRender(){
+  if(liveFrame)return;
+  liveFrame=requestAnimationFrame(()=>{
+    liveFrame=0;
+    if(document.hidden){pendingRows.clear();return;}
+    if(['overview','nodes','resources'].includes(state.page)){
+      if(state.sort!=='default'||state.status!=='all'||state.quick)renderRows();
+      else for(const id of pendingRows){const s=state.servers.get(id);if(s)updateRow(s);}
+    }
+    pendingRows.clear();
+    scheduleOverviewSummary();
+    const second=Math.floor(Date.now()/1000);
+    if(second!==lastUpdateSecond){
+      lastUpdateSecond=second;
+      set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);
+    }
+  });
+}
 function connect(){
   if(state.stopped||document.hidden||state.ws)return;connection('连接中');let ws;
   try{ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/ws?subscribe=all`);}catch{reconnect();return;}
@@ -410,19 +436,6 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.5.10').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.5.11').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
 
-const atlasNodeViewMarker='atlas-node-view-v056';
-const nodeViewList=document.getElementById('node-list');
-const nodeViewButtons=[...document.querySelectorAll('[data-node-view]')];
-const applyNodeView=view=>{
- const next=view==='cards'?'cards':'list';
- if(nodeViewList)nodeViewList.dataset.view=next;
- for(const button of nodeViewButtons)button.setAttribute('aria-pressed',String(button.dataset.nodeView===next));
- try{localStorage.setItem('atlas-node-view',next);}catch{}
-};
-let savedNodeView='list';
-try{savedNodeView=localStorage.getItem('atlas-node-view')||'list';}catch{}
-applyNodeView(savedNodeView);
-for(const button of nodeViewButtons)button.addEventListener('click',()=>applyNodeView(button.dataset.nodeView));
