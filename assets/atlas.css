@@ -3362,7 +3362,7 @@ kbd{
   .quota-track>b{transition:none!important}
 }
 
-/* Atlas v0.5.17 desktop + mobile refinement */
+/* Atlas v0.5.18 quota spacing + desktop/mobile polish */
 
 /* Shared node identity alignment */
 .node-main{
@@ -3404,23 +3404,23 @@ kbd{
   margin:0!important;
 }
 
-/* Desktop: keep the long row dense, protect weekly traffic and prevent
-   abnormal latency text from wrapping. */
+/* Desktop: reserve a cleaner lane for weekly quota, tighten latency/uptime,
+   and pull the quota value/bar into a more centered, intentional block. */
 @media(min-width:1301px){
   .node-columns,
   .node-row{
     grid-template-columns:
       56px
-      minmax(220px,1.46fr)
-      56px
-      minmax(66px,.49fr)
-      minmax(66px,.49fr)
-      minmax(180px,1.08fr)
-      minmax(166px,1.04fr)
-      116px
-      50px
+      minmax(214px,1.38fr)
+      54px
+      minmax(64px,.45fr)
+      minmax(64px,.45fr)
+      minmax(172px,.97fr)
+      minmax(198px,1.16fr)
+      104px
+      44px
       28px!important;
-    column-gap:6px!important;
+    column-gap:8px!important;
   }
 }
 @media(min-width:1101px) and (max-width:1300px){
@@ -3428,16 +3428,16 @@ kbd{
   .node-row{
     grid-template-columns:
       54px
-      minmax(188px,1.40fr)
-      54px
-      minmax(62px,.47fr)
-      minmax(62px,.47fr)
-      minmax(162px,1fr)
-      minmax(150px,.98fr)
-      108px
-      48px
+      minmax(184px,1.31fr)
+      52px
+      minmax(60px,.43fr)
+      minmax(60px,.43fr)
+      minmax(156px,.93fr)
+      minmax(178px,1.08fr)
+      98px
+      42px
       26px!important;
-    column-gap:6px!important;
+    column-gap:8px!important;
   }
 }
 @media(min-width:1101px){
@@ -3445,13 +3445,14 @@ kbd{
     padding-inline:0!important;
   }
   .meters{
-    gap:4px!important;
+    gap:5px!important;
+    padding-right:2px!important;
   }
   .meters>div{
     display:grid!important;
-    grid-template-columns:28px minmax(88px,1fr) 34px!important;
+    grid-template-columns:28px minmax(92px,1fr) 34px!important;
     align-items:center!important;
-    gap:5px!important;
+    gap:6px!important;
   }
   .meters span{
     width:auto!important;
@@ -3462,8 +3463,8 @@ kbd{
   }
   .meters i{
     width:100%!important;
-    min-width:88px!important;
-    height:4px!important;
+    min-width:92px!important;
+    height:5px!important;
     border-radius:999px!important;
     overflow:hidden!important;
     background:color-mix(in srgb,var(--text) 13%,transparent)!important;
@@ -3471,18 +3472,64 @@ kbd{
   .meters b{
     border-radius:999px!important;
   }
+
   .transfer-cell{
     min-width:0!important;
+    align-self:center!important;
+    padding-left:10px!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-auto-rows:min-content!important;
+    justify-items:stretch!important;
+    row-gap:4px!important;
+  }
+  .transfer-cell>strong,
+  .transfer-cell .quota-used,
+  .quota-used{
+    display:block!important;
+    width:100%!important;
+    justify-self:center!important;
+    text-align:center!important;
+    font-variant-numeric:tabular-nums!important;
+    letter-spacing:0!important;
+  }
+  .transfer-cell>small,
+  .transfer-cell .quota-remaining,
+  .quota-remaining{
+    display:block!important;
+    width:100%!important;
+    justify-self:center!important;
+    text-align:center!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+  .transfer-cell>.quota-track,
+  .transfer-cell .quota-track,
+  .quota-track{
+    width:min(100%,236px)!important;
+    max-width:236px!important;
+    justify-self:center!important;
+    margin:3px auto 1px!important;
+    height:7px!important;
+    background-size:9px 5px!important;
+    background-position:center center!important;
+  }
+  .transfer-cell>.quota-track>b,
+  .transfer-cell .quota-track>b,
+  .quota-track>b{
+    background-size:9px 5px!important;
+    background-position:center center!important;
   }
   .transfer-cell>strong{
     max-width:none!important;
     overflow:visible!important;
     text-overflow:clip!important;
   }
+
   .node-pings{
     justify-self:start!important;
     width:100%!important;
     min-width:0!important;
+    padding-left:2px!important;
     font-size:9.75px!important;
   }
   .node-pings>span{
@@ -3490,13 +3537,13 @@ kbd{
   }
   .uptime-cell{
     justify-self:start!important;
-    padding-left:0!important;
+    padding-left:1px!important;
     white-space:nowrap!important;
   }
 }
 
-/* Mobile overview: slightly denser cards and a shorter globe, without
-   changing the 2x3 KPI hierarchy. */
+/* Mobile overview: keep the 2x3 KPI hierarchy, keep the globe readable,
+   and make node cards slightly denser while preserving the quota emphasis. */
 @media(max-width:800px){
   .header-inner{
     row-gap:6px!important;
@@ -3541,7 +3588,7 @@ kbd{
   }
 
   .section-heading{
-    margin-top:19px!important;
+    margin-top:18px!important;
     margin-bottom:8px!important;
   }
   .table-toolbar{
@@ -3583,7 +3630,7 @@ kbd{
   }
   .node-row>.rate-cell,
   #node-list[data-view=cards] .rate-cell{
-    padding-top:6px!important;
+    padding-top:5px!important;
   }
   .node-row>.rate-cell small,
   #node-list[data-view=cards] .rate-cell small{
@@ -3603,7 +3650,17 @@ kbd{
   }
   .node-row>.transfer-cell,
   #node-list[data-view=cards] .transfer-cell{
-    margin-top:0!important;
+    margin-top:1px!important;
+  }
+  .node-row>.transfer-cell>.quota-track,
+  #node-list[data-view=cards] .transfer-cell>.quota-track,
+  .node-row>.transfer-cell .quota-track,
+  #node-list[data-view=cards] .transfer-cell .quota-track{
+    width:100%!important;
+    max-width:none!important;
+    justify-self:stretch!important;
+    margin:4px 0 2px!important;
+    background-position:left center!important;
   }
   .node-row>.node-pings,
   #node-list[data-view=cards] .node-pings{
