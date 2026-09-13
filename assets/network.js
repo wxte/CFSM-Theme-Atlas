@@ -1,6 +1,6 @@
-import {Plot} from './plot.js?v=0.5.21';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.21';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.21';
+import {Plot} from './plot.js?v=0.5.22';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.22';
+import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.22';
 export {windowSamples,historyFromArrays,aggregateHistory};
 export const lines=['cu','ct','cm'];
 const valid=v=>numeric(v)&&n(v)>=0;

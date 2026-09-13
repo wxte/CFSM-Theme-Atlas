@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.5.21';
-import {recordResources} from './resource-recorder.js?v=0.5.21';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.21';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.21';
-import {flag} from './flags.js?v=0.5.21';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.21';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,avg,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.21';
-import {DeferredNodeMap} from './lazy-map.js?v=0.5.21';
-import {Plot} from './plot.js?v=0.5.21';
+import {HistoryAPI} from './history-api.js?v=0.5.22';
+import {recordResources} from './resource-recorder.js?v=0.5.22';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.22';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.22';
+import {flag} from './flags.js?v=0.5.22';
+import {windowSamples,historyFromArrays} from './network-core.js?v=0.5.22';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.22';
+import {DeferredNodeMap} from './lazy-map.js?v=0.5.22';
+import {Plot} from './plot.js?v=0.5.22';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -127,13 +127,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.21').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.22').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.5.21').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.5.22').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -151,8 +151,8 @@ async function loadNetworkHistory(){
 
 const activityObserver=new ActivityObserver(),activityRows=[],filterChips=new Map();
 function renderActivity(){
- const kind=$('#activity-kind').value||'all',search=$('#activity-search').value.trim().toLowerCase();let count=0;
- for(const row of activityRows){row.hidden=!(kind==='all'||row.dataset.kind===kind)||!row.searchText.includes(search);if(!row.hidden)count++;}
+ const search=$('#activity-search').value.trim().toLowerCase();let count=0;
+ for(const row of activityRows){row.hidden=!row.searchText.includes(search);if(!row.hidden)count++;}
  set($('#activity-count'),count+' / '+activityRows.length+' 条');$('#activity-empty').hidden=count>0;
  set($('#activity-empty'),activityRows.length?'没有符合条件的活动':'等待状态变化');
  const pop=$('#activity-popover-list'),empty=$('#activity-popover-empty'),badge=$('#activity-badge');
@@ -215,11 +215,10 @@ function updateTrafficSparks(live){
 }
 function visible(){return all().filter(s=>(state.status==='all'||(state.status==='online')===online(s))&&(!state.quick||(state.quick==='load'?highLoad(s):allowed('show_expire')&&expiring(s)))&&(!state.selected||region(s.region).code===state.selected)&&(!state.search||`${s.name} ${region(s.region).name} ${s.region} ${s.server_group||''}`.toLowerCase().includes(state.search)));}
 function sorted(){return visible().sort((a,b)=>state.sort==='cpu'?n(b.cpu)-n(a.cpu):state.sort==='traffic'?n(month(b))-n(month(a)):state.sort==='name'?String(a.name).localeCompare(String(b.name)):n(a.sort_order)-n(b.sort_order)||String(a.id).localeCompare(String(b.id)));}
-function connection(text,live=false){$('#connection').title=text;if(state.connectionText!==text){if(state.connectionText)addEvent(text,'connection');state.connectionText=text;}set($('#connection'),text);$('#connection').classList.toggle('live',live);}
+function connection(text,live=false){$('#connection').title=text;state.connectionText=text;set($('#connection'),text);$('#connection').classList.toggle('live',live);}
 function loading(active){document.documentElement.classList.toggle('is-loading',active);$('main').setAttribute('aria-busy',String(active));$('#table-skeleton').hidden=!active;if(active)$('#empty').hidden=true;else if(!state.ready)$('#empty').hidden=false;}
 function notice(text=''){set($('#notice'),text);$('#notice').hidden=!text;}
 function chartSetup(){
-  for(const key of [...carriers,'bd']){const div=document.createElement('div');div.className='carrier-line';div.innerHTML='<span></span><strong>—</strong><svg viewBox="0 0 240 28" preserveAspectRatio="none" role="img"><title></title><path/></svg><small class="trend-note"></small><small class="trend-loss">—</small>';div.dataset.carrier=key;div.plot=new Plot(div.querySelector('svg'),div.querySelector('path'),{baseline:27,smooth:true});$('#carrier-summary').append(div);}
   for(const key of ['in','out']){const svg=$(`[data-live-traffic="${key}"] .kpi-spark`);if(svg)trafficPlots[key]=new Plot(svg,svg.querySelector('.kpi-spark-series'));}
 }
 function renderSummary(){
@@ -229,7 +228,7 @@ function renderSummary(){
   set($('#stat-in'),`${bytes(live.length?total(live,'net_in_speed'):0,true)}`);set($('#stat-out'),`${bytes(live.length?total(live,'net_out_speed'):0,true)}`);updateTrafficSparks(live);
   const monthly=list.map(month).filter(numeric);set($('#stat-month'),allowed('show_tf')?bytes(monthly.length?monthly.reduce((a,v)=>a+v,0):null):'未公开');
   const cost=costs(list);set($('#stat-cost'),allowed('show_price')?cost.text:'未公开');$('#stat-cost').classList.toggle('multi-currency',cost.currencies>1);set($('#cost-note'),cost.missing?`${list.length-cost.missing}/${list.length} 台已配置 · 按币种分别汇总`:'按币种分别汇总');
-  $('#online-bar').style.width=`${list.length?live.length/list.length*100:0}%`;set($('#availability'),list.length?`${Math.round(live.length/list.length*100)}%`:'—');const pattern=live.length+'/'+list.length;if($('#availability-track').dataset.pattern!==pattern){$('#availability-track').dataset.pattern=pattern;$('#availability-track').replaceChildren();for(let i=0;i<32;i++){const segment=document.createElement('i');segment.classList.toggle('off',!list.length||i>=Math.round(live.length/list.length*32));$('#availability-track').append(segment);}}
+  $('#online-bar').style.width=`${list.length?live.length/list.length*100:0}%`;
   const shown=visible().filter(s=>online(s));set($('#map-online'),shown.length);const values=shown.flatMap(s=>carriers.map(k=>s[`ping_${k}`])).filter(v=>numeric(v)&&n(v)>=0);set($('#map-latency'),`${values.length?Math.round(values.reduce((a,v)=>a+n(v),0)/values.length)+' ms':'—'} AVG`);
 }
 function renderRegions(){
@@ -291,17 +290,6 @@ function record(s,ts,metrics){
 }
 function renderNetwork(){
  const live=visible().filter(s=>online(s)),now=Date.now(),enabled=allowed('show_three_net_details');
- if(state.page==='overview'||state.page==='resources')for(const key of [...carriers,'bd']){
-  const el=$('[data-carrier="'+key+'"]'),value=avg(live,'ping_'+key);
-  set(el.children[0],label(key));set(el.children[1],ping(value));set(el.querySelector('.trend-loss'),'丢包 '+loss(avg(live,'loss_'+key)));
-  const {points,sources}=aggregateHistory(enabled?live.map(s=>s.id):[],state.history,key,now),svg=el.querySelector('svg');
-  const maximum=Math.max(50,Math.ceil(Math.max(0,...points.map(p=>p.value))/50)*50);
-  const x=p=>2+Math.max(0,Math.min(1,(p.ts-(now-7200000))/7200000))*236,y=p=>25-p.value/maximum*22;
-  if(points.length){svg.removeAttribute('hidden');const geometry=[];let previous=null;for(const p of points){if(previous&&p.bucket-previous.bucket!==1)geometry.push(null);geometry.push({ts:p.ts,x:x(p),y:y(p)});previous=p;}el.plot?.update(geometry,{animate:true});}else{el.plot?.update([],{animate:false});svg.setAttribute('hidden','');}
-  set(el.querySelector('.trend-note'),!enabled?'历史未公开':points.length?'近 2 小时 · '+sources+'/'+live.length+' 台':'暂无历史');
-  const description=label(key)+'延迟趋势，纵轴 0–'+maximum+' ms；每 6 分钟汇总有采样节点的均值，不补齐缺失时段。'+points.map(p=>new Date(p.ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+' '+Math.round(p.value)+' ms（'+p.count+'台）').join('；');
-  svg.setAttribute('aria-label',description);set(svg.querySelector('title'),description);
- }
  if(state.page==='network'){
   if(!charts){set($('#network-history-note'),'正在加载网络图表…');ensureNetworkCharts().then(()=>{if(state.page==='network')renderNetwork();}).catch(()=>set($('#network-history-note'),'网络图表加载失败 · 点击重试'));return;}
   charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;
@@ -313,7 +301,7 @@ function renderNetwork(){
   loadNetworkHistory();
  }
 }
-function renderAggregates(){observeStatus();renderNetwork();if(state.page==='overview'||state.page==='resources'){renderSummary();map.update(visible(),state.config.theme_options||{},state.selected);}}
+function renderAggregates(){observeStatus();if(state.page==='network')renderNetwork();if(state.page==='overview'||state.page==='resources'){renderSummary();map.update(visible(),state.config.theme_options||{},state.selected);}}
 async function json(url){const response=await fetch(url,{cache:'no-cache',headers:{Accept:'application/json'},signal:AbortSignal.timeout(15000),priority:url==='/api/servers'?'high':'auto'});if(!response.ok)throw Error(response.status===401||response.status===403?'站点需要登录，请先打开后台登录':`读取失败（${response.status}）`);return response.json();}
 async function refresh(){
   if(state.loading)return;state.loading=true;if(!state.ready)loading(true);$('#refresh').disabled=true;
@@ -322,7 +310,6 @@ async function refresh(){
     const next=new Map();for(const s of payload.servers){if(!s.id)continue;const id=String(s.id),old=state.servers.get(id);next.set(id,old&&n(old.last_updated)>n(s.last_updated)?{...s,...old}:{...s,id});recordResources(id,s.last_updated,s);const samples=historyFromArrays(Array.isArray(s.ping)?s.ping:[],Array.isArray(s.loss)?s.loss:[]);state.history.set(id,windowSamples([...samples,...(state.history.get(id)||[])]));}
     state.servers=next;state.ready=true;if(state.selected&&!all().some(s=>region(s.region).code===state.selected))state.selected='';
     renderRegions();renderRows();renderAggregates();notice();set($('#last-update'),`更新于 ${new Date().toLocaleTimeString('zh-CN')}`);set($('#footer-status'),`${all().length} 个节点 · CFSM`);
-    if(!state.activityBootstrapped){state.activityBootstrapped=true;addEvent(`已读取 ${all().length} 个节点`,'connection','CFSM');}
     if(state.ws?.readyState===WebSocket.OPEN){subscribe();connection('LIVE · 实时',true);}else if(!state.ws&&!state.retry)connect();
   }catch(e){notice(`${e.message}。${state.servers.size?'保留上次数据，可点击刷新重试。':'可点击刷新重试。'}`);if(!state.servers.size)set($('#empty'),'暂时无法读取节点');connection('数据暂不可用');}
   finally{state.loading=false;loading(false);$('#refresh').disabled=false;}
@@ -390,7 +377,7 @@ function renderFilters(){
  for(const [key,b] of filterChips)if(!selected.has(key)){b.remove();filterChips.delete(key);}$('#active-filters').hidden=selected.size===0;
 }
 document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{state.quick=state.quick===b.dataset.quick?'':b.dataset.quick;renderRows();renderAggregates();}));
-$('#activity-kind').addEventListener('change',renderActivity);$('#activity-search').addEventListener('input',renderActivity);
+$('#activity-search').addEventListener('input',renderActivity);
 $('#search').addEventListener('input',e=>{state.search=e.target.value.trim().toLowerCase();renderRows();renderAggregates();});$('#clear-region').addEventListener('click',()=>selectRegion(''));document.querySelectorAll('[data-status]').forEach(b=>b.addEventListener('click',()=>{state.status=b.dataset.status;document.querySelectorAll('[data-status]').forEach(el=>el.setAttribute('aria-pressed',String(el===b)));renderRows();renderAggregates();}));$('#sort').addEventListener('change',e=>{state.sort=e.target.value;renderRows();});
 function showPage(key,animate=false){
  const page=pageFromHash('#'+key),displayPage=page==='resources'?'overview':page;state.page=page;map.clearTip();
@@ -441,9 +428,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeo
 addEventListener('pagehide',()=>{state.stopped=true;clearInterval(poll);clearInterval(age);clearInterval(watchdog);clearInterval(state.heartbeat);clearTimeout(state.retry);state.ws?.close();});
 addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 
-const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel,.quality-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
+const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.5.21').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.5.22').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
 

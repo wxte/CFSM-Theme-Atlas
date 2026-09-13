@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
-import {createRequire} from 'node:module';
 
 for(const dir of ['assets','tools']){
   for(const file of fs.readdirSync(dir)){
@@ -8,8 +7,7 @@ for(const dir of ['assets','tools']){
   }
 }
 
-// The release cleanup vendor is temporary and removed after this patch.
-// Runtime checks therefore use a dependency-free structural scanner.
+// Keep CSS structure validation dependency-free in the repository.
 const css=fs.readFileSync('assets/atlas.css','utf8');
 let depth=0,quote='',comment=false;
 for(let i=0;i<css.length;i++){

@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.22 Runtime + Dead UI Cleanup
+
+- 删除已经永久隐藏的概览“网络质量”面板，并停止为它创建 4 个 Plot、聚合三网历史和维护 32 段在线率 DOM。
+- 网络图表只在网络页执行；概览页继续保留地图延迟与实时上下行趋势。
+- 删除隐藏且只有“全部事件”一个选项的活动类型下拉框及对应筛选分支。
+- 清理 connection 类型活动的无效调用；活动日志仍只记录服务器上线/离线。
+- 清理当前 HTML/JS 已不再使用的旧 settings/resource/network CSS selector。
+- enhancements 的 DOM 标记改为稳定布尔标记，避免每次发布产生版本漂移。
+- Router 在注册事件前初始化 sequence；tools/check.mjs 删除未使用 import。
+- 测试不再允许硬编码 Atlas 发布版本；布局测试从 package.json 动态读取版本，避免升级时重复失败。
+- 保持现有 PC / 手机视觉布局与节点/网络功能不变。
+
 ## v0.5.21 CSS Cleanup
 
 - 先修复 v0.5.20 中 #network-grid .network-server 规则后多出的一个右花括号，这是 PostCSS 报 Unexpected } 的根因。

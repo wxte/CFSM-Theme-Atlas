@@ -28,3 +28,12 @@ test('release version and runtime cache keys stay in sync',()=>{
   assert.ok(seen.length>0,'expected versioned local module imports');
   for(const [file,value] of seen)assert.equal(value,pkg.version,file+' has stale ?v='+value);
 });
+
+
+test('tests do not hard-code release versions',()=>{
+  const releaseLiteral=/v0\.5\.\d+/;
+  for(const name of fs.readdirSync(path.join(root,'tests')).filter(name=>name.endsWith('.test.js')&&name!=='versioning.test.js')){
+    const source=fs.readFileSync(path.join(root,'tests',name),'utf8');
+    assert.doesNotMatch(source,releaseLiteral,name+' hard-codes a release version');
+  }
+});

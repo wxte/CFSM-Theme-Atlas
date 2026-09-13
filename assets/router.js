@@ -4,7 +4,7 @@ export function pageFromHash(hash){const key=String(hash||'').replace(/^#/,'');r
 // Hash URLs remain compatible with CFSM; navigation never invokes anchor scrolling.
 export class ViewRouter{
  constructor(render,environment=globalThis,root=document){
-  this.env=environment;this.render=render;this.positions=new Map();this.key=0;this.page=pageFromHash(environment.location.hash);
+  this.env=environment;this.render=render;this.positions=new Map();this.key=0;this.sequence=0;this.page=pageFromHash(environment.location.hash);
   environment.history.scrollRestoration='manual';
   environment.history.replaceState({...environment.history.state,atlasKey:0},'','#'+this.page);
   this.apply(this.page,0,false);
@@ -26,7 +26,6 @@ export class ViewRouter{
    environment.history.replaceState({...environment.history.state,atlasKey:this.key},'','#'+page);
    this.apply(page,0,true);
   });
-  this.sequence=0;
  }
  remember(){this.positions.set(this.key,this.env.scrollY||0);}
  navigate(page){

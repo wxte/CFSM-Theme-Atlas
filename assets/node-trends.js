@@ -1,6 +1,6 @@
-import {Plot,plotPaths} from './plot.js?v=0.5.21';
-import {numeric,n,bytes} from './data.js?v=0.5.21';
-import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.5.21';
+import {Plot,plotPaths} from './plot.js?v=0.5.22';
+import {numeric,n,bytes} from './data.js?v=0.5.22';
+import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.5.22';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
 export function recordResources(id,ts,metrics){
  if(!numeric(ts)||!metrics||!keys.some(k=>Object.hasOwn(metrics,k)))return;
