@@ -31,3 +31,18 @@ test('removes hidden overview quality work and dead activity controls',()=>{
   assert.doesNotMatch(css,/\.quality-panel|#carrier-summary|#availability-track|\.carrier-line/);
   assert.match(enhancements,/dataset\.atlasEnhanced='true'/);
 });
+
+
+test('avoids duplicate history serialization and recorder logic',()=>{
+  const network=fs.readFileSync('assets/network.js','utf8');
+  const core=fs.readFileSync('assets/network-core.js','utf8');
+  const trends=fs.readFileSync('assets/node-trends.js','utf8');
+  const enhancements=fs.readFileSync('assets/enhancements.js','utf8');
+
+  assert.doesNotMatch(network,/c\.signature|const signature=JSON\.stringify/);
+  assert.match(network,/historyChanged=row\.sourceKey!==sourceKey/);
+  assert.doesNotMatch(core,/aggregateHistory/);
+  assert.doesNotMatch(trends,/export function recordResources|\bobservations\b/);
+  assert.doesNotMatch(app,/\n\s*(?:spark|pulse|gear):'/);
+  assert.doesNotMatch(enhancements,/\n\s*(?:close|copy|chart):'/);
+});

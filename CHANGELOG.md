@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.23 Architecture + Network Render Cleanup
+
+- 移除概览网络质量面板删除后遗留的 aggregateHistory 运行时代码与过时测试。
+- network.js 只保留 windowSamples 运行时依赖，网络纯数据 helper 继续由 network-core.js 管理。
+- 所有测试中的 windowSamples / historyFromArrays / aggregateHistory 统一从 network-core.js 导入，避免测试依赖 network.js 的兼容 re-export。
+- 网络页取消每条线路各自 JSON.stringify 整段历史的签名；改为每个节点每个时间片只计算一次历史窗口变化，再统一驱动三条线路重绘。
+- 删除 node-trends.js 中与 resource-recorder.js 重复的 recordResources 实现及未使用 observations import。
+- 删除 app / enhancements 中未使用的 6 个内联 SVG，减少首屏 JS 解析体积。
+- 删除 #resources / #settings 两个不存在页面的 CSS selector 分支。
+- README 修正为当前真实布局：桌面紧凑长条列表、手机自适应节点卡片。
+- 保持现有视觉、交互、网络历史和节点趋势功能不变。
+
 ## v0.5.22 Runtime + Dead UI Cleanup
 
 - 删除已经永久隐藏的概览“网络质量”面板，并停止为它创建 4 个 Plot、聚合三网历史和维护 32 段在线率 DOM。

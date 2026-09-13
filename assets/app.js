@@ -1,20 +1,17 @@
-import {HistoryAPI} from './history-api.js?v=0.5.22';
-import {recordResources} from './resource-recorder.js?v=0.5.22';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.22';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.22';
-import {flag} from './flags.js?v=0.5.22';
-import {windowSamples,historyFromArrays} from './network-core.js?v=0.5.22';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.22';
-import {DeferredNodeMap} from './lazy-map.js?v=0.5.22';
-import {Plot} from './plot.js?v=0.5.22';
+import {HistoryAPI} from './history-api.js?v=0.5.23';
+import {recordResources} from './resource-recorder.js?v=0.5.23';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.23';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.23';
+import {flag} from './flags.js?v=0.5.23';
+import {windowSamples,historyFromArrays} from './network-core.js?v=0.5.23';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.23';
+import {DeferredNodeMap} from './lazy-map.js?v=0.5.23';
+import {Plot} from './plot.js?v=0.5.23';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
  moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.3 15.3A7.8 7.8 0 0 1 8.7 4.7 8.2 8.2 0 1 0 19.3 15.3Z"/></svg>',
- spark:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.2 5.7L19 9l-5.8 1.3L12 16l-1.2-5.7L5 9l5.8-1.3L12 2Zm7 12 .6 2.4L22 17l-2.4.6L19 20l-.6-2.4L16 17l2.4-.6L19 14ZM5 14l.5 2L7 16.5 5.5 17 5 19l-.5-2-1.5-.5 1.5-.5L5 14Z"/></svg>',
- pulse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-6 4 12 2-6h7"/></svg>',
  activity:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>',
- gear:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm8 3.3-2-.7a6.8 6.8 0 0 0-.5-1.3l.9-1.9-1.8-1.8-1.9.9a6.8 6.8 0 0 0-1.3-.5l-.7-2h-2.5l-.7 2a6.8 6.8 0 0 0-1.3.5l-1.9-.9L4.5 8.1l.9 1.9a6.8 6.8 0 0 0-.5 1.3l-2 .7v2.5l2 .7c.1.5.3.9.5 1.3l-.9 1.9 1.8 1.8 1.9-.9c.4.2.9.4 1.3.5l.7 2h2.5l.7-2c.5-.1.9-.3 1.3-.5l1.9.9 1.8-1.8-.9-1.9c.2-.4.4-.9.5-1.3l2-.7v-2.5Z"/></svg>'
 };
 if($('#activity-toggle'))$('#activity-toggle').innerHTML=icons.activity;
 if(!$('#activity-badge')){const badge=document.createElement('span');badge.id='activity-badge';badge.hidden=true;$('#activity-toggle')?.append(badge);}
@@ -127,13 +124,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.22').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.23').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.5.22').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.5.23').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -431,6 +428,6 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.5.22').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.5.23').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
 

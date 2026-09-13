@@ -1,4 +1,4 @@
-import {numeric,n} from './data.js?v=0.5.22';
+import {numeric,n} from './data.js?v=0.5.23';
 const historyLines=['cu','ct','cm','bd'],windowMs=7200000;
 const valid=v=>numeric(v)&&n(v)>=0;
 export function windowSamples(samples,now=Date.now(),duration=windowMs){
@@ -22,9 +22,3 @@ export function windowSamples(samples,now=Date.now(),duration=windowMs){
  return [...projected.values()].sort((a,b)=>a.ts-b.ts);
 }
 export function historyFromArrays(pings=[],losses=[]){const merged=new Map();for(const p of pings)if(numeric(p?.ts))merged.set(n(p.ts),{...p,ts:n(p.ts)});for(const p of losses)if(numeric(p?.ts)){const ts=n(p.ts);merged.set(ts,{...(merged.get(ts)||{ts}),loss:p});}return [...merged.values()];}
-export function aggregateHistory(ids,histories,key,now=Date.now()){
- const buckets=new Map(),sources=new Set(),start=now-windowMs;
- for(const id of ids)for(const p of histories.get(id)||[]){if(p.ts<start||p.ts>now||!valid(p[key]))continue;const bucket=Math.floor((p.ts-start)/360000);if(!buckets.has(bucket))buckets.set(bucket,new Map());const byNode=buckets.get(bucket),values=byNode.get(id)||[];values.push(p);byNode.set(id,values);sources.add(id);}
- const points=[...buckets].sort((a,b)=>a[0]-b[0]).map(([bucket,byNode])=>{const nodes=[...byNode.values()];return {bucket,ts:nodes.reduce((sum,ps)=>sum+ps.reduce((v,p)=>v+n(p.ts),0)/ps.length,0)/nodes.length,value:nodes.reduce((sum,ps)=>sum+ps.reduce((v,p)=>v+n(p[key]),0)/ps.length,0)/nodes.length,count:nodes.length};});
- return {points,sources:sources.size};
-}

@@ -1,7 +1,8 @@
+import {windowSamples} from '../assets/network-core.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {HistoryAPI,parseHistory} from '../assets/history-api.js';
-import {timeGroups,windowSamples} from '../assets/network.js';
+import {timeGroups} from '../assets/network.js';
 test('24h and 7d history retain old actual points and absent metrics',()=>{
  const now=Date.now(),rows=[{timestamp:now-6*86400000,ping_cu:0,loss_cu:0},{timestamp:now-80000000,ping_cu:150},{timestamp:now+99999,ping_cu:10}];
  assert.equal(parseHistory(rows,now,24).length,1);const week=parseHistory(rows,now,168);assert.equal(week.length,2);assert.equal(week[1].loss.cu,undefined);

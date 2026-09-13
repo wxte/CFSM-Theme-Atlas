@@ -1,7 +1,6 @@
-import {Plot} from './plot.js?v=0.5.22';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.22';
-import {windowSamples,historyFromArrays,aggregateHistory} from './network-core.js?v=0.5.22';
-export {windowSamples,historyFromArrays,aggregateHistory};
+import {Plot} from './plot.js?v=0.5.23';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.23';
+import {windowSamples} from './network-core.js?v=0.5.23';
 export const lines=['cu','ct','cm'];
 const valid=v=>numeric(v)&&n(v)>=0;
 export function nearestPoint(points,ts){return points.reduce((best,p)=>!best||Math.abs(p.ts-ts)<Math.abs(best.ts-ts)?p:best,null);}
@@ -16,7 +15,7 @@ export class NetworkCharts{
  createCard(key){
   const el=document.createElement('article');el.className='analysis-card';el.dataset.chart=key;
   el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text axis-min" x="0" y="83"></text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">点选查看 · 方向键切换</div>';
-  const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,signature:null,buttons:[]};
+  const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,buttons:[]};
   c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');c.plot=new Plot(c.svg,c.path,{baseline:80,smooth:true});
   c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.timeAt(c,e.clientX,r));});
   c.svg.addEventListener('pointerleave',()=>{c.inspecting=null;this.restoreInspection(c);});
@@ -57,15 +56,14 @@ export class NetworkCharts{
      row.liveSnapshots=row.liveSnapshots.filter(p=>p.ts>=this.now-this.rangeMs-30000).slice(-90);
     }
    }else if(!this.live)row.liveSnapshots=[];
-   const source=this.live?[...base,...row.liveSnapshots]:base,sourceKey=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/tickMs),source]);if(row.sourceKey!==sourceKey){row.sourceKey=sourceKey;row.history=enabled?windowSamples(source,this.now,this.rangeMs):[];}const history=row.history;
+   const source=this.live?[...base,...row.liveSnapshots]:base,tick=Math.floor(this.now/tickMs),sourceKey=JSON.stringify([enabled,this.rangeMs,tick,source]),historyChanged=row.sourceKey!==sourceKey;if(historyChanged){row.sourceKey=sourceKey;row.history=enabled?windowSamples(source,this.now,this.rangeMs):[];}const history=row.history||[];
    for(const c of row.cards){
     set(c.el.querySelector('.analysis-top span'),names[c.key]);set(c.el.querySelector('.analysis-top strong'),live?ping(s['ping_'+c.key]):'—');set(c.el.querySelector('.chart-note span:last-child'),'当前丢包 '+(live?loss(s['loss_'+c.key]):'—'));
     const samples=history.filter(p=>p[c.key]!==undefined||p.loss?.[c.key]!==undefined);
-    // Live mode also keeps lightweight five-second page snapshots so the curve visibly moves.
-    const signature=JSON.stringify([enabled,this.rangeMs,Math.floor(this.now/tickMs),samples.map(p=>[p.ts,p[c.key],p.loss?.[c.key]])]);
+    // Redraw each carrier only when the row-level history window changed.
     const selectionKey=s.id+':'+c.key+':'+this.rangeMs;if(c.selectionKey!==selectionKey){c.selectionKey=selectionKey;c.pin=null;try{const saved=JSON.parse(sessionStorage.getItem('atlas-chart-v2:'+selectionKey)||'null');if(saved&&numeric(saved.ts)&&typeof saved.text==='string')c.pin=saved;}catch{}}
     if(!enabled){c.pin=null;try{sessionStorage.removeItem('atlas-chart-v2:'+c.selectionKey);}catch{}}
-    if(c.signature===signature)continue;c.signature=signature;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=timeGroups(samples,c.key,this.now,this.rangeMs);this.draw(c,s.name||'未命名节点',names[c.key]);
+    if(!historyChanged)continue;c.samples=samples;c.points=samples.filter(p=>valid(p[c.key]));c.groups=timeGroups(samples,c.key,this.now,this.rangeMs);this.draw(c,s.name||'未命名节点',names[c.key]);
    }
   }
   for(const [id,row] of this.rows)if(!keep.has(id)){row.cards.forEach(c=>c.plot.destroy());row.el.remove();this.rows.delete(id);}

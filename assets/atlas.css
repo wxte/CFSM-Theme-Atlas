@@ -104,7 +104,7 @@ select{font-size:12px;min-height:41px;min-width:145px}
 .activity-list li{display:flex;align-items:center;gap:10px;font-size:13px}
 .activity-list time{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
 .activity-note{font-size:12px;color:var(--muted)}
-#resources,#network,#activity,#settings{min-height:calc(100vh - 230px)}
+#network,#activity{min-height:calc(100vh - 230px)}
 footer{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;color:var(--muted)}
 footer b{font-weight:400}
 .empty{padding:25px;text-align:center;color:var(--muted);font-size:13px}

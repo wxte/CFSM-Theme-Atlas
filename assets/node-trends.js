@@ -1,21 +1,9 @@
-import {Plot,plotPaths} from './plot.js?v=0.5.22';
-import {numeric,n,bytes} from './data.js?v=0.5.22';
-import {nodeObservations,selections,scheduleSave,observations} from './trend-store.js?v=0.5.22';
+import {Plot,plotPaths} from './plot.js?v=0.5.23';
+import {numeric,n,bytes} from './data.js?v=0.5.23';
+import {nodeObservations,selections,scheduleSave} from './trend-store.js?v=0.5.23';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
-export function recordResources(id,ts,metrics){
- if(!numeric(ts)||!metrics||!keys.some(k=>Object.hasOwn(metrics,k)))return;
- const state=nodeObservations(id),points=state.resources;
- if(points.length&&ts<points.at(-1).ts)return;
- const point={ts:Number(ts)};
- for(const k of keys)if(Object.hasOwn(metrics,k))point[k]=numeric(metrics[k])&&n(metrics[k])>=0?n(metrics[k]):null;
- if(points.at(-1)?.ts===point.ts&&Object.keys(point).every(k=>points.at(-1)[k]===point[k]))return;
- if(points.at(-1)?.ts===point.ts)Object.assign(points.at(-1),point);else points.push(point);
- state.resources=points.slice(-60);state.resourceVersion=(state.resourceVersion||0)+1;scheduleSave();
-}
 
-// v0.3.17: detail microcharts use a local range per metric. CPU is no longer forced into
-// a 0–100% graph and download/upload no longer share one maximum, so small live movement
-// remains visible just like the realtime network charts.
+// Detail microcharts use a local range per metric so small live movement stays visible.
 export function sparkRange(points,key){
  const values=points.map(p=>p?.[key]).filter(v=>numeric(v)&&n(v)>=0).map(Number);
  if(!values.length)return key==='cpu'?{min:0,max:5}:{min:0,max:1024};
