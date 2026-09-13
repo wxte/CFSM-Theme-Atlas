@@ -1,5 +1,5 @@
-import {numeric,n} from './data.js?v=0.4.1';
-import {nodeObservations,scheduleSave} from './trend-store.js?v=0.4.1';
+import {numeric,n} from './data.js?v=0.5.20';
+import {nodeObservations,scheduleSave} from './trend-store.js?v=0.5.20';
 const keys=['cpu','net_in_speed','net_out_speed'];
 export function recordResources(id,ts,metrics){
  if(!numeric(ts)||!metrics||!keys.some(k=>Object.hasOwn(metrics,k)))return;

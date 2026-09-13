@@ -7,7 +7,7 @@ const root=path.resolve('.');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'assets/atlas.css'),'utf8');
 
-test('v0.5.11 keeps JetBrains Mono same-origin and old CJK subsets off the runtime path',()=>{
+test('runtime keeps JetBrains Mono same-origin and old CJK subsets off the runtime path',()=>{
   assert.doesNotMatch(html,/cdn\.jsdelivr|fonts\.googleapis|fonts\.gstatic/);
   assert.match(html,/rel="preload" href="\/assets\/vendor\/fonts\/JetBrainsMono-Regular\.woff2"/);
   assert.doesNotMatch(html,/rel="preload"[^>]*geist-sans\.woff2/);

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const html=fs.readFileSync('index.html','utf8');
 const css=fs.readFileSync('assets/atlas.css','utf8');
 
-test('v0.5.19 refines table headers and shortens desktop quota bars',()=>{
+test('refines table headers and shortens desktop quota bars',()=>{
   assert.match(html,/v0\.5\.19/);
   assert.match(css,/Atlas v0\.5\.19 quota\/title micro polish/);
   assert.match(css,/display:none!important;\n  }\n  \.transfer-cell>strong/);
