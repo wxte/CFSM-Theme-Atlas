@@ -12,6 +12,7 @@ test('release version and runtime cache keys stay in sync',()=>{
   assert.ok(html.includes('theme-version" content="Atlas v'+version+'"'));
   assert.ok(html.includes('/assets/atlas.css?v='+version));
   assert.ok(html.includes('/assets/app.js?v='+version));
+  assert.ok(html.includes('Atlas <b>v'+version+'</b>'));
 
   const files=fs.readdirSync(path.join(root,'assets'))
     .filter(name=>name.endsWith('.js'))

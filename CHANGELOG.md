@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.21 CSS Cleanup
+
+- 先修复 v0.5.20 中 #network-grid .network-server 规则后多出的一个右花括号，这是 PostCSS 报 Unexpected } 的根因。
+- 使用临时打包的 PostCSS 解析器清理 atlas.css，避免字符串级删除破坏花括号结构。
+- 仅清理相同 selector + 相同条件上下文中，被后续简单声明明确覆盖的旧声明；不重排 selector。
+- 删除清理后为空的 selector block 与历史 Atlas 版本注释。
+- 节点布局、流量与性能测试改为验证最终行为，不再依赖旧版本注释。
+- 修正页脚、package、theme-version 与缓存版本的一致性。
+- 本轮不主动改变 PC / 手机视觉布局。
+
 ## v0.5.20 Code Cleanup
 
 - 统一所有本地 ES module 的 `?v=` 缓存版本，避免新入口加载旧内部模块。

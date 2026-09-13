@@ -14,10 +14,10 @@ test('removes the desktop two-column node mode',()=>{
   assert.doesNotMatch(css,/#node-list\[data-view=cards\]\{/);
 });
 
-test('avoids the unused Geist font and keeps the light list path',()=>{
+test('avoids the unused Geist font and keeps the lightweight overview path',()=>{
   assert.doesNotMatch(css,/geist-sans\.woff2/);
   assert.doesNotMatch(css,/font-family:"Atlas Latin"/);
-  assert.match(css,/Atlas v0\.5\.11 list-only performance polish/);
+  assert.match(css,/JetBrainsMono-Regular\.woff2/);
   assert.match(app,/function scheduleOverviewSummary\(\)/);
   assert.match(app,/state\.page!=='overview'/);
 });
