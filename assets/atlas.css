@@ -3362,7 +3362,7 @@ kbd{
   .quota-track>b{transition:none!important}
 }
 
-/* Atlas v0.5.18 quota spacing + desktop/mobile polish */
+/* Atlas v0.5.19 quota/title micro polish */
 
 /* Shared node identity alignment */
 .node-main{
@@ -3404,8 +3404,7 @@ kbd{
   margin:0!important;
 }
 
-/* Desktop: reserve a cleaner lane for weekly quota, tighten latency/uptime,
-   and pull the quota value/bar into a more centered, intentional block. */
+/* Desktop density + header polish */
 @media(min-width:1301px){
   .node-columns,
   .node-row{
@@ -3416,9 +3415,9 @@ kbd{
       minmax(64px,.45fr)
       minmax(64px,.45fr)
       minmax(172px,.97fr)
-      minmax(198px,1.16fr)
-      104px
-      44px
+      minmax(190px,1.08fr)
+      100px
+      42px
       28px!important;
     column-gap:8px!important;
   }
@@ -3433,14 +3432,34 @@ kbd{
       minmax(60px,.43fr)
       minmax(60px,.43fr)
       minmax(156px,.93fr)
-      minmax(178px,1.08fr)
-      98px
-      42px
+      minmax(172px,1.02fr)
+      94px
+      40px
       26px!important;
     column-gap:8px!important;
   }
 }
 @media(min-width:1101px){
+  .node-columns{
+    align-items:end!important;
+    padding-top:0!important;
+    padding-bottom:10px!important;
+    font-size:10.35px!important;
+    line-height:1.15!important;
+    letter-spacing:-.018em!important;
+    color:color-mix(in srgb,var(--muted) 90%,transparent)!important;
+  }
+  .node-columns>span{
+    white-space:nowrap!important;
+  }
+  .node-columns>span:nth-child(6),
+  .node-columns>span:nth-child(7),
+  .node-columns>span:nth-child(8),
+  .node-columns>span:nth-child(9),
+  .node-columns>span:nth-child(10){
+    justify-self:center!important;
+  }
+
   .rate-cell{
     padding-inline:0!important;
   }
@@ -3476,18 +3495,24 @@ kbd{
   .transfer-cell{
     min-width:0!important;
     align-self:center!important;
-    padding-left:10px!important;
+    padding-left:6px!important;
+    padding-right:10px!important;
     display:grid!important;
     grid-template-columns:minmax(0,1fr)!important;
     grid-auto-rows:min-content!important;
     justify-items:stretch!important;
     row-gap:4px!important;
   }
+  .transfer-cell>small{
+    display:none!important;
+  }
   .transfer-cell>strong,
   .transfer-cell .quota-used,
   .quota-used{
     display:block!important;
-    width:100%!important;
+    width:min(100%,190px)!important;
+    max-width:190px!important;
+    margin:0 auto!important;
     justify-self:center!important;
     text-align:center!important;
     font-variant-numeric:tabular-nums!important;
@@ -3497,7 +3522,8 @@ kbd{
   .transfer-cell .quota-remaining,
   .quota-remaining{
     display:block!important;
-    width:100%!important;
+    width:min(100%,208px)!important;
+    margin:0 auto!important;
     justify-self:center!important;
     text-align:center!important;
     font-variant-numeric:tabular-nums!important;
@@ -3505,22 +3531,21 @@ kbd{
   .transfer-cell>.quota-track,
   .transfer-cell .quota-track,
   .quota-track{
-    width:min(100%,236px)!important;
-    max-width:236px!important;
+    width:min(100%,194px)!important;
+    max-width:194px!important;
     justify-self:center!important;
-    margin:3px auto 1px!important;
+    margin:4px auto 2px!important;
     height:7px!important;
-    background-size:9px 5px!important;
+    background-size:8px 5px!important;
     background-position:center center!important;
   }
   .transfer-cell>.quota-track>b,
   .transfer-cell .quota-track>b,
   .quota-track>b{
-    background-size:9px 5px!important;
+    background-size:8px 5px!important;
     background-position:center center!important;
   }
   .transfer-cell>strong{
-    max-width:none!important;
     overflow:visible!important;
     text-overflow:clip!important;
   }
@@ -3529,7 +3554,7 @@ kbd{
     justify-self:start!important;
     width:100%!important;
     min-width:0!important;
-    padding-left:2px!important;
+    padding-left:0!important;
     font-size:9.75px!important;
   }
   .node-pings>span{
@@ -3537,13 +3562,12 @@ kbd{
   }
   .uptime-cell{
     justify-self:start!important;
-    padding-left:1px!important;
+    padding-left:0!important;
     white-space:nowrap!important;
   }
 }
 
-/* Mobile overview: keep the 2x3 KPI hierarchy, keep the globe readable,
-   and make node cards slightly denser while preserving the quota emphasis. */
+/* Mobile overview: preserve 2x3 KPI hierarchy and the denser node cards */
 @media(max-width:800px){
   .header-inner{
     row-gap:6px!important;
