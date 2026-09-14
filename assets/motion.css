@@ -5,6 +5,7 @@
  */
 
 :root{
+  --atlas-ui-mono:"Atlas Mono","JetBrains Mono",ui-monospace,"Cascadia Mono","SFMono-Regular",Menlo,Consolas,"PingFang SC","Microsoft YaHei UI","Microsoft YaHei",sans-serif;
   --atlas-motion-instant:90ms;
   --atlas-motion-fast:140ms;
   --atlas-motion-base:210ms;
