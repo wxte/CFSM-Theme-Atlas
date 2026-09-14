@@ -116,6 +116,10 @@ html.atlas-motion-v1 .skeleton-row span{
     --atlas-motion-base:190ms;
     --atlas-motion-slow:260ms;
   }
+
+  .regions-panel>summary{
+    -webkit-tap-highlight-color:transparent;
+  }
 }
 
 @media(prefers-reduced-motion:reduce){
