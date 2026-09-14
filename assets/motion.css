@@ -1,0 +1,125 @@
+/*
+ * Atlas Motion v1
+ * Inspired by motion-system ideas from transitions.dev, adapted to Atlas.
+ * Non-invasive layer: remove this stylesheet + motion.js to revert.
+ */
+
+:root{
+  --atlas-motion-instant:90ms;
+  --atlas-motion-fast:140ms;
+  --atlas-motion-base:210ms;
+  --atlas-motion-slow:300ms;
+  --atlas-motion-ease:cubic-bezier(.32,.72,0,1);
+  --atlas-motion-ease-out:cubic-bezier(.16,1,.3,1);
+  --atlas-motion-ease-soft:cubic-bezier(.22,1,.36,1);
+}
+
+html.atlas-motion-v1 .motion-indicator-host{
+  position:relative!important;
+  isolation:isolate;
+}
+
+html.atlas-motion-v1 .motion-indicator-host::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  z-index:0;
+  width:var(--motion-indicator-w,0px);
+  height:var(--motion-indicator-h,0px);
+  border-radius:var(--motion-indicator-r,var(--atlas-r-sm,5px));
+  background:var(--atlas-fill);
+  opacity:0;
+  pointer-events:none;
+  transform:translate3d(var(--motion-indicator-x,0px),var(--motion-indicator-y,0px),0);
+  transition:
+    transform var(--atlas-motion-base) var(--atlas-motion-ease),
+    width var(--atlas-motion-base) var(--atlas-motion-ease),
+    height var(--atlas-motion-base) var(--atlas-motion-ease),
+    opacity var(--atlas-motion-fast) ease;
+  will-change:transform,width;
+}
+
+html.atlas-motion-v1 .motion-indicator-host.motion-indicator-ready::after{
+  opacity:1;
+}
+
+html.atlas-motion-v1 .motion-indicator-host > a,
+html.atlas-motion-v1 .motion-indicator-host > button{
+  position:relative;
+  z-index:1;
+}
+
+html.atlas-motion-v1 nav.motion-indicator-ready > a.active,
+html.atlas-motion-v1 .status-filter.motion-indicator-ready > button[aria-pressed="true"],
+html.atlas-motion-v1 .network-explainer [role="group"][aria-label="网络历史范围"].motion-indicator-ready > button[aria-pressed="true"],
+html.atlas-motion-v1 .network-mobile-tabs.motion-indicator-ready > button[aria-pressed="true"]{
+  background:transparent!important;
+  box-shadow:none!important;
+  border-color:transparent!important;
+  color:var(--atlas-onfill)!important;
+}
+
+html.atlas-motion-v1 nav.motion-indicator-ready > a:hover,
+html.atlas-motion-v1 .status-filter.motion-indicator-ready > button:hover,
+html.atlas-motion-v1 .network-explainer [role="group"][aria-label="网络历史范围"].motion-indicator-ready > button:hover,
+html.atlas-motion-v1 .network-mobile-tabs.motion-indicator-ready > button:hover{
+  transition:
+    color var(--atlas-motion-fast) ease,
+    opacity var(--atlas-motion-fast) ease!important;
+}
+
+html.atlas-motion-v1 .motion-value{
+  transform-origin:50% 58%;
+  backface-visibility:hidden;
+}
+
+html.atlas-motion-v1 #connection{
+  transform-origin:center;
+}
+
+html.atlas-motion-v1 .node-row{
+  transform-origin:center top;
+}
+
+html.atlas-motion-v1 .node-detail[open]{
+  overflow:clip;
+}
+
+html.atlas-motion-v1 .node-detail[open] > .inline-trends,
+html.atlas-motion-v1 .node-detail[open] > .details{
+  transform-origin:center top;
+}
+
+html.atlas-motion-v1 .detail-cell .detail-button::before{
+  transition:
+    transform var(--atlas-motion-base) var(--atlas-motion-ease),
+    color var(--atlas-motion-fast) ease!important;
+}
+
+html.atlas-motion-v1 .kpi-track b,
+html.atlas-motion-v1 .meters b,
+html.atlas-motion-v1 .quota-track > b{
+  transition-duration:var(--atlas-motion-base)!important;
+  transition-timing-function:var(--atlas-motion-ease-out)!important;
+}
+
+html.atlas-motion-v1 .skeleton-row i,
+html.atlas-motion-v1 .skeleton-row span{
+  animation-duration:1.45s!important;
+  animation-timing-function:var(--atlas-motion-ease-soft)!important;
+}
+
+@media(max-width:800px){
+  :root{
+    --atlas-motion-base:190ms;
+    --atlas-motion-slow:260ms;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html.atlas-motion-v1 .motion-indicator-host::after{
+    transition:none!important;
+    will-change:auto;
+  }
+}
