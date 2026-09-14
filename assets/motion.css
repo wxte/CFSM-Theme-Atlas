@@ -277,19 +277,20 @@ html.atlas-motion-v1 .skeleton-row span{
     transition:none!important;
     will-change:auto;
   }
-  @media(max-width:800px){
-    .header-inner,
-    .brand,
-    .brand-site-badge,
-    .brand-icon,
-    .atlas-mark,
-    .header-actions,
-    .header-actions .icon-button,
-    .header-actions button,
-    .header-actions .admin-link,
-    nav,
-    nav a{
-      transition:none!important;
-    }
+}
+
+@media(prefers-reduced-motion:reduce) and (max-width:800px){
+  .header-inner,
+  .brand,
+  .brand-site-badge,
+  .brand-icon,
+  .atlas-mark,
+  .header-actions,
+  .header-actions .icon-button,
+  .header-actions button,
+  .header-actions .admin-link,
+  nav,
+  nav a{
+    transition:none!important;
   }
 }
