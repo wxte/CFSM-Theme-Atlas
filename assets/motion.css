@@ -111,6 +111,7 @@ html.atlas-motion-v1 .skeleton-row span{
   animation-timing-function:var(--atlas-motion-ease-soft)!important;
 }
 
+/* Mobile density pass: keep the overview character, spend less vertical space. */
 @media(max-width:800px){
   :root{
     --atlas-motion-base:190ms;
@@ -120,11 +121,175 @@ html.atlas-motion-v1 .skeleton-row span{
   .regions-panel>summary{
     -webkit-tap-highlight-color:transparent;
   }
+
+  /* Header keeps the full first-screen identity, then compacts after scrolling. */
+  .header-inner,
+  .brand,
+  .brand-site-badge,
+  .brand-icon,
+  .atlas-mark,
+  .header-actions,
+  .header-actions .icon-button,
+  .header-actions button,
+  .header-actions .admin-link,
+  nav,
+  nav a{
+    transition:
+      padding var(--atlas-motion-base) var(--atlas-motion-ease),
+      gap var(--atlas-motion-base) var(--atlas-motion-ease),
+      width var(--atlas-motion-base) var(--atlas-motion-ease),
+      height var(--atlas-motion-base) var(--atlas-motion-ease),
+      min-height var(--atlas-motion-base) var(--atlas-motion-ease),
+      font-size var(--atlas-motion-base) var(--atlas-motion-ease),
+      opacity var(--atlas-motion-fast) ease,
+      max-width var(--atlas-motion-base) var(--atlas-motion-ease)!important;
+  }
+  html.atlas-mobile-compact .header-inner{
+    row-gap:2px!important;
+    padding-top:3px!important;
+    padding-bottom:3px!important;
+  }
+  html.atlas-mobile-compact .brand{
+    gap:4px!important;
+    font-size:15.5px!important;
+  }
+  html.atlas-mobile-compact .brand-icon,
+  html.atlas-mobile-compact .atlas-mark{
+    width:22px!important;
+    height:22px!important;
+  }
+  html.atlas-mobile-compact .brand-site-badge{
+    max-width:0!important;
+    margin:0!important;
+    padding-inline:0!important;
+    border-width:0!important;
+    opacity:0!important;
+    overflow:hidden!important;
+  }
+  html.atlas-mobile-compact .header-actions{
+    gap:3px!important;
+  }
+  html.atlas-mobile-compact .header-actions .icon-button,
+  html.atlas-mobile-compact .header-actions button,
+  html.atlas-mobile-compact .header-actions .admin-link{
+    width:27px!important;
+    min-width:27px!important;
+    height:27px!important;
+    min-height:27px!important;
+  }
+  html.atlas-mobile-compact nav{
+    margin-top:0!important;
+    gap:1px!important;
+  }
+  html.atlas-mobile-compact nav a{
+    height:25px!important;
+    min-height:25px!important;
+    padding-inline:8px!important;
+  }
+
+  /* Region list stops pushing the node list several screens downward. */
+  .regions-panel[open] #region-list{
+    max-height:min(34vh,290px)!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  /* Mobile node controls: same functions, one less explanatory row. */
+  #nodes .section-heading{
+    margin-top:15px!important;
+    margin-bottom:6px!important;
+  }
+  #nodes .status-filter{
+    gap:2px!important;
+    padding:3px!important;
+  }
+  #nodes .status-filter button{
+    min-height:28px!important;
+    padding:4px 8px!important;
+  }
+  #nodes .table-toolbar{
+    gap:5px!important;
+    margin-bottom:5px!important;
+  }
+  #nodes .table-toolbar .search{
+    min-height:36px!important;
+    padding:5px 8px!important;
+  }
+  #nodes #sort{
+    min-height:36px!important;
+  }
+  #nodes .quick-filters{
+    gap:5px!important;
+    margin-bottom:5px!important;
+  }
+  #nodes .quick-filters button{
+    min-height:30px!important;
+    padding:5px 9px!important;
+  }
+  #filter-explainer{
+    display:none!important;
+  }
+
+  /* About 24 quota pills across a phone card instead of ~45. */
+  .node-row .quota-track,
+  .node-row .quota-track>b,
+  #node-list[data-view=cards] .quota-track,
+  #node-list[data-view=cards] .quota-track>b{
+    background-size:15px 5px!important;
+  }
+
+  /* Expanded details stay useful without becoming a full extra screen. */
+  .node-detail-cell>.node-detail{
+    padding-top:7px!important;
+  }
+  .node-detail .inline-trends{
+    margin-top:5px!important;
+    padding-top:5px!important;
+  }
+  .node-detail .node-sparks{
+    gap:5px!important;
+  }
+  .node-detail .node-spark{
+    padding:6px 6px 2px!important;
+  }
+  .node-detail .node-spark svg{
+    height:30px!important;
+  }
+  .node-detail .details{
+    margin-top:8px!important;
+    padding-top:8px!important;
+    gap:0 14px!important;
+  }
+  .node-detail .details>div{
+    padding:5px 0!important;
+    gap:6px!important;
+  }
+
+  footer{
+    margin-top:18px!important;
+    padding-block:12px!important;
+  }
 }
 
 @media(prefers-reduced-motion:reduce){
   html.atlas-motion-v1 .motion-indicator-host::after{
     transition:none!important;
     will-change:auto;
+  }
+  @media(max-width:800px){
+    .header-inner,
+    .brand,
+    .brand-site-badge,
+    .brand-icon,
+    .atlas-mark,
+    .header-actions,
+    .header-actions .icon-button,
+    .header-actions button,
+    .header-actions .admin-link,
+    nav,
+    nav a{
+      transition:none!important;
+    }
   }
 }
