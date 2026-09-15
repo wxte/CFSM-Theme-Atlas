@@ -13,24 +13,34 @@ const siteTitle=document.querySelector('#site-title');
 if(siteTitle)new MutationObserver(syncTitle).observe(siteTitle,{childList:true,characterData:true,subtree:true});
 syncTitle();
 
-let mobileLoaded=false;
+let mobileLoaded=false,motionLoaded=false;
 const mobile=matchMedia('(max-width:800px)');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+
 const loadMobile=()=>{
  if(mobileLoaded||!mobile.matches)return;
  mobileLoaded=true;
- import('./mobile-polish.js?v=mobile-v2').catch(()=>{});
+ import('./mobile-polish.js?v=0.5.24').catch(()=>{});
 };
-mobile.addEventListener?.('change',loadMobile);
 
-function loadMotion(){
+const loadDesktopMotion=()=>{
+ if(motionLoaded||mobile.matches||reduced.matches)return;
+ motionLoaded=true;
  if(!document.querySelector('link[data-atlas-motion]')){
   const link=document.createElement('link');
-  link.rel='stylesheet';link.href='/assets/motion.css?v=motion-v1.1';link.dataset.atlasMotion='1';
+  link.rel='stylesheet';link.href='/assets/motion.css?v=0.5.24';link.dataset.atlasMotion='1';
   document.head.append(link);
  }
- import('./motion.js?v=motion-v1').catch(()=>{});
+ import('./motion.js?v=0.5.24').catch(()=>{});
+};
+
+function loadDeferredUi(){
  loadMobile();
+ loadDesktopMotion();
 }
 
-if(document.readyState==='complete')idle(loadMotion);
-else addEventListener('load',()=>idle(loadMotion),{once:true});
+mobile.addEventListener?.('change',loadDeferredUi);
+reduced.addEventListener?.('change',loadDesktopMotion);
+
+if(document.readyState==='complete')idle(loadDeferredUi);
+else addEventListener('load',()=>idle(loadDeferredUi),{once:true});

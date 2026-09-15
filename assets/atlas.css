@@ -3258,3 +3258,23 @@ html[data-theme=dark]{
     padding-left:14px!important;
   }
 }
+
+
+/* Atlas v0.5.24 alignment contract */
+@media (min-width:1101px){
+  .node-columns>span:nth-child(2),
+  .node-columns>span:nth-child(8){
+    justify-self:stretch!important;
+    width:100%!important;
+    text-align:center!important;
+  }
+  .node-pings{
+    justify-self:center!important;
+    width:max-content!important;
+    max-width:100%!important;
+    min-width:0!important;
+    padding-left:0!important;
+    text-align:left!important;
+  }
+}
+/* End Atlas v0.5.24 alignment contract */

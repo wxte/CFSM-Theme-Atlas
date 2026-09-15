@@ -1,6 +1,6 @@
-import {Plot,plotPaths} from './plot.js?v=0.5.23';
-import {numeric,n,bytes} from './data.js?v=0.5.23';
-import {nodeObservations,selections,scheduleSave} from './trend-store.js?v=0.5.23';
+import {Plot,plotPaths} from './plot.js?v=0.5.24';
+import {numeric,n,bytes} from './data.js?v=0.5.24';
+import {nodeObservations,selections,scheduleSave} from './trend-store.js?v=0.5.24';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
 
 // Detail microcharts use a local range per metric so small live movement stays visible.

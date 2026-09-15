@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const html=fs.readFileSync('index.html','utf8');
 const app=fs.readFileSync('assets/app.js','utf8');
 const css=fs.readFileSync('assets/atlas.css','utf8');
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 test('removes the desktop two-column node mode',()=>{
   assert.doesNotMatch(html,/node-view-switch/);
@@ -50,10 +51,11 @@ test('first paint keeps non-critical motion and mobile helpers off the critical 
   assert.doesNotMatch(html,/rel="stylesheet" href="\/assets\/motion\.css/);
   assert.doesNotMatch(html,/src="\/assets\/motion\.js/);
   assert.doesNotMatch(html,/src="\/assets\/mobile-polish\.js/);
-  assert.match(html,/src="\/assets\/post-paint\.js\?v=post-paint-v1"/);
+  assert.match(html,new RegExp(`src="/assets/post-paint\\.js\\?v=${pkg.version}"`));
   assert.match(post,/requestIdleCallback/);
-  assert.match(post,/import\('\.\/motion\.js\?v=motion-v1'\)/);
-  assert.match(post,/import\('\.\/mobile-polish\.js\?v=mobile-v2'\)/);
+  assert.match(post,/mobile\.matches\|\|reduced\.matches/);
+  assert.ok(post.includes(`import('./motion.js?v=${pkg.version}')`));
+  assert.ok(post.includes(`import('./mobile-polish.js?v=${pkg.version}')`));
 });
 
 test('browser title stays aligned with Atlas and the configured site title',()=>{
@@ -61,4 +63,16 @@ test('browser title stays aligned with Atlas and the configured site title',()=>
   assert.match(html,/<title>Atlas · Cloudflare Server Monitor<\/title>/);
   assert.match(post,/`Atlas · \$\{site\}`/);
   assert.match(post,/MutationObserver\(syncTitle\)/);
+});
+
+test('desktop table headings align with their real content blocks',()=>{
+  assert.match(css,/\.node-columns>span:nth-child\(2\),\s*\.node-columns>span:nth-child\(8\)\{[\s\S]*?text-align:center!important/);
+  assert.match(css,/\.node-pings\{[\s\S]*?justify-self:center!important;[\s\S]*?width:max-content!important;[\s\S]*?text-align:left!important/);
+});
+
+test('runtime stays same-origin and config title remains text-safe',()=>{
+  const runtimeTags=[...html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g)].map(match=>match[1]);
+  assert.ok(runtimeTags.every(url=>url.startsWith('/')||url.startsWith('./')),runtimeTags.join(', '));
+  assert.match(app,/set\(\$\('#site-title'\),title\)/);
+  assert.doesNotMatch(app,/#site-title[^;\n]*innerHTML/);
 });

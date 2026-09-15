@@ -1,13 +1,16 @@
 # Changelog
 
-## Unreleased · Globe v2 / First Paint
+## v0.5.24 Smoothness + Alignment
 
-- Globe v2：后台有 `theme_options.connections` 时绘制显式拓扑飞线；没有时自动生成有界的节点分布飞线，并明确标记为示意。
-- 手机 / Save-Data 环境关闭飞线与自动旋转，降低 WebGL DPR、地图采样与标签数量。
-- 首屏不再阻塞加载 `motion.css`、`motion.js` 和 `mobile-polish.js`；核心页面完成 load 后再在空闲时间加载。
-- 浏览器标题统一为 `Atlas · site_title`，与左上角品牌和站点 badge 对齐。
-- `tools/check.mjs` 扩展为检查 `assets/` 下全部 CSS 文件，而不仅是 `atlas.css`。
-- 新增 Globe v2 / 快速首屏回归测试。
+- 删除 Globe 飞线与 `theme_options.connections` 的前端绘制路径，地球只保留节点标记、地区标签和手动旋转。
+- 删除桌面地球后台自动旋转计时器；拖动期间隐藏标签并暂停标签布局，松手后再一次性对齐。
+- 桌面最高 DPR 从 1.8 降到 1.5，点采样从 16000 降到 12000；手机 / Save-Data / 低性能环境继续使用更保守配置。
+- 首屏继续只加载核心 CSS / JS；手机端不再加载 `motion.js` / `motion.css`，减少 MutationObserver 与动画开销。
+- 桌面 motion 的动态 indicator 观察范围从整个 `document.body` 收窄到网络网格，并停止对实时上下行 KPI 做数值动画。
+- 修正桌面表头“名称 / 配置”和“三网延迟”的视觉居中；三网延迟数据块自身居中但内部仍左对齐，方便扫读。
+- 正式把 package、theme-version、页脚、运行时缓存键和 README 升级到 v0.5.24；此前 Globe v2 / First Paint 的未发布内容并入本版本。
+- 保留浏览器标题 `Atlas · site_title`、首屏延迟加载和全 CSS 结构检查。
+- 增加无飞线 / 无后台旋转、拖动标签降载、标题对齐、同源运行时与站点标题 text-safe 回归测试。
 
 ## v0.5.23 Architecture + Network Render Cleanup
 

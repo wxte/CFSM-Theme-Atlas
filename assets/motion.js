@@ -90,14 +90,13 @@ function discoverIndicators(scope = document) {
 
 discoverIndicators();
 
-const dynamicHostObserver = new MutationObserver(records => {
-  for (const record of records) {
-    for (const node of record.addedNodes) {
-      if (node instanceof Element) discoverIndicators(node);
-    }
-  }
-});
-dynamicHostObserver.observe(document.body, { childList: true, subtree: true });
+const dynamicIndicatorRoot=document.querySelector('#network-grid');
+if(dynamicIndicatorRoot){
+ const dynamicHostObserver=new MutationObserver(records=>{
+  for(const record of records)for(const node of record.addedNodes)if(node instanceof Element)discoverIndicators(node);
+ });
+ dynamicHostObserver.observe(dynamicIndicatorRoot,{childList:true,subtree:true});
+}
 
 window.addEventListener('resize', () => {
   document.querySelectorAll('.motion-indicator-host').forEach(scheduleIndicator);
@@ -110,8 +109,6 @@ document.fonts?.ready?.then(() => {
 const valueSelectors = [
   '#stat-nodes',
   '#stat-regions',
-  '#stat-in',
-  '#stat-out',
   '#stat-month',
   '#stat-cost',
   '#map-online',
@@ -148,8 +145,8 @@ function bindValueMotion(el) {
 
     const animation = el.animate(
       [
-        { opacity: .46, transform: 'translateY(4px)', filter: 'blur(1.4px)' },
-        { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' }
+        { opacity: .58, transform: 'translateY(2px)' },
+        { opacity: 1, transform: 'translateY(0)' }
       ],
       { duration: 190, easing: EASE_OUT, fill: 'both' }
     );
@@ -177,8 +174,8 @@ if (connection) {
 
     const animation = connection.animate(
       [
-        { opacity: .35, transform: 'translateY(3px)', filter: 'blur(1px)' },
-        { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' }
+        { opacity: .55, transform: 'translateY(2px)' },
+        { opacity: 1, transform: 'translateY(0)' }
       ],
       { duration: 210, easing: EASE_OUT, fill: 'both' }
     );
