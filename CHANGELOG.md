@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased · Globe v2 / First Paint
+
+- Globe v2：后台有 `theme_options.connections` 时绘制显式拓扑飞线；没有时自动生成有界的节点分布飞线，并明确标记为示意。
+- 手机 / Save-Data 环境关闭飞线与自动旋转，降低 WebGL DPR、地图采样与标签数量。
+- 首屏不再阻塞加载 `motion.css`、`motion.js` 和 `mobile-polish.js`；核心页面完成 load 后再在空闲时间加载。
+- 浏览器标题统一为 `Atlas · site_title`，与左上角品牌和站点 badge 对齐。
+- `tools/check.mjs` 扩展为检查 `assets/` 下全部 CSS 文件，而不仅是 `atlas.css`。
+- 新增 Globe v2 / 快速首屏回归测试。
+
 ## v0.5.23 Architecture + Network Render Cleanup
 
 - 移除概览网络质量面板删除后遗留的 aggregateHistory 运行时代码与过时测试。
