@@ -24,7 +24,7 @@ export function globeProfile({
 
 export class NodeMap{
  constructor(onRegion){
-  this.onRegion=onRegion;this.servers=[];this.options={};this.groups=[];this.labels=new Map();this.phi=0;this.theta=.2;this.pending=0;this.signature='';this.dirty=true;this.hoverKey=null;this.active=true;this.mode='auto';this.inView=typeof IntersectionObserver==='undefined';this.readyToInit=false;
+  this.onRegion=onRegion;this.servers=[];this.options={};this.groups=[];this.labels=new Map();this.phi=0;this.theta=.2;this.pending=0;this.signature='';this.dirty=true;this.hoverKey=null;this._active=true;this._mode='auto';this.inView=typeof IntersectionObserver==='undefined';this.readyToInit=false;
   this.mobile=matchMedia('(max-width:800px)').matches;
   this.reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const nav=globalThis.navigator||{};
@@ -47,6 +47,7 @@ export class NodeMap{
 
   canvas.addEventListener('pointerdown',e=>{
    this.drag={x:e.clientX,y:e.clientY};
+   this.stopRotation();
    this.labelsRoot.style.visibility='hidden';
    try{canvas.setPointerCapture?.(e.pointerId);}catch{}
   });
@@ -88,14 +89,18 @@ export class NodeMap{
   if(typeof IntersectionObserver!=='undefined'){
    this.intersectionObserver=new IntersectionObserver(entries=>{
     this.inView=Boolean(entries[0]?.isIntersecting);
-    if(this.inView)this.requestDraw();
+    if(this.inView)this.requestDraw();else this.stopRotation();
    },{threshold:0});
    this.intersectionObserver.observe(this.stage);
   }
 
-  this.onVisibility=()=>{if(!document.hidden)this.requestDraw();};
+  this.onVisibility=()=>{if(!document.hidden)this.requestDraw();else this.stopRotation();};
+  this.onMotion=()=>{this.stopRotation();this.requestDraw();};
+  this.reduced.addEventListener?.('change',this.onMotion);
   document.addEventListener('visibilitychange',this.onVisibility);
   addEventListener('pagehide',()=>{
+   this.disposed=true;this.stopRotation();
+   this.reduced.removeEventListener?.('change',this.onMotion);
    if(this.pending&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(this.pending);
    this.resizeObserver?.disconnect();
    this.intersectionObserver?.disconnect();
@@ -103,13 +108,35 @@ export class NodeMap{
    this.globe?.destroy();
   },{once:true});
  }
+ get active(){return this._active} set active(value){this._active=!!value;this.stopRotation();if(this._active)this.requestDraw();}
+ get mode(){return this._mode} set mode(value){this._mode=value||'auto';this.stopRotation();if(this._mode!=='off')this.requestDraw();}
+ canRotate(){return Boolean(this.globe&&!this.failed&&!this.disposed&&this.active&&this.inView&&this.mode!=='off'&&!document.hidden&&!this.reduced.matches&&!this.drag&&!this.hoverKey);}
+ stopRotation(){
+  if(this.rotationTimer)clearTimeout(this.rotationTimer);
+  this.rotationTimer=0;this.rotationTime=null;
+ }
+ scheduleRotation(){
+  if(!this.canRotate()){this.stopRotation();return;}
+  if(this.rotationTimer)return;
+  // COBE's phi increment, driven by elapsed time at at most 20 / 12 fps.
+  // The bundled update-only renderer does not implement onRender.
+  this.rotationTime??=performance.now();
+  this.rotationTimer=setTimeout(()=>{
+   this.rotationTimer=0;
+   if(!this.canRotate()){this.stopRotation();return;}
+   const now=performance.now(),elapsed=Math.min(100,Math.max(0,now-this.rotationTime));
+   this.rotationTime=now;
+   this.phi=(this.phi+elapsed*.00018)%(Math.PI*2);
+   this.requestDraw();
+  },1000/(this.profile.constrained?12:20));
+ }
  async init(){
   this.readyToInit=true;
-  if(this.globe||this.initializing||this.failed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
+  if(this.globe||this.initializing||this.failed||this.disposed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
   this.initializing=true;
   try{
    const {default:createGlobe}=await import('./vendor/cobe.js?v=0.5.25');
-   if(!this.active||!this.inView||this.mode==='off'||document.hidden)return;
+   if(this.disposed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
    const canvas=this.canvas;
    if(!canvas.getContext('webgl2',{alpha:true,antialias:true})&&!canvas.getContext('webgl',{alpha:true,antialias:true}))throw Error();
    this.measure();
@@ -125,7 +152,7 @@ export class NodeMap{
   }catch{this.unavailable();}finally{this.initializing=false;}
  }
  unavailable(){
-  this.failed=true;
+  this.failed=true;this.stopRotation();
   this.holder.hidden=true;
   this.labelsRoot.hidden=true;
   $('#globe-error').hidden=false;
@@ -151,7 +178,7 @@ export class NodeMap{
   this.requestDraw();
  }
  requestDraw(){
-  if(this.mode==='off'||!this.active||!this.inView||this.pending||document.hidden)return;
+  if(this.disposed||this.failed||this.mode==='off'||!this.active||!this.inView||this.pending||document.hidden)return;
   if(!this.globe){if(this.readyToInit)this.init();return;}
   this.pending=requestAnimationFrame(()=>{this.pending=0;this.draw();});
  }
@@ -171,11 +198,11 @@ export class NodeMap{
  }
  showTip(key){
   const group=this.groups.find(g=>g.key===key);if(!group){this.clearTip();return;}
-  this.hoverKey=key;const tip=$('#map-tip');
+  this.hoverKey=key;this.stopRotation();const tip=$('#map-tip');
   tip.textContent=group.members.map(s=>`${s.name} · ${region(s.region).name} · ${online(s)?'在线':'离线'}\n联通 ${ping(s.ping_cu)}\n↓ ${online(s)?bytes(s.net_in_speed,true):'—'}  ↑ ${online(s)?bytes(s.net_out_speed,true):'—'}`).join('\n');
   tip.hidden=false;const ids=new Set(group.members.map(s=>s.id));document.querySelectorAll('.node-row').forEach(row=>row.classList.toggle('map-selected',ids.has(row.dataset.id)));
  }
- clearTip(){this.hoverKey=null;$('#map-tip').hidden=true;document.querySelectorAll('.map-selected').forEach(row=>row.classList.remove('map-selected'));}
+ clearTip(){this.hoverKey=null;this.requestDraw();$('#map-tip').hidden=true;document.querySelectorAll('.map-selected').forEach(row=>row.classList.remove('map-selected'));}
  draw(){
   if(!this.active||!this.inView||this.mode==='off'||document.hidden)return;
   const dark=document.documentElement.dataset.theme==='dark';
@@ -188,6 +215,7 @@ export class NodeMap{
    const size=this.globeSize||(this.mobile?265:355),dimensions=size!==this.renderSize?{width:size,height:size}:{};
    this.globe.update({phi:this.phi,theta:this.theta,...dimensions,...appearance});this.renderSize=size;this.dirty=false;this.dark=dark;
   }
+  this.scheduleRotation();
   if(this.drag)return;
 
   const width=this.stageWidth||this.stage?.clientWidth||0,height=this.stageHeight||this.stage?.clientHeight||0,radius=(this.globeSize||this.holder?.clientWidth||0)*.4,occupied=[],keep=new Set();
