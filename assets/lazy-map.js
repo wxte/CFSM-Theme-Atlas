@@ -4,7 +4,7 @@ export class DeferredNodeMap{
  get mode(){return this._mode} set mode(v){this._mode=v||'auto';if(this.impl)this.impl.mode=this._mode;}
  load(){
   if(this.impl)return Promise.resolve(this.impl);
-  if(!this.promise)this.promise=import('./globe.js?v=0.5.25').then(({NodeMap})=>{const m=new NodeMap(this.onRegion);m.active=this._active;m.mode=this._mode;this.impl=m;if(this.lastUpdate)m.update(...this.lastUpdate);if(this.lastFocus)m.focus(this.lastFocus);return m;}).catch(error=>{this.promise=null;throw error;});
+  if(!this.promise)this.promise=import('./globe.js?v=0.5.26').then(({NodeMap})=>{const m=new NodeMap(this.onRegion);m.active=this._active;m.mode=this._mode;this.impl=m;if(this.lastUpdate)m.update(...this.lastUpdate);if(this.lastFocus)m.focus(this.lastFocus);return m;}).catch(error=>{this.promise=null;throw error;});
   return this.promise;
  }
  update(...args){this.lastUpdate=args;if(this.impl)this.impl.update(...args);}

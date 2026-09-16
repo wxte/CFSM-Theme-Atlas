@@ -1,6 +1,7 @@
-import {Plot,plotPaths} from './plot.js?v=0.5.25';
-import {numeric,n,bytes} from './data.js?v=0.5.25';
-import {nodeObservations,selections,scheduleSave} from './trend-store.js?v=0.5.25';
+import {bindSampleDrag} from './sample-drag.js?v=0.5.26';
+import {Plot,plotPaths} from './plot.js?v=0.5.26';
+import {numeric,n,bytes} from './data.js?v=0.5.26';
+import {nodeObservations,selections,scheduleSave} from './trend-store.js?v=0.5.26';
 const keys=['cpu','net_in_speed','net_out_speed'],models=new Map();
 
 // Detail microcharts use a local range per metric so small live movement stays visible.
@@ -57,10 +58,11 @@ export function renderTrendBox(box,id){
  const points=store.resources,samples=enabled?store.network:[];
  if(box.dataset.node!==id)box.dataset.node=id;
  if(!box.querySelector('.node-sample-track')){
-  box.innerHTML='<div class="node-sparks"></div><div class="node-sample-track" role="slider" tabindex="0" aria-label="最近60次网络采样；方向键查看，Esc返回实时" aria-valuemin="1" aria-valuemax="60" aria-valuenow="60"></div><small class="node-sample-note"></small><button class="trend-live" type="button" hidden>返回实时</button>';
+  box.innerHTML='<div class="node-sparks"></div><div class="node-sample-track" role="slider" tabindex="0" aria-label="最近60次网络采样；方向键查看，Esc取消锁定" aria-valuemin="1" aria-valuemax="60" aria-valuenow="60"></div><small class="node-sample-note"></small><button class="trend-live" type="button" hidden>取消锁定</button>';
   const row=box.querySelector('.node-sparks');
   for(const [key,label] of [['cpu','CPU'],['net_in_speed','↓ 下行'],['net_out_speed','↑ 上行']]){const el=document.createElement('span');el.className='node-spark';el.dataset.metric=key;el.innerHTML='<small></small><strong class="spark-value">—</strong><svg viewBox="0 0 120 34" role="img" preserveAspectRatio="none"><path class="spark-baseline" d="M2 30H118"/><path class="spark-series"/></svg>';el.firstChild.textContent=label;row.append(el);el.plot=new Plot(el.querySelector('svg'),el.querySelector('.spark-series'));}
   const track=box.querySelector('.node-sample-track');for(let i=0;i<60;i++)track.append(document.createElement('span'));
+  bindSampleDrag(track,(x,rect)=>{const current=nodeObservations(id).network;if(!current.length)return;const index=Math.max(60-current.length,Math.min(59,Math.floor((x-rect.left)/rect.width*60)));const point=current[index-(60-current.length)];if(point){selections.set(id,structuredClone(point));scheduleSave();renderTrendBox(box,id);}});
  }
  const resourceKey=String(store.resourceVersion||0);if(box.dataset.resourceVersion!==resourceKey){box.dataset.resourceVersion=resourceKey;
   for(const key of keys){
@@ -75,13 +77,12 @@ export function renderTrendBox(box,id){
  let selectedIndex=-1;
  for(let i=0;i<60;i++){const p=samples[i-(60-samples.length)],cell=track.children[i];cell.className=p?sampleState(p):'unknown';cell.title=p?describe(p):'无数据';cell.dataset.ts=p?.ts??'';if(p&&selected?.ts===p.ts){cell.classList.add('selected');selectedIndex=i;}}
  track.setAttribute('aria-valuenow',String(selectedIndex<0?60:selectedIndex+1));track.setAttribute('aria-valuetext',selected?describe(selected):'实时 · '+samples.length+'次网络采样');
- box.querySelector('.node-sample-note').textContent=selected?'已锁定 · '+describe(selected)+(selectedIndex<0?' · 已移出最近60格':''):enabled?`${samples.length}/60 次网络采样 · 点按 / 方向键查看`:'网络历史未公开';
+ box.querySelector('.node-sample-note').textContent=selected?'已锁定 · '+describe(selected)+(selectedIndex<0?' · 已移出最近60格':''):enabled?`${samples.length}/60 次网络采样 · 拖动查看 · 方向键切换`:'网络历史未公开';
  box.querySelector('.trend-live').hidden=!selected;
 }
 if(typeof document!=='undefined'){
  const repaint=id=>document.querySelectorAll('.node-trends').forEach(box=>{if(box.dataset.node===id)renderTrendBox(box,id);});
  const inspect=(track,index)=>{const id=track.closest('.node-trends').dataset.node,points=nodeObservations(id).network;index=Math.max(60-points.length,Math.min(59,index));const p=points[index-(60-points.length)];if(p){selections.set(id,structuredClone(p));scheduleSave();repaint(id);}};
- document.addEventListener('pointerdown',event=>{const track=event.target.closest('.node-sample-track');if(!track)return;track.focus({preventScroll:true});const rect=track.getBoundingClientRect();inspect(track,Math.floor((event.clientX-rect.left)/rect.width*60));});
  document.addEventListener('click',event=>{const button=event.target.closest('.trend-live');if(!button)return;const box=button.closest('.node-trends');selections.delete(box.dataset.node);scheduleSave();repaint(box.dataset.node);box.querySelector('.node-sample-track').focus({preventScroll:true});});
  document.addEventListener('keydown',event=>{const track=event.target.closest('.node-sample-track');if(!track)return;if(event.key==='Escape'){event.preventDefault();event.stopPropagation();const id=track.closest('.node-trends').dataset.node;selections.delete(id);scheduleSave();repaint(id);return;}if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();inspect(track,event.key==='Home'?0:event.key==='End'?59:Number(track.getAttribute('aria-valuenow'))-1+(event.key==='ArrowLeft'?-1:1));});
 }

@@ -1,12 +1,12 @@
-import {HistoryAPI} from './history-api.js?v=0.5.25';
-import {recordResources} from './resource-recorder.js?v=0.5.25';
-import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.25';
-import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.25';
-import {flag} from './flags.js?v=0.5.25';
-import {windowSamples,historyFromArrays} from './network-core.js?v=0.5.25';
-import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.25';
-import {DeferredNodeMap} from './lazy-map.js?v=0.5.25';
-import {Plot} from './plot.js?v=0.5.25';
+import {HistoryAPI} from './history-api.js?v=0.5.26';
+import {recordResources} from './resource-recorder.js?v=0.5.26';
+import {highLoad,expiring,ActivityObserver} from './insights.js?v=0.5.26';
+import {ViewRouter,pages,pageFromHash} from './router.js?v=0.5.26';
+import {flag} from './flags.js?v=0.5.26';
+import {windowSamples,historyFromArrays} from './network-core.js?v=0.5.26';
+import {n,numeric,percent,fmtPct,ping,loss,bytes,online,uptime,month,trafficQuota,total,costs,cycles,region,mergeSample} from './data.js?v=0.5.26';
+import {DeferredNodeMap} from './lazy-map.js?v=0.5.26';
+import {Plot} from './plot.js?v=0.5.26';
 const $ = s => document.querySelector(s);
 const icons={
  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.3"/><path d="M12 2v2.1M12 19.9V22M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2.1M19.9 12H22M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
@@ -124,13 +124,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.25').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;}).catch(error=>{networkChartsPromise=null;throw error;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.26').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;}).catch(error=>{networkChartsPromise=null;throw error;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.5.25').then(mod=>{nodeTrendsModule=mod;if(row.isConnected&&row.querySelector('.node-detail')?.open){const current=state.servers.get(s.id);if(current)mod.renderNodeTrends(row,current,state.history.get(s.id)||[],allowed('show_three_net_details'));}}).catch(()=>{});
+ import('./node-trends.js?v=0.5.26').then(mod=>{nodeTrendsModule=mod;if(row.isConnected&&row.querySelector('.node-detail')?.open){const current=state.servers.get(s.id);if(current)mod.renderNodeTrends(row,current,state.history.get(s.id)||[],allowed('show_three_net_details'));}}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -294,7 +294,7 @@ function renderNetwork(){
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
   if(chartState.live)set($('#network-history-note'),'实时采样 · 约 5 分钟窗口 · 5 秒快照');
   else if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
-  else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 点击重试':'历史采样 · 点击图表锁定 · Esc 返回实时');}
+  else if(!historyLoading){const errors=[...historyResults.values()].filter(r=>r.error);set($('#network-history-note'),errors.length?[...new Set(errors.map(r=>r.error))].join('；')+' · 点击重试':'历史采样 · 点按锁定 · 拖动查看');}
   loadNetworkHistory();
  }
 }
@@ -428,6 +428,6 @@ addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 const compact=matchMedia('(max-width:800px)');const foldPanels=()=>document.querySelectorAll('.regions-panel').forEach(el=>el.open=!compact.matches);foldPanels();compact.addEventListener?.('change',foldPanels);
 
 // Non-critical command palette/toast enhancements load after the dashboard is interactive.
-const loadEnhancements=()=>import('./enhancements.js?v=0.5.25').catch(()=>{});
+const loadEnhancements=()=>import('./enhancements.js?v=0.5.26').catch(()=>{});
 if('requestIdleCallback' in window)requestIdleCallback(loadEnhancements,{timeout:2200});else setTimeout(loadEnhancements,900);
 

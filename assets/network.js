@@ -1,6 +1,7 @@
-import {Plot} from './plot.js?v=0.5.25';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.25';
-import {windowSamples} from './network-core.js?v=0.5.25';
+import {bindSampleDrag} from './sample-drag.js?v=0.5.26';
+import {Plot} from './plot.js?v=0.5.26';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.26';
+import {windowSamples} from './network-core.js?v=0.5.26';
 export const lines=['cu','ct','cm'];
 const valid=v=>numeric(v)&&n(v)>=0;
 export function nearestPoint(points,ts){return points.reduce((best,p)=>!best||Math.abs(p.ts-ts)<Math.abs(best.ts-ts)?p:best,null);}
@@ -14,14 +15,15 @@ export class NetworkCharts{
  constructor(){this.rangeMs=7200000;this.rows=new Map();this.now=Date.now();try{const saved=sessionStorage.getItem('atlas-mobile-carrier');this.mobileCarrier=lines.includes(saved)?saved:'cu';}catch{this.mobileCarrier='cu';}}
  createCard(key){
   const el=document.createElement('article');el.className='analysis-card';el.dataset.chart=key;
-  el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><text class="axis-text axis-max" x="0" y="15"></text><text class="axis-text axis-min" x="0" y="83"></text><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/><text class="axis-text axis-start" x="30" y="108"></text><text class="axis-text axis-end" x="354" y="108" text-anchor="end"></text></svg><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">点选查看 · 方向键切换</div>';
+  el.innerHTML='<div class="analysis-top"><span></span><strong>—</strong></div><div class="chart-frame"><span class="axis-max chart-y-max"></span><span class="axis-min chart-y-min"></span><svg class="chart" viewBox="0 0 360 112" preserveAspectRatio="none" role="img" tabindex="0"><path class="gridline" d="M30 12H354 M30 46H354 M30 80H354"/><path class="series"/><g class="samples"></g><g class="losses"></g><path class="cursor" hidden/></svg><div class="chart-dates"><span class="axis-start"></span><span class="axis-end"></span></div></div><div class="network-tracker" role="group" aria-label="真实采样状态，点选查看"></div><div class="chart-note"><span></span><span></span></div><div class="chart-tooltip">点按锁定 · 拖动查看</div>';
   const c={el,key,points:[],samples:[],groups:[],inspecting:null,selectedStart:null,buttons:[]};
   c.svg=el.querySelector('svg');c.path=el.querySelector('.series');c.tracker=el.querySelector('.network-tracker');c.tip=el.querySelector('.chart-tooltip');c.plot=new Plot(c.svg,c.path,{baseline:80,smooth:true});
-  c.svg.addEventListener('pointermove',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.timeAt(c,e.clientX,r));});
+  c.svg.addEventListener('pointermove',e=>{if(e.pointerType==='touch'||e.buttons)return;const r=c.svg.getBoundingClientRect();this.inspect(c,this.timeAt(c,e.clientX,r));});
+  bindSampleDrag(c.svg,(x,rect)=>this.inspect(c,this.timeAt(c,x,rect),true));
   c.svg.addEventListener('pointerleave',()=>{c.inspecting=null;this.restoreInspection(c);});
   c.tracker.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=c.buttons.indexOf(document.activeElement);const next=e.key==='Home'?0:e.key==='End'?c.buttons.length-1:Math.max(0,Math.min(c.buttons.length-1,i+(e.key==='ArrowLeft'?-1:1)));c.buttons[next]?.focus();c.buttons[next]?.click();});
   c.svg.addEventListener('click',e=>{const r=c.svg.getBoundingClientRect();this.inspect(c,this.timeAt(c,e.clientX,r),true);});
-  const resume=document.createElement('button');resume.className='chart-resume';resume.type='button';resume.textContent='返回实时';resume.hidden=true;el.append(resume);resume.addEventListener('click',()=>this.clearPin(c));
+  const resume=document.createElement('button');resume.className='chart-resume';resume.type='button';resume.textContent='取消锁定';resume.hidden=true;el.append(resume);resume.addEventListener('click',()=>this.clearPin(c));
   el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();this.clearPin(c);}});
   c.svg.addEventListener('keydown',e=>{
    if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const points=c.points;if(!points.length)return;
@@ -100,7 +102,7 @@ export class NetworkCharts{
  }
  inspectGroup(c){
   const group=c.groups.find(g=>g.start===c.selectedStart);c.groups.forEach((g,i)=>attr(c.buttons[i],'aria-pressed',g===group));
-  set(c.tip,!this.enabled?'后台未开启三网详情':!c.samples.length?'暂无历史采样':!group?'点选查看 · 方向键切换':time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+(group.samples.length>1?'最高 ':'')+ping(group.maxPing)+' · 丢包 '+loss(group.maxLoss)+(group.state==='unknown'?' · 指标缺失':''));
+  set(c.tip,!this.enabled?'后台未开启三网详情':!c.samples.length?'暂无历史采样':!group?'点按锁定 · 拖动查看':time(group.start)+(group.end!==group.start?'–'+time(group.end):'')+' · '+(group.samples.length>1?'最高 ':'')+ping(group.maxPing)+' · 丢包 '+loss(group.maxLoss)+(group.state==='unknown'?' · 指标缺失':''));
  }
  clearPin(c){c.pin=null;c.inspecting=null;try{sessionStorage.removeItem('atlas-chart-v2:'+c.selectionKey);}catch{}this.restoreInspection(c);}
  restoreInspection(c){

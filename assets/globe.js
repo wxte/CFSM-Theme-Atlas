@@ -1,5 +1,5 @@
-import {coordinate,region,online,bytes,ping} from './data.js?v=0.5.25';
-import {placeLabel} from './map-layout.js?v=0.5.25';
+import {coordinate,region,online,bytes,ping} from './data.js?v=0.5.26';
+import {placeLabel} from './map-layout.js?v=0.5.26';
 const $=s=>document.querySelector(s);
 
 export function globeProfile({
@@ -135,7 +135,7 @@ export class NodeMap{
   if(this.globe||this.initializing||this.failed||this.disposed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
   this.initializing=true;
   try{
-   const {default:createGlobe}=await import('./vendor/cobe.js?v=0.5.25');
+   const {default:createGlobe}=await import('./vendor/cobe.js?v=0.5.26');
    if(this.failed||this.disposed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
    const canvas=this.canvas;
    if(!canvas.getContext('webgl2',{alpha:true,antialias:true})&&!canvas.getContext('webgl',{alpha:true,antialias:true}))throw Error();

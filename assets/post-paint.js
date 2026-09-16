@@ -19,7 +19,7 @@ const mobile=matchMedia('(max-width:800px)');
 const loadMobile=()=>{
  if(mobileLoaded||!mobile.matches)return;
  mobileLoaded=true;
- import('./mobile-polish.js?v=0.5.25').catch(()=>{mobileLoaded=false;});
+ import('./mobile-polish.js?v=0.5.26').catch(()=>{mobileLoaded=false;});
 };
 
 
