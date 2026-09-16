@@ -1,4 +1,4 @@
-import {numeric,n} from './data.js?v=0.5.24';
+import {numeric,n} from './data.js?v=0.5.25';
 const historyLines=['cu','ct','cm','bd'],windowMs=7200000;
 const valid=v=>numeric(v)&&n(v)>=0;
 export function windowSamples(samples,now=Date.now(),duration=windowMs){

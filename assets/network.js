@@ -1,6 +1,6 @@
-import {Plot} from './plot.js?v=0.5.24';
-import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.24';
-import {windowSamples} from './network-core.js?v=0.5.24';
+import {Plot} from './plot.js?v=0.5.25';
+import {numeric,n,ping,loss,online,region} from './data.js?v=0.5.25';
+import {windowSamples} from './network-core.js?v=0.5.25';
 export const lines=['cu','ct','cm'];
 const valid=v=>numeric(v)&&n(v)>=0;
 export function nearestPoint(points,ts){return points.reduce((best,p)=>!best||Math.abs(p.ts-ts)<Math.abs(best.ts-ts)?p:best,null);}

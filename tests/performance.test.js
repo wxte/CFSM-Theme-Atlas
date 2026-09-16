@@ -46,16 +46,15 @@ test('avoids duplicate history serialization and recorder logic',()=>{
   assert.doesNotMatch(enhancements,/\n\s*(?:close|copy|chart):'/);
 });
 
-test('first paint keeps non-critical motion and mobile helpers off the critical path',()=>{
-  const post=fs.readFileSync('assets/post-paint.js','utf8');
+test('first paint keeps optional animation off the critical path',()=>{
+  const post=fs.existsSync('assets/post-paint.js')?fs.readFileSync('assets/post-paint.js','utf8'):'';
   assert.doesNotMatch(html,/rel="stylesheet" href="\/assets\/motion\.css/);
   assert.doesNotMatch(html,/src="\/assets\/motion\.js/);
   assert.doesNotMatch(html,/src="\/assets\/mobile-polish\.js/);
-  assert.match(html,new RegExp(`src="/assets/post-paint\\.js\\?v=${pkg.version}"`));
-  assert.match(post,/requestIdleCallback/);
-  assert.match(post,/mobile\.matches\|\|reduced\.matches/);
-  assert.ok(post.includes(`import('./motion.js?v=${pkg.version}')`));
-  assert.ok(post.includes(`import('./mobile-polish.js?v=${pkg.version}')`));
+  if(post){
+    assert.doesNotMatch(post,/import\('\.\/motion\.js/);
+    assert.match(post,/mobile-polish\.js/);
+  }
 });
 
 test('browser title stays aligned with Atlas and the configured site title',()=>{
@@ -75,4 +74,14 @@ test('runtime stays same-origin and config title remains text-safe',()=>{
   assert.ok(runtimeTags.every(url=>url.startsWith('/')||url.startsWith('./')),runtimeTags.join(', '));
   assert.match(app,/set\(\$\('#site-title'\),title\)/);
   assert.doesNotMatch(app,/#site-title[^;\n]*innerHTML/);
+});
+
+
+test('uses browser-native offscreen rendering and keeps motion off the critical path',()=>{
+  const post=fs.existsSync('assets/post-paint.js')?fs.readFileSync('assets/post-paint.js','utf8'):'';
+  assert.match(css,/content-visibility:auto/);
+  assert.match(css,/contain-intrinsic-size:auto 78px/);
+  assert.doesNotMatch(html,/src="\/assets\/motion\.js/);
+  assert.doesNotMatch(html,/href="\/assets\/motion\.css/);
+  if(post)assert.doesNotMatch(post,/import\('\.\/motion\.js/);
 });

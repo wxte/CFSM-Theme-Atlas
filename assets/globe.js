@@ -1,5 +1,5 @@
-import {coordinate,region,online,bytes,ping} from './data.js?v=0.5.24';
-import {placeLabel} from './map-layout.js?v=0.5.24';
+import {coordinate,region,online,bytes,ping} from './data.js?v=0.5.25';
+import {placeLabel} from './map-layout.js?v=0.5.25';
 const $=s=>document.querySelector(s);
 
 export function globeProfile({
@@ -16,8 +16,8 @@ export function globeProfile({
  return {
   compact,
   constrained,
-  devicePixelRatio:constrained?1:Math.min(1.5,Math.max(1,Number(devicePixelRatio)||1)),
-  mapSamples:compact?4200:mobile?5600:constrained?8500:12000,
+  devicePixelRatio:constrained?1:Math.min(1.35,Math.max(1,Number(devicePixelRatio)||1)),
+  mapSamples:compact?3200:mobile?4200:constrained?6000:9000,
   labelLimit:compact?5:mobile?8:constrained?12:18
  };
 }
@@ -108,7 +108,7 @@ export class NodeMap{
   if(this.globe||this.initializing||this.failed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
   this.initializing=true;
   try{
-   const {default:createGlobe}=await import('./vendor/cobe.js?v=0.5.24');
+   const {default:createGlobe}=await import('./vendor/cobe.js?v=0.5.25');
    if(!this.active||!this.inView||this.mode==='off'||document.hidden)return;
    const canvas=this.canvas;
    if(!canvas.getContext('webgl2',{alpha:true,antialias:true})&&!canvas.getContext('webgl',{alpha:true,antialias:true}))throw Error();

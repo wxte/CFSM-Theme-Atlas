@@ -3278,3 +3278,36 @@ html[data-theme=dark]{
   }
 }
 /* End Atlas v0.5.24 alignment contract */
+
+
+/* Atlas v0.5.25 performance contract */
+@supports (content-visibility:auto){
+  .node-row{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 78px;
+  }
+  .network-server{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 260px;
+  }
+  .activity-list>li{
+    content-visibility:auto;
+    contain-intrinsic-size:auto 48px;
+  }
+}
+@media (min-width:801px){
+  .node-row{
+    transition:border-color .12s ease,background-color .12s ease!important;
+  }
+  .node-row:hover{
+    transform:none!important;
+    box-shadow:var(--atlas-surface-shadow)!important;
+  }
+}
+@media (max-width:800px){
+  .node-row{
+    box-shadow:none!important;
+    transition:none!important;
+  }
+}
+/* End Atlas v0.5.25 performance contract */

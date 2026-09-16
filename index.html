@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff">
-<meta name="theme-version" content="Atlas v0.5.24">
+<meta name="theme-version" content="Atlas v0.5.25">
 <meta name="description" content="Atlas · Cloudflare Server Monitor">
 <title>Atlas · Cloudflare Server Monitor</title>
-<link rel="stylesheet" href="/assets/atlas.css?v=0.5.24">
-<link rel="modulepreload" href="/assets/app.js?v=0.5.24" fetchpriority="high">
+<link rel="stylesheet" href="/assets/atlas.css?v=0.5.25">
+<link rel="modulepreload" href="/assets/app.js?v=0.5.25" fetchpriority="high">
 <link rel="preload" href="/assets/vendor/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 <body>
@@ -84,12 +84,12 @@
   <p class="activity-note">最多保存 100 条本地记录；清除浏览器站点数据会同时清除这些记录。</p><p id="activity-empty" class="empty">暂无上下线记录</p>
 </section>
 
-<footer><span>Atlas <b>v0.5.24</b></span><a id="backend-version" href="https://github.com/huilang-me/CF-Server-Monitor/" target="_blank" rel="noopener">Powered by CF-Server-Monitor</a><span id="footer-status">原生实时监控</span><span id="location-note">地球点位为地区中心示意</span></footer>
+<footer><span>Atlas <b>v0.5.25</b></span><a id="backend-version" href="https://github.com/huilang-me/CF-Server-Monitor/" target="_blank" rel="noopener">Powered by CF-Server-Monitor</a><span id="footer-status">原生实时监控</span><span id="location-note">地球点位为地区中心示意</span></footer>
 </main>
 
 <template id="node-template"><div class="node-row" role="row"><div class="status-cell" role="cell"><i class="status-dot" aria-hidden="true"></i><span data-field="status"></span></div><div class="node-main" role="cell"><span class="node-os-emblem" aria-hidden="true"></span><button class="node-name" data-detail-toggle><h3 data-field="name"></h3></button><small data-field="meta"></small></div><div class="node-region" role="cell"><span class="flag" data-flag></span><span data-field="region"></span></div><div class="rate-cell down" role="cell"><small>↓ 下行</small><strong data-field="download"></strong></div><div class="rate-cell up" role="cell"><small>↑ 上行</small><strong data-field="upload"></strong></div><div class="meters" role="cell"><div><span>CPU</span><i><b data-bar="cpu"></b></i><strong data-field="cpu"></strong></div><div><span>RAM</span><i><b data-bar="ram"></b></i><strong data-field="ram"></strong></div><div><span>DISK</span><i><b data-bar="disk"></b></i><strong data-field="disk"></strong></div></div><div class="transfer-cell" role="cell"><small>本周期流量</small><strong data-field="month"></strong></div><div class="node-pings" role="cell"><span data-field="cu"></span><span data-field="ct"></span><span data-field="cm"></span></div><div class="uptime-cell" role="cell"><small class="uptime-label">运行 </small><span data-field="uptime"></span></div><div class="detail-cell" role="cell"><button class="detail-button" data-detail-toggle aria-label="展开节点详情" aria-expanded="false">详情</button></div><div class="node-detail-cell" role="cell"><details class="node-detail"><summary>系统与账单</summary><dl class="details"><div><dt>CPU</dt><dd data-field="cpu_info"></dd></div><div><dt>系统</dt><dd data-field="os"></dd></div><div><dt>负载 / 进程</dt><dd data-field="load"></dd></div><div><dt>TCP / UDP</dt><dd data-field="connections"></dd></div><div><dt>价格</dt><dd data-field="price"></dd></div><div><dt>到期</dt><dd data-field="expire"></dd></div><div><dt>本周期下行</dt><dd data-field="traffic-down"></dd></div><div><dt>本周期上行</dt><dd data-field="traffic-up"></dd></div></dl></details></div></div></template>
 
-<script type="module" src="/assets/app.js?v=0.5.24"></script>
-<script type="module" src="/assets/post-paint.js?v=0.5.24"></script>
+<script type="module" src="/assets/app.js?v=0.5.25"></script>
+<script type="module" src="/assets/post-paint.js?v=0.5.25"></script>
 </body>
 </html>

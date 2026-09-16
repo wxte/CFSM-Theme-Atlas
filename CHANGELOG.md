@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.25 Performance Pass
+
+- 参考轻量状态页的更新策略：实时数据继续保留，但减少首屏同步渲染和无意义动画。
+- Globe 关闭飞线，降低 DPR / 点采样；存在自动旋转的版本保留自动旋转但降低刷新频率。
+- Globe 首次初始化改到 load 后的 idle 阶段，先让 KPI、节点和基础交互完成。
+- 节点 / 网络卡使用 content-visibility，让浏览器跳过屏幕外大量 DOM 的布局与绘制。
+- 桌面节点 hover 取消位移动画和重阴影；手机节点关闭额外 transition / shadow。
+- motion.js / motion.css 不再进入运行时关键路径。
+- WebSocket 仍为主通道；15 秒 HTTP fallback 轮询放宽到 60 秒（若当前源码存在该定时器）。
+- 全部运行时缓存版本升级到 v0.5.25。
+
 ## v0.5.24 Smoothness + Alignment
 
 - 删除 Globe 飞线与 `theme_options.connections` 的前端绘制路径，地球只保留节点标记、地区标签和手动旋转。
