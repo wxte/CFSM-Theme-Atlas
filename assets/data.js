@@ -1,4 +1,4 @@
-export const numeric = v => v !== null && v !== undefined && v !== false && v !== '' && Number.isFinite(Number(v));
+export const numeric = v => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) && Number.isFinite(Number(v));
 export const n = v => numeric(v) ? Number(v) : 0;
 export const clamp = v => Math.min(100, Math.max(0, v));
 export const percent = (used, total) => numeric(used) && n(total) > 0 ? clamp(n(used) / n(total) * 100) : null;

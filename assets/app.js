@@ -124,13 +124,13 @@ let charts=null,networkChartsPromise=null,nodeTrendsModule=null;
 const historyAPI=new HistoryAPI();
 function ensureNetworkCharts(){
  if(charts)return Promise.resolve(charts);
- if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.25').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;});
+ if(!networkChartsPromise)networkChartsPromise=import('./network.js?v=0.5.25').then(({NetworkCharts})=>{charts=new NetworkCharts();charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;return charts;}).catch(error=>{networkChartsPromise=null;throw error;});
  return networkChartsPromise;
 }
 function renderNodeTrendsDeferred(row,s,history,enabled){
  if(!row.querySelector('.node-detail')?.open)return;
  if(nodeTrendsModule){nodeTrendsModule.renderNodeTrends(row,s,history,enabled);return;}
- import('./node-trends.js?v=0.5.25').then(mod=>{nodeTrendsModule=mod;if(row.querySelector('.node-detail')?.open)mod.renderNodeTrends(row,s,history,enabled);}).catch(()=>{});
+ import('./node-trends.js?v=0.5.25').then(mod=>{nodeTrendsModule=mod;if(row.isConnected&&row.querySelector('.node-detail')?.open){const current=state.servers.get(s.id);if(current)mod.renderNodeTrends(row,current,state.history.get(s.id)||[],allowed('show_three_net_details'));}}).catch(()=>{});
 }
 let historyGeneration=0,historyLoading=false,historyLoadedAt=0,historyResults=new Map();
 try{const saved=sessionStorage.getItem('atlas-network-range'),hours=Number(sessionStorage.getItem('atlas-network-hours'));if(saved==='live'){chartState.live=true;chartState.rangeMs=liveRangeMs;}else if(serverHistoryHours.includes(hours)){chartState.live=false;chartState.rangeMs=hours*3600000;}else{chartState.live=false;chartState.rangeMs=24*3600000;}}catch{chartState.live=false;chartState.rangeMs=86400000;}
@@ -271,7 +271,7 @@ function updateRow(s){
 function renderRows(){
   renderFilters();
   const list=sorted(),ids=new Set(all().map(s=>s.id));
-  for(const [id,row] of state.rows)if(!ids.has(id)){row.remove();state.rows.delete(id);state.history.delete(id);}
+  for(const [id,row] of state.rows)if(!ids.has(id)){nodeTrendsModule?.destroyNodeTrends(row,id);row.remove();state.rows.delete(id);state.history.delete(id);}
   for(const s of all())if(!state.rows.has(s.id)){const row=$('#node-template').content.firstElementChild.cloneNode(true);row.dataset.id=s.id;const detail=row.querySelector('details');for(const b of row.querySelectorAll('[data-detail-toggle]'))b.addEventListener('click',()=>{detail.open=!detail.open;if(detail.open)updateRow(state.servers.get(row.dataset.id));if(detail.parentElement.classList.contains('node-detail-cell'))detail.parentElement.hidden=false;row.querySelectorAll('[data-detail-toggle]').forEach(el=>{el.setAttribute('aria-expanded',String(detail.open));if(el.classList.contains('detail-button')){el.setAttribute('aria-label',detail.open?'收起节点详情':'展开节点详情');set(el,detail.open?'收起':'详情');}});});row.fields=Object.fromEntries([...row.querySelectorAll('[data-field]')].map(e=>[e.dataset.field,e]));row.bars=Object.fromEntries([...row.querySelectorAll('[data-bar]')].map(e=>[e.dataset.bar,e]));state.rows.set(s.id,row);$('#node-list').append(row);}
   const shown=new Set(list.map(s=>s.id));for(const [id,row] of state.rows)row.hidden=!shown.has(id);
   let cursor=$('#node-list').firstElementChild;
@@ -286,11 +286,11 @@ function record(s,ts,metrics){
   state.history.set(s.id,windowSamples([...samples,sample]));
 }
 function renderNetwork(){
- const live=visible().filter(s=>online(s)),now=Date.now(),enabled=allowed('show_three_net_details');
+ const enabled=allowed('show_three_net_details');
  if(state.page==='network'){
   if(!charts){set($('#network-history-note'),'正在加载网络图表…');ensureNetworkCharts().then(()=>{if(state.page==='network')renderNetwork();}).catch(()=>set($('#network-history-note'),'网络图表加载失败 · 点击重试'));return;}
   charts.live=chartState.live;charts.rangeMs=chartState.rangeMs;
-  const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,result?.error?[]:[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>latest)]);}
+  const histories=new Map();for(const s of all()){const result=historyResults.get(s.id);const archived=result?.points||[],latest=archived.at(-1)?.ts??0;histories.set(s.id,[...archived,...(state.history.get(s.id)||[]).filter(p=>p.ts>=latest)]);}
   charts.update(all(),histories,Object.fromEntries(carriers.map(k=>[k,label(k)])),enabled);
   if(chartState.live)set($('#network-history-note'),'实时采样 · 约 5 分钟窗口 · 5 秒快照');
   else if(!enabled)set($('#network-history-note'),'后台未开启三网详情');
@@ -344,7 +344,7 @@ function scheduleLiveRender(){
 function connect(){
   if(state.stopped||document.hidden||state.ws)return;connection('连接中');let ws;
   try{ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/api/ws?subscribe=all`);}catch{reconnect();return;}
-  state.ws=ws;const timeout=setTimeout(()=>{if(ws.readyState===WebSocket.CONNECTING)ws.close();},60000);
+  state.ws=ws;const timeout=setTimeout(()=>{if(ws.readyState===WebSocket.CONNECTING)ws.close();},15000);
   ws.onopen=()=>{clearTimeout(timeout);state.attempt=0;state.lastMessage=Date.now();connection('LIVE · 实时',true);subscribe();state.heartbeat=setInterval(()=>{if(Date.now()-state.lastMessage>45000){ws.close();return;}if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}));},20000);};
   ws.onmessage=event=>{state.lastMessage=Date.now();let msg;try{msg=JSON.parse(event.data);}catch{return;}if(msg.type!=='batchUpdate'||!Array.isArray(msg.updates))return;const touched=new Set();
     for(const update of msg.updates){const s=state.servers.get(String(update.serverId));if(!s)continue;for(const sample of Array.isArray(update.samples)?update.samples:[])if(mergeSample(s,sample.data??sample.payload??sample.metrics,sample.ts)){touched.add(s.id);record(s,n(sample.ts),sample.data??sample.payload??sample.metrics);}}
@@ -363,7 +363,7 @@ $('#theme').addEventListener('click',()=>{settings.appearance=document.documentE
 $('#activity-toggle').addEventListener('click',()=>{const button=$('#activity-toggle'),panel=$('#activity-popover'),open=panel.hidden;panel.hidden=!open;button.setAttribute('aria-expanded',String(open));if(open)renderActivity();});
 document.addEventListener('click',event=>{const panel=$('#activity-popover'),button=$('#activity-toggle');if(!panel.hidden&&!panel.contains(event.target)&&event.target!==button&&!button.contains(event.target)){panel.hidden=true;button.setAttribute('aria-expanded','false');}});
 applySettings();
-$('#refresh').addEventListener('click',()=>{historyLoadedAt=0;historyAPI.cache.clear();refresh();});$('#network-history-note').addEventListener('click',()=>{historyLoadedAt=0;historyAPI.cache.clear();loadNetworkHistory();});$('#all-regions').addEventListener('click',()=>selectRegion(''));
+$('#refresh').addEventListener('click',()=>{historyLoadedAt=0;historyAPI.cache.clear();refresh();});$('#network-history-note').addEventListener('click',()=>{historyLoadedAt=0;historyAPI.cache.clear();renderNetwork();});$('#all-regions').addEventListener('click',()=>selectRegion(''));
 $('#reset-filters').addEventListener('click',()=>{state.search='';state.status='all';state.quick='';$('#search').value='';document.querySelectorAll('[data-status]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.status==='all')));selectRegion('');});
 function renderFilters(){
  saveViewState();
@@ -408,14 +408,14 @@ json('/api/config').then(config=>{
 });
 refresh().then(()=>{
  document.documentElement.classList.add('map-deferred');
- const startMap=()=>{if(all().length)map.focus(region(all()[0].region).code);Promise.resolve(map.init()).finally(()=>document.documentElement.classList.remove('map-deferred'));};
+ const startMap=()=>{if(all().length)map.focus(region(all()[0].region).code);Promise.resolve(map.init()).catch(()=>{set($('#map-hint'),'地球加载失败，刷新页面重试');}).finally(()=>document.documentElement.classList.remove('map-deferred'));};
  // Give KPI/node text and the first paint priority. The WebGL globe is decorative
  // context, so it enters after the dashboard is already interactive.
  setTimeout(()=>{if('requestIdleCallback' in window)requestIdleCallback(startMap,{timeout:1600});else startMap();},1100);
 });
-// WebSocket remains primary. Polling is only a fallback, but 15s keeps a stalled public tab from looking frozen.
+// WebSocket remains primary; refresh the node inventory every 60 seconds.
 const poll=setInterval(()=>{if(!document.hidden)refresh();},60000);
-const age=setInterval(()=>{if(document.hidden||!state.ready)return;if(state.status!=='all'||state.quick)renderRows();else for(const s of all())updateRow(s);renderRegions();renderAggregates();},5000);
+const age=setInterval(()=>{if(document.hidden||state.stopped||!state.ready)return;if(['overview','nodes','resources'].includes(state.page)){if(state.sort!=='default'||state.status!=='all'||state.quick)renderRows();else for(const s of all())updateRow(s);renderRegions();}renderAggregates();},5000);
 const watchdog=setInterval(()=>{
  if(document.hidden||state.stopped)return;
  if(state.ws?.readyState===WebSocket.OPEN&&Date.now()-state.lastMessage>45000){state.ws.close();refresh();return;}

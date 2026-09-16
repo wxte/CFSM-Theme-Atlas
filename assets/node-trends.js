@@ -37,6 +37,10 @@ export function sampleState(p){
 }
 const sampleTime=new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const describe=p=>sampleTime.format(p.ts)+' · '+['cu','ct','cm'].map((k,i)=>`${['联通','电信','移动'][i]} ${numeric(p[k])?p[k]+' ms':'—'} / 丢包 ${numeric(p.loss?.[k])?p.loss[k]+'%':'—'}`).join(' · ');
+export function destroyNodeTrends(row,id){
+ for(const el of row.querySelectorAll('.node-spark'))el.plot?.destroy();
+ models.delete(id);selections.delete(id);
+}
 export function renderNodeTrends(row,s,history,enabled){
  const detail=row.querySelector('.node-detail');
  const store=nodeObservations(s.id);

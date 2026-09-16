@@ -136,7 +136,7 @@ export class NodeMap{
   this.initializing=true;
   try{
    const {default:createGlobe}=await import('./vendor/cobe.js?v=0.5.25');
-   if(this.disposed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
+   if(this.failed||this.disposed||!this.active||!this.inView||this.mode==='off'||document.hidden)return;
    const canvas=this.canvas;
    if(!canvas.getContext('webgl2',{alpha:true,antialias:true})&&!canvas.getContext('webgl',{alpha:true,antialias:true}))throw Error();
    this.measure();
@@ -167,7 +167,7 @@ export class NodeMap{
    group.members.push(s);groups.set(key,group);
   }
   this.groups=[...groups.values()];
-  const sig=JSON.stringify(this.groups.map(g=>[g.key,g.members.map(s=>[s.id,s.name,online(s)])]));
+  const sig=JSON.stringify(this.groups.map(g=>[g.key,g.code,g.members.map(s=>[s.id,s.name,online(s)])]));
   if(sig!==this.signature){this.signature=sig;this.dirty=true;this.requestDraw();this.syncHint();}
   if(this.hoverKey)this.showTip(this.hoverKey);
  }

@@ -4,7 +4,7 @@ export class DeferredNodeMap{
  get mode(){return this._mode} set mode(v){this._mode=v||'auto';if(this.impl)this.impl.mode=this._mode;}
  load(){
   if(this.impl)return Promise.resolve(this.impl);
-  if(!this.promise)this.promise=import('./globe.js?v=0.5.25').then(({NodeMap})=>{const m=new NodeMap(this.onRegion);m.active=this._active;m.mode=this._mode;this.impl=m;if(this.lastUpdate)m.update(...this.lastUpdate);if(this.lastFocus)m.focus(this.lastFocus);return m;});
+  if(!this.promise)this.promise=import('./globe.js?v=0.5.25').then(({NodeMap})=>{const m=new NodeMap(this.onRegion);m.active=this._active;m.mode=this._mode;this.impl=m;if(this.lastUpdate)m.update(...this.lastUpdate);if(this.lastFocus)m.focus(this.lastFocus);return m;}).catch(error=>{this.promise=null;throw error;});
   return this.promise;
  }
  update(...args){this.lastUpdate=args;if(this.impl)this.impl.update(...args);}
@@ -13,14 +13,14 @@ export class DeferredNodeMap{
  requestDraw(){if(this.impl)this.impl.requestDraw();}
  init(){
   if(this._initPromise)return this._initPromise;
-  this._initPromise=new Promise(resolve=>{
-    const start=()=>this.load().then(m=>m.init()).then(resolve);
+  this._initPromise=new Promise((resolve,reject)=>{
+    const start=()=>this.load().then(m=>m.init()).then(resolve,reject);
     const idle=()=>('requestIdleCallback' in globalThis
       ? requestIdleCallback(start,{timeout:1800})
       : setTimeout(start,650));
     if(document.readyState==='complete')idle();
     else addEventListener('load',idle,{once:true});
-  });
+  }).catch(error=>{this._initPromise=null;throw error;});
   return this._initPromise;
 }
 }

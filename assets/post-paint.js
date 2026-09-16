@@ -13,34 +13,21 @@ const siteTitle=document.querySelector('#site-title');
 if(siteTitle)new MutationObserver(syncTitle).observe(siteTitle,{childList:true,characterData:true,subtree:true});
 syncTitle();
 
-let mobileLoaded=false,motionLoaded=false;
+let mobileLoaded=false;
 const mobile=matchMedia('(max-width:800px)');
-const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 
 const loadMobile=()=>{
  if(mobileLoaded||!mobile.matches)return;
  mobileLoaded=true;
- import('./mobile-polish.js?v=0.5.25').catch(()=>{});
+ import('./mobile-polish.js?v=0.5.25').catch(()=>{mobileLoaded=false;});
 };
 
-const loadDesktopMotion=()=>{
- if(motionLoaded||mobile.matches||reduced.matches)return;
- motionLoaded=true;
- if(!document.querySelector('link[data-atlas-motion]')){
-  const link=document.createElement('link');
-  link.rel='stylesheet';link.dataset.atlasMotion='1';
-  document.head.append(link);
- }
- 
-};
 
 function loadDeferredUi(){
  loadMobile();
- loadDesktopMotion();
 }
 
 mobile.addEventListener?.('change',loadDeferredUi);
-reduced.addEventListener?.('change',loadDesktopMotion);
 
 if(document.readyState==='complete')idle(loadDeferredUi);
 else addEventListener('load',()=>idle(loadDeferredUi),{once:true});
