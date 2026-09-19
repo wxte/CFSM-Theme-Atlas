@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shadcn Dashboard Preview</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#09090b;background:#fff;--b:#e4e4e7;--m:#71717a;--s:#f4f4f5}
+*{box-sizing:border-box}body{margin:0}.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}.side{border-right:1px solid var(--b);background:#fafafa;padding:14px 12px;display:flex;flex-direction:column}.brand{display:flex;gap:10px;align-items:center;font-weight:700;padding:8px 10px 18px}.mark{width:18px;height:18px;border:2px solid #18181b;border-radius:5px;transform:rotate(45deg)}.quick{display:flex;gap:8px;margin:0 5px 12px}.primary{flex:1;background:#18181b;color:white;border-radius:7px;padding:8px 10px;font-weight:600}.iconbtn{width:34px;border:1px solid var(--b);background:white;border-radius:7px;display:grid;place-items:center}.nav a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;margin:1px 4px;color:#27272a;text-decoration:none}.nav a.active{background:#ededf0}.muted{color:var(--m)}.group{padding:18px 10px 7px;font-size:12px;color:var(--m);font-weight:600}.bottom{margin-top:auto}.user{display:flex;gap:9px;align-items:center;padding:9px}.avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#d4d4d8,#a1a1aa)}.main{min-width:0}.top{height:48px;border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 24px;gap:12px}.sep{width:1px;height:18px;background:var(--b)}.top b{font-size:14px}.top span:last-child{margin-left:auto;font-size:13px}.content{padding:22px 24px 30px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card{border:1px solid var(--b);border-radius:12px;padding:18px;background:linear-gradient(to top,rgba(24,24,27,.035),white 48%)}.ctop{display:flex;justify-content:space-between}.label{font-size:13px;color:var(--m)}.metric{font-weight:750;font-size:28px;letter-spacing:-.03em;margin-top:4px}.delta{border:1px solid var(--b);border-radius:7px;padding:4px 7px;font-size:12px;height:max-content}.foot{margin-top:18px;font-size:13px}.foot p{margin:4px 0 0;color:var(--m);font-size:12px}.panel{margin-top:22px;border:1px solid var(--b);border-radius:12px}.ph{display:flex;padding:18px 18px 8px}.ph .title{font-weight:650}.desc{font-size:12px;color:var(--m);margin-top:4px}.range{margin-left:auto;border:1px solid var(--b);border-radius:7px;overflow:hidden;display:flex}.range span{font-size:12px;padding:7px 10px;border-left:1px solid var(--b)}.range span:first-child{border-left:0;background:var(--s)}.chart{height:250px;padding:12px 18px 20px}.tabsbar{display:flex;align-items:center;margin-top:22px;padding-bottom:13px}.tabs{background:var(--s);padding:3px;border-radius:8px;display:flex}.tab{font-size:12px;padding:6px 10px;border-radius:6px}.tab.on{background:#fff;box-shadow:0 1px 2px #0001}.actions{margin-left:auto;display:flex;gap:8px}.btn{background:#fff;border:1px solid var(--b);border-radius:7px;padding:7px 10px;font-size:12px}.table{border:1px solid var(--b);border-radius:10px;overflow:hidden}table{width:100%;border-collapse:collapse;font-size:12px}thead{background:var(--s)}th,td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--b);white-space:nowrap}tbody tr:last-child td{border-bottom:0}.link{font-weight:600;text-decoration:underline;text-decoration-color:#d4d4d8;text-underline-offset:3px}.badge{display:inline-flex;border:1px solid var(--b);border-radius:6px;padding:3px 6px;color:#52525b}.status{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--b);border-radius:6px;padding:3px 6px}.ok{color:#22c55e}.num{text-align:right}.pager{display:flex;padding:14px;color:var(--m);font-size:12px}.pager .r{margin-left:auto;display:flex;gap:14px;align-items:center}@media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+<div class="brand"><i class="mark"></i>Acme Inc.</div>
+<div class="quick"><div class="primary">⊕&nbsp;&nbsp;Quick Create</div><div class="iconbtn">✉</div></div>
+<nav class="nav">
+<a class="active">▦ Dashboard</a><a>☷ Lifecycle</a><a>▥ Analytics</a><a>▱ Projects</a><a>◉ Team</a>
+</nav>
+<div class="group">Documents</div>
+<nav class="nav"><a>◫ Data Library <span style="margin-left:auto">⋮</span></a><a>▤ Reports <span style="margin-left:auto">⋮</span></a><a>W Word Assistant <span style="margin-left:auto">⋮</span></a><a class="muted">••• More</a></nav>
+<div class="bottom nav"><a>⚙ Settings</a><a>? Get Help</a><a>⌕ Search</a><div class="user"><div class="avatar"></div><div><b>shadcn</b><div class="muted" style="font-size:12px">m@example.com</div></div><span style="margin-left:auto">⋮</span></div></div>
+</aside>
+<main class="main">
+<header class="top"><span>☰</span><i class="sep"></i><b>Documents</b><span>GitHub</span></header>
+<div class="content">
+<div class="cards">
+<div class="card"><div class="ctop"><div><div class="label">Total Revenue</div><div class="metric">$1,250.00</div></div><div class="delta">↗ +12.5%</div></div><div class="foot"><b>Trending up this month ↗</b><p>Visitors for the last 6 months</p></div></div>
+<div class="card"><div class="ctop"><div><div class="label">New Customers</div><div class="metric">1,234</div></div><div class="delta">↘ -20%</div></div><div class="foot"><b>Down 20% this period ↘</b><p>Acquisition needs attention</p></div></div>
+<div class="card"><div class="ctop"><div><div class="label">Active Accounts</div><div class="metric">45,678</div></div><div class="delta">↗ +12.5%</div></div><div class="foot"><b>Strong user retention ↗</b><p>Engagement exceed targets</p></div></div>
+<div class="card"><div class="ctop"><div><div class="label">Growth Rate</div><div class="metric">4.5%</div></div><div class="delta">↗ +4.5%</div></div><div class="foot"><b>Steady performance increase ↗</b><p>Meets growth projections</p></div></div>
+</div>
+<section class="panel"><div class="ph"><div><div class="title">Total Visitors</div><div class="desc">Total for the last 3 months</div></div><div class="range"><span>Last 3 months</span><span>Last 30 days</span><span>Last 7 days</span></div></div>
+<div class="chart"><svg viewBox="0 0 1000 230" preserveAspectRatio="none" width="100%" height="100%"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#18181b" stop-opacity=".18"/><stop offset="1" stop-color="#18181b" stop-opacity=".02"/></linearGradient></defs><g stroke="#ececf0"><line x1="0" y1="42" x2="1000" y2="42"/><line x1="0" y1="92" x2="1000" y2="92"/><line x1="0" y1="142" x2="1000" y2="142"/><line x1="0" y1="192" x2="1000" y2="192"/></g><path d="M0 175 C45 125 70 155 110 112 S170 55 215 90 S275 170 320 130 S365 40 410 70 S470 195 520 115 S580 25 630 95 S700 175 745 110 S805 30 850 85 S910 155 955 110 S985 68 1000 90 L1000 218 L0 218 Z" fill="url(#g)"/><path d="M0 175 C45 125 70 155 110 112 S170 55 215 90 S275 170 320 130 S365 40 410 70 S470 195 520 115 S580 25 630 95 S700 175 745 110 S805 30 850 85 S910 155 955 110 S985 68 1000 90" fill="none" stroke="#18181b" stroke-width="1.7"/></svg></div></section>
+<div class="tabsbar"><div class="tabs"><div class="tab on">Outline</div><div class="tab">Past Performance ③</div><div class="tab">Key Personnel ②</div><div class="tab">Focus Documents</div></div><div class="actions"><button class="btn">☷ Customize Columns⌄</button><button class="btn">＋ Add Section</button></div></div>
+<div class="table"><table><thead><tr><th></th><th>Header</th><th>Section Type</th><th>Status</th><th class="num">Target</th><th class="num">Limit</th><th>Reviewer</th><th></th></tr></thead><tbody>
+<tr><td>⋮⋮</td><td class="link">Cover page</td><td><span class="badge">Cover page</span></td><td><span class="status">● In Process</span></td><td class="num">18</td><td class="num">5</td><td>Eddie Lake</td><td>⋮</td></tr>
+<tr><td>⋮⋮</td><td class="link">Table of contents</td><td><span class="badge">Table of contents</span></td><td><span class="status"><span class="ok">●</span> Done</span></td><td class="num">29</td><td class="num">24</td><td>Eddie Lake</td><td>⋮</td></tr>
+<tr><td>⋮⋮</td><td class="link">Executive summary</td><td><span class="badge">Narrative</span></td><td><span class="status"><span class="ok">●</span> Done</span></td><td class="num">10</td><td class="num">13</td><td>Eddie Lake</td><td>⋮</td></tr>
+<tr><td>⋮⋮</td><td class="link">Technical approach</td><td><span class="badge">Narrative</span></td><td><span class="status"><span class="ok">●</span> Done</span></td><td class="num">27</td><td class="num">23</td><td>Jamik Tashpulatov</td><td>⋮</td></tr>
+<tr><td>⋮⋮</td><td class="link">Design</td><td><span class="badge">Narrative</span></td><td><span class="status">● In Process</span></td><td class="num">2</td><td class="num">16</td><td>Jamik Tashpulatov</td><td>⋮</td></tr>
+</tbody></table></div>
+<div class="pager"><span>0 of 68 row(s) selected.</span><div class="r"><span>Rows per page 10⌄</span><span>Page 1 of 7</span><span>« ‹ › »</span></div></div>
+</div>
+</main>
+</div>
+</body>
+</html>
